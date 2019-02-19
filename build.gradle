@@ -3,6 +3,7 @@ plugins {
     id 'checkstyle'
 }
 
+apply plugin: 'java'
 group 'com.opendxl.streaming'
 
 sourceCompatibility = 1.8
@@ -13,16 +14,25 @@ repositories {
 
 dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.12'
+    testCompile group: 'com.github.stefanbirkner', name: 'system-rules', version: '1.19.0'
+    compile group: 'net.sf.jopt-simple', name: 'jopt-simple', version: '5.0.4'
 }
 
 jar {
     manifest {
-        attributes 'Main-Class': 'com.opendxl.streaming.CommandLineInterface',
+        attributes 'Main-Class': 'com.opendxl.streaming.cli.CommandLineInterface',
                    'Implementation-Title': project.name,
                    'Implementation-Version': project.version
-
+        doFirst {
+            from { configurations.runtime.collect { it.isDirectory() ? it : zipTree(it) } }
+        }
     }
 }
 
+
+javadoc {
+    source = sourceSets.main.allJava
+    classpath = configurations.compile
+}
 // Make check style run before creating a jar
 jar.dependsOn(checkstyleMain)
