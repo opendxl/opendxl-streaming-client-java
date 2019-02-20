@@ -25,8 +25,10 @@ public class OperationArgumentFactory {
                                     final OptionSet options) {
         this.options = options;
         this.optionSpecMap = optionSpecMap;
-        operationArgumentsFactoryMap.put(OperationArguments.CREATE, new CreateOperationArgument(optionSpecMap));
-        operationArgumentsFactoryMap.put(OperationArguments.SUBSCRIBE, new SubscribeOperationArgument(optionSpecMap));
+        operationArgumentsFactoryMap.put(OperationArguments.CREATE,
+                new CreateOperationArgument(optionSpecMap, options));
+        operationArgumentsFactoryMap.put(OperationArguments.SUBSCRIBE,
+                new SubscribeOperationArgument(optionSpecMap, options));
     }
 
     public CommandLineOperationArgument getOperation(final ArgumentAcceptingOptionSpec<String> operationsOpt) {

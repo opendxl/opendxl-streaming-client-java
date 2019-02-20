@@ -5,6 +5,7 @@
 package com.opendxl.streaming.cli;
 
 import joptsimple.ArgumentAcceptingOptionSpec;
+import joptsimple.OptionSet;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,11 +20,14 @@ public class CreateOperationArgument implements CommandLineOperationArgument {
      * The operation name
      */
     public static final String OPERATION_NAME = OperationArguments.CREATE.argumentName;
+    private final OptionSet options;
 
     List<ArgumentAcceptingOptionSpec<String>> mandatoryOptions = new ArrayList<>();
 
 
-    public CreateOperationArgument(final Map<Options, ArgumentAcceptingOptionSpec<String>> optionSpecMap) {
+    public CreateOperationArgument(final Map<Options, ArgumentAcceptingOptionSpec<String>> optionSpecMap,
+                                   final OptionSet options) {
+        this.options = options;
         mandatoryOptions.add(optionSpecMap.get(Options.BROKERS));
     }
 
