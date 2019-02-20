@@ -9,10 +9,15 @@ sourceCompatibility = 1.8
 
 repositories {
     mavenCentral()
+    maven {
+        url "https://artifactory-lvs.corpzone.internalzone.com/artifactory/databus-local"
+    }
 }
 
 dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.12'
+    compile(group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.5')
+    compile(group: 'com.google.code.gson', name: 'gson', version: '2.6.2')
 }
 
 jar {
