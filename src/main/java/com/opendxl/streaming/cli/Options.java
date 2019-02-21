@@ -8,7 +8,7 @@ package com.opendxl.streaming.cli;
  * Command line options
  */
 public enum Options {
-    BROKERS, TOPIC, OPERATION
+    BROKERS, TOPIC, AUTH_URL, USER, PASSWORD, OPERATION, VERIFY_CERT_BUNDLE
 
 
 };

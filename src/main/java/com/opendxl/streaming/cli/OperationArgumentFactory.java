@@ -25,6 +25,8 @@ public class OperationArgumentFactory {
                                     final OptionSet options) {
         this.options = options;
         this.optionSpecMap = optionSpecMap;
+        operationArgumentsFactoryMap.put(OperationArguments.LOGIN,
+                new LoginOperationArgument(optionSpecMap, options));
         operationArgumentsFactoryMap.put(OperationArguments.CREATE,
                 new CreateOperationArgument(optionSpecMap, options));
         operationArgumentsFactoryMap.put(OperationArguments.SUBSCRIBE,

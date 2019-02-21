@@ -6,7 +6,7 @@ package com.opendxl.streaming.cli;
 
 import joptsimple.ArgumentAcceptingOptionSpec;
 
-import java.util.List;
+import java.util.Map;
 
 /**
  * Interface for all --operation arguments
@@ -17,11 +17,16 @@ public interface CommandLineOperationArgument {
      *
      * @return List if mandatory options for the specific operation
      */
-    List<ArgumentAcceptingOptionSpec<String>> getMandatoryOptions();
+    Map<Options, ArgumentAcceptingOptionSpec<String>> getMandatoryOptions();
 
     /**
      *
      * @return the operation name
      */
     String getOperationName();
+
+    /**
+     * Execute the operation
+     */
+    ExecutionResult execute();
 }

@@ -9,8 +9,10 @@ package com.opendxl.streaming.cli;
  */
 public enum OperationArguments {
 
+    LOGIN("login"),
     CREATE("create"),
     SUBSCRIBE("subscribe");
+
 
     OperationArguments(final String argumentName) {
         this.argumentName = argumentName;
