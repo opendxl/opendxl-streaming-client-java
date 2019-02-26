@@ -1,8 +1,15 @@
-package com.opendxl.streaming.cli;
+/*---------------------------------------------------------------------------*
+ * Copyright (c) 2019 McAfee, LLC - All Rights Reserved.                     *
+ *---------------------------------------------------------------------------*/
+
+package com.opendxl.streaming.cli.entity;
 
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Represent the result of a operation command line
+ */
 public class ExecutionResult {
 
     private final String code;
@@ -20,6 +27,10 @@ public class ExecutionResult {
         return code;
     }
 
+    /**
+     *
+     * @return a object that represents the result according to the specific operation
+     */
     public Object getResult() {
         return result;
     }

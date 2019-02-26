@@ -2,7 +2,7 @@
  * Copyright (c) 2019 McAfee, LLC - All Rights Reserved.                     *
  *---------------------------------------------------------------------------*/
 
-package com.opendxl.streaming.cli;
+package com.opendxl.streaming.cli.operation;
 
 /**
  * Arguments of --operation command line option

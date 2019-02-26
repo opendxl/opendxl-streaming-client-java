@@ -2,8 +2,9 @@
  * Copyright (c) 2019 McAfee, LLC - All Rights Reserved.                     *
  *---------------------------------------------------------------------------*/
 
-package com.opendxl.streaming.cli;
+package com.opendxl.streaming.cli.operation;
 
+import com.opendxl.streaming.cli.Options;
 import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.OptionSet;
 
@@ -12,31 +13,34 @@ import java.util.Map;
 
 /**
  * This factory class creates instances of --operations arguments . For instance creates a
- * {@link CreateOperationArgument} when command line is --operation create
+ * {@link CreateOperation} when command line is --operation create
  *
  */
-public class OperationArgumentFactory {
-    private final  Map<OperationArguments, CommandLineOperationArgument> operationArgumentsFactoryMap = new HashMap<>();
+public class OperationFactory {
+    private final  Map<OperationArguments, CommandLineOperation> operationArgumentsFactoryMap = new HashMap<>();
 
-    private final Map<Options, ArgumentAcceptingOptionSpec<String>> optionSpecMap;
     private final OptionSet options;
 
-    public OperationArgumentFactory(final Map<Options, ArgumentAcceptingOptionSpec<String>> optionSpecMap,
-                                    final OptionSet options) {
+    public OperationFactory(final Map<Options, ArgumentAcceptingOptionSpec<String>> optionSpecMap,
+                            final OptionSet options) {
         this.options = options;
-        this.optionSpecMap = optionSpecMap;
         operationArgumentsFactoryMap.put(OperationArguments.LOGIN,
-                new LoginOperationArgument(optionSpecMap, options));
+                new LoginOperation(optionSpecMap, options));
         operationArgumentsFactoryMap.put(OperationArguments.CREATE,
-                new CreateOperationArgument(optionSpecMap, options));
+                new CreateOperation(optionSpecMap, options));
         operationArgumentsFactoryMap.put(OperationArguments.SUBSCRIBE,
-                new SubscribeOperationArgument(optionSpecMap, options));
+                new SubscribeOperation(optionSpecMap, options));
         operationArgumentsFactoryMap.put(OperationArguments.CONSUME,
-                new ConsumeOperationArgument(optionSpecMap, options));
+                new ConsumeOperation(optionSpecMap, options));
 
     }
 
-    public CommandLineOperationArgument getOperation(final ArgumentAcceptingOptionSpec<String> operationsOpt) {
+    /**
+     *
+     * @param operationsOpt Operations supported by command line cli
+     * @return Command line operation instance
+     */
+    public CommandLineOperation getOperation(final ArgumentAcceptingOptionSpec<String> operationsOpt) {
         String operationArgument = options.valueOf(operationsOpt);
         return operationArgumentsFactoryMap.get(OperationArguments.fromString(operationArgument));
     }
