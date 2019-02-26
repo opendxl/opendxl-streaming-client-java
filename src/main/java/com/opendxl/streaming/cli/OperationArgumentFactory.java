@@ -31,6 +31,9 @@ public class OperationArgumentFactory {
                 new CreateOperationArgument(optionSpecMap, options));
         operationArgumentsFactoryMap.put(OperationArguments.SUBSCRIBE,
                 new SubscribeOperationArgument(optionSpecMap, options));
+        operationArgumentsFactoryMap.put(OperationArguments.CONSUME,
+                new ConsumeOperationArgument(optionSpecMap, options));
+
     }
 
     public CommandLineOperationArgument getOperation(final ArgumentAcceptingOptionSpec<String> operationsOpt) {

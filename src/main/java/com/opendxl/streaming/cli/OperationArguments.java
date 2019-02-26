@@ -11,7 +11,8 @@ public enum OperationArguments {
 
     LOGIN("login"),
     CREATE("create"),
-    SUBSCRIBE("subscribe");
+    SUBSCRIBE("subscribe"),
+    CONSUME("consume");
 
 
     OperationArguments(final String argumentName) {

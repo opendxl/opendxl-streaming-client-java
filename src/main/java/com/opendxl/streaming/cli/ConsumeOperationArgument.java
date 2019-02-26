@@ -7,6 +7,7 @@ package com.opendxl.streaming.cli;
 import com.opendxl.streaming.client.Channel;
 import com.opendxl.streaming.client.ChannelAuth;
 import com.opendxl.streaming.client.Request;
+import com.opendxl.streaming.client.entity.ConsumerRecords;
 import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.OptionSet;
 import junit.extensions.PA;
@@ -16,49 +17,39 @@ import org.apache.http.impl.cookie.BasicClientCookie;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-/**
- * This class represents the "subscribe" argument for a --operation option
- */
-public class SubscribeOperationArgument implements CommandLineOperationArgument {
-    private final OptionSet options;
-    Map<Options, ArgumentAcceptingOptionSpec<String>> mandatoryOptions = new HashMap<>();
+public class ConsumeOperationArgument implements CommandLineOperationArgument {
 
-    public static final String OPERATION_NAME = OperationArguments.SUBSCRIBE.argumentName;
 
     /**
-     * @param optionSpecMap Options and argument spec
-     * @param options       parsed command line options and arguments
+     * The operation name
      */
-    public SubscribeOperationArgument(final Map<Options, ArgumentAcceptingOptionSpec<String>> optionSpecMap,
-                                      final OptionSet options) {
+    public static final String OPERATION_NAME = OperationArguments.CONSUME.argumentName;
+
+
+    Map<Options, ArgumentAcceptingOptionSpec<String>> mandatoryOptions = new HashMap<>();
+
+    private final OptionSet options;
+
+    public ConsumeOperationArgument(final Map<Options, ArgumentAcceptingOptionSpec<String>> optionSpecMap,
+                                    final OptionSet options) {
         this.options = options;
         mandatoryOptions.put(Options.URL, optionSpecMap.get(Options.URL));
         mandatoryOptions.put(Options.TOKEN, optionSpecMap.get(Options.TOKEN));
         mandatoryOptions.put(Options.CONSUMER_ID, optionSpecMap.get(Options.CONSUMER_ID));
         mandatoryOptions.put(Options.CONSUMER_PATH_PREFIX, optionSpecMap.get(Options.CONSUMER_PATH_PREFIX));
         mandatoryOptions.put(Options.VERIFY_CERT_BUNDLE, optionSpecMap.get(Options.VERIFY_CERT_BUNDLE));
-        mandatoryOptions.put(Options.TOPIC, optionSpecMap.get(Options.TOPIC));
         mandatoryOptions.put(Options.COOKIE, optionSpecMap.get(Options.COOKIE));
         mandatoryOptions.put(Options.DOMAIN, optionSpecMap.get(Options.DOMAIN));
-
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public Map<Options, ArgumentAcceptingOptionSpec<String>> getMandatoryOptions() {
         return mandatoryOptions;
     }
 
-
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public String getOperationName() {
         return OPERATION_NAME;
@@ -66,12 +57,15 @@ public class SubscribeOperationArgument implements CommandLineOperationArgument 
 
     @Override
     public ExecutionResult execute() {
+
         try {
             // create a channel auth just to inject a token and be used by Channel
             final ChannelAuth channelAuth =
-                    Helper.channelAuthFactory(options.valueOf(mandatoryOptions.get(Options.URL)), "", "", "");
+                    Helper.channelAuthFactory(options.valueOf(mandatoryOptions.get(Options.URL)),
+                            "", "", "");
 
-            PA.setValue(channelAuth, "token", Optional.of(options.valueOf(mandatoryOptions.get(Options.TOKEN))));
+            PA.setValue(channelAuth, "token",
+                    Optional.of(options.valueOf(mandatoryOptions.get(Options.TOKEN))));
 
             // parse config
             Optional<Map<String, Object>> optionalConsumerConfig = Optional.empty();
@@ -107,10 +101,10 @@ public class SubscribeOperationArgument implements CommandLineOperationArgument 
             clientContext.getCookieStore().addCookie(cookie);
             cookie.setDomain(options.valueOf(mandatoryOptions.get(Options.DOMAIN)));
 
-            final List<String> topics = Helper.topicsToList(options.valueOf(mandatoryOptions.get(Options.TOPIC)));
-            channel.subscribe(topics);
+            ConsumerRecords records = channel.consume();
 
-            return new ExecutionResult("204", "",
+
+            return new ExecutionResult("200", records.getRecords(),
                     CommandLineUtils.getCommandLine(options, mandatoryOptions));
 
 

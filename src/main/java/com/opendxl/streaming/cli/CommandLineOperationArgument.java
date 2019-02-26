@@ -27,6 +27,8 @@ public interface CommandLineOperationArgument {
 
     /**
      * Execute the operation
+     *
+     * @return Execution result
      */
     ExecutionResult execute();
 }

@@ -18,7 +18,6 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * This class represents the "login" argument for a --operation option
@@ -27,7 +26,7 @@ public class LoginOperationArgument implements CommandLineOperationArgument {
 
     private static final String AUTHORIZATION_HEADER_KEY = "Authorization";
     private static final String BEARER_TOKEN_TYPE = "Bearer";
-    private  Map<Options, ArgumentAcceptingOptionSpec<String>> optionSpecMap;
+    private Map<Options, ArgumentAcceptingOptionSpec<String>> optionSpecMap;
     private final OptionSet options;
 
     Map<Options, ArgumentAcceptingOptionSpec<String>> mandatoryOptions = new HashMap<>();
@@ -35,9 +34,8 @@ public class LoginOperationArgument implements CommandLineOperationArgument {
 
 
     /**
-     *
      * @param optionSpecMap Options and argument spec
-     * @param options parsed command line options and arguments
+     * @param options       parsed command line options and arguments
      */
     public LoginOperationArgument(final Map<Options, ArgumentAcceptingOptionSpec<String>> optionSpecMap,
                                   final OptionSet options) {
@@ -73,29 +71,23 @@ public class LoginOperationArgument implements CommandLineOperationArgument {
             CommandLineUtils.printUsageAndFinish(CommandLineInterface.parser, e.getMessage());
         }
 
-        ChannelAuth channelAuth = new ChannelAuth(base,
-                options.valueOf(mandatoryOptions.get(Options.USER)),
-                options.valueOf(mandatoryOptions.get(Options.PASSWORD)),
-                Optional.of(path),
-                options.valueOf(mandatoryOptions.get(Options.VERIFY_CERT_BUNDLE)));
-
         HttpGet httpRequest = new HttpGet(base + path);
         try {
+            final ChannelAuth channelAuth = Helper.channelAuthFactory(
+                    options.valueOf(mandatoryOptions.get(Options.AUTH_URL)),
+                    options.valueOf(mandatoryOptions.get(Options.USER)),
+                    options.valueOf(mandatoryOptions.get(Options.PASSWORD)),
+                    options.valueOf(mandatoryOptions.get(Options.VERIFY_CERT_BUNDLE)));
             channelAuth.authenticate(httpRequest);
             Header authorization = httpRequest.getFirstHeader(AUTHORIZATION_HEADER_KEY);
             String token = getAuthorizationTokenFromHttpHeader(authorization);
-            return new ExecutionResult("[CODE ] 200", "[TOKEN] " + token);
+            return new ExecutionResult("200", token, CommandLineUtils.getCommandLine(options, mandatoryOptions));
 
-        } catch (IOException e) {
-            CommandLineUtils.printUsageAndFinish(CommandLineInterface.parser, e.getMessage());
-        } catch (KeyStoreException e) {
-            CommandLineUtils.printUsageAndFinish(CommandLineInterface.parser, e.getMessage());
-        } catch (NoSuchAlgorithmException e) {
-            CommandLineUtils.printUsageAndFinish(CommandLineInterface.parser, e.getMessage());
-        } catch (KeyManagementException e) {
+        } catch (IOException | KeyStoreException | NoSuchAlgorithmException | KeyManagementException e) {
             CommandLineUtils.printUsageAndFinish(CommandLineInterface.parser, e.getMessage());
         }
-        return new ExecutionResult("", "");
+
+        return new ExecutionResult("", "", new HashMap<>());
     }
 
     /**
