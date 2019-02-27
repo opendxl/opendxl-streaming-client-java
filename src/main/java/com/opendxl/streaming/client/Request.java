@@ -27,7 +27,7 @@ import java.util.Optional;
  * Request class is used to set up and send HTTP Post, Get and Delete requests to a given URI. It also keeps received
  * Cookies in the CookieStore of its HttpClientContext attribute.
  */
-public class Request {
+public class Request implements AutoCloseable {
 
     private final String base;
     private final ChannelAuth auth;
@@ -38,7 +38,7 @@ public class Request {
     /**
      * Request Constructor
      *
-     * @param base uri where to send the HttpRequest
+     * @param base scheme (http or https) and host parts of target URLs
      * @param auth provider of the Authorization token header to be included in the HttpRequest
      */
     Request(final String base, final ChannelAuth auth) {
@@ -74,7 +74,7 @@ public class Request {
     /**
      * Send a POST request
      *
-     * @param uri where to send the request
+     * @param uri path plus query string components of the destination URL
      * @param body to include in the request
      * @return an HttpResponse
      * @throws TemporaryError if request was not successful
@@ -93,7 +93,7 @@ public class Request {
     /**
      * Send a GET request
      *
-     * @param uri
+     * @param uri path plus query string components of the destination URL
      * @return an HttpResponse
      * @throws TemporaryError if request was not successful
      */
@@ -110,7 +110,7 @@ public class Request {
     /**
      * Send a DELETE request
      *
-     * @param uri
+     * @param uri path plus query string components of the destination URL
      * @return an HttpResponse
      * @throws TemporaryError if request was not successful
      */
@@ -166,6 +166,28 @@ public class Request {
     public void reset() {
 
         httpClientContext.getCookieStore().clear();
+        auth.reset();
+
+    }
+
+    /**
+     * Closes the request object and its supporting HttpClient.
+     *
+     * This method is added to allow Request to be used in conjunction with Java try-with-resources statement.
+     */
+    @Override
+    public void close() {
+
+        // TODO: verify that Request object is not sending a request or awaiting for a response when closing it
+        try {
+
+            httpClient.close();
+            reset();
+
+        } catch (final Exception e) {
+            throw new TemporaryError("Unexpected temporary error " + e.getClass().getCanonicalName() + ": "
+                    + e.getClass().getCanonicalName() + " " + e.getMessage());
+        }
 
     }
 

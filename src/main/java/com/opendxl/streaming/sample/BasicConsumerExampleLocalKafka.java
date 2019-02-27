@@ -11,6 +11,7 @@ import com.opendxl.streaming.client.entity.ConsumerRecords;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.Properties;
 
 /**
  * This example uses the opendxl-streaming-java-client to consume records from a Databus topic. It gets an
@@ -49,18 +50,22 @@ public class BasicConsumerExampleLocalKafka {
                     Optional.empty(),
                     verifyCertificateBundle);
 
+            // Custom configuration values just to test they are accurately set in Consumer instance of ConsumerService
+            Properties extraConfigs = new Properties();
+            extraConfigs.put("enable.auto.commit", false);
+            extraConfigs.put("auto.commit.interval.ms", 0);
+
             Channel channel = new Channel(channelUrl,
                     channelAuth,
                     channelConsumerGroup,
                     Optional.empty(),
                     Optional.of("/v1"),
                     "earliest",
-                    30000,
-                    30000,
+                    301,
+                    300,
                     false,
                     verifyCertificateBundle,
-                    Optional.empty());
-
+                    Optional.of(extraConfigs));
             // get a consumer instance from Databus Consumer Service
             channel.create();
 

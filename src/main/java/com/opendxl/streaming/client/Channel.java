@@ -17,10 +17,12 @@ import org.apache.http.util.EntityUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
+import java.util.Properties;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * The `Channel` class is responsible for all communication with the streaming service.
@@ -48,7 +50,7 @@ import java.util.Optional;
  * channel.create()
  *
  */
-public class Channel {
+public class Channel implements AutoCloseable {
 
     // Constants for consumer config settings
     private static final String _AUTO_OFFSET_RESET_CONFIG_SETTING = "auto.offset.reset";
@@ -58,17 +60,31 @@ public class Channel {
 
     private static final String _DEFAULT_CONSUMER_PATH_PREFIX = "/databus/consumer-service/v1";
 
+    // Default number of seconds to wait between consume queries made to the streaming service
+    private static final int _DEFAULT_WAIT_BETWEEN_QUERIES = 30;
+
     private final String base;
     private final String consumerPathPrefix;
     private final Optional<String> consumerGroup;
     private final List<String> offsetValues = Arrays.asList("latest", "earliest", "none");
-    private final Map<String, Object> configs = new HashMap<>();
+    private final Properties configs = new Properties();
 
     private String consumerId;
     private List<String> subscriptions;
     private List<CommitLog> recordsCommitLog;
 
     private final Request request;
+
+    private final boolean retryOnFail;
+    private boolean active;
+    private boolean running;
+    private boolean continueRunning;
+    private boolean stopRequested;
+
+    private ReentrantLock runLock;
+    private ReentrantLock destroyLock;
+    private Condition stopRequestedCondition;
+    private Condition stoppedCondition;
 
     /**
      * Constructor parameters:
@@ -114,7 +130,7 @@ public class Channel {
     public Channel(final String base, final ChannelAuth auth, final String consumerGroup,
             final Optional<String> pathPrefix, final Optional<String> consumerPathPrefix, final String offset,
             final Integer requestTimeout, final Integer sessionTimeout, final boolean retryOnFail,
-            final String verifyCertBundle, final Optional<Map<String, Object>> extraConfigs) {
+            final String verifyCertBundle, final Optional<Properties> extraConfigs) {
 
         this.base = base;
         this.consumerPathPrefix = pathPrefix.isPresent() ? pathPrefix.get()
@@ -152,9 +168,19 @@ public class Channel {
         this.subscriptions = new ArrayList<>();
         this.recordsCommitLog = new ArrayList<>();
 
-        // Create a custom Request object. The Request object stores received cookies and it later adds them to next
-        // HttpRequest.
+        // Create a custom Request object so that we can store cookies across requests
         this.request = new Request(base, auth);
+
+        this.retryOnFail = retryOnFail;
+
+        this.destroyLock = new ReentrantLock();
+        this.active = true;
+
+        this.runLock = new ReentrantLock();
+        this.running = false;
+        this.stopRequested = false;
+        this.stopRequestedCondition = this.runLock.newCondition();
+        this.stoppedCondition = this.runLock.newCondition();
 
     }
 
@@ -173,9 +199,6 @@ public class Channel {
 
     /**
      * Creates a new consumer on the consumer group
-     *
-     * @throws TemporaryError: if the creation attempt fails and retryOnFail is set to false.
-     * @throws PermanentError: if the channel has been destroyed.
      */
     public void create() {
 
@@ -187,12 +210,10 @@ public class Channel {
 
         reset();
 
-        // Add consumerGroup value to request payload
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("consumerGroup", consumerGroup.get());
-        payload.putAll(configs);
+        // Add consumerGroup value and config properties to request payload
+        ConsumerConfig consumerConfig = new ConsumerConfig(consumerGroup.get(), configs);
         Gson gson = new Gson();
-        byte[] body = gson.toJson(payload).getBytes();
+        byte[] body = gson.toJson(consumerConfig).getBytes();
 
         HttpResponse response = request.post(consumerPathPrefix + "/consumers", Optional.of(body));
         int statusCode = response.getStatusLine().getStatusCode();
@@ -213,10 +234,6 @@ public class Channel {
      * Subscribes the consumer to a list of topics
      *
      * @param topics: Topic list.
-     * @throws ConsumerError: if the consumer associated with the channel does not exist on the server and retryOnFail
-     *         is set to false.
-     * @throws TemporaryError: if the subscription attempt fails and retryOnFail is set to false.
-     * @throws PermanentError: if the channel has been destroyed.
      */
     public void subscribe(final List<String> topics) {
 
@@ -273,8 +290,6 @@ public class Channel {
      * List the topic names to which the consumer is subscribed.
      *
      * @return List of topic names
-     * @throws ConsumerError: if the consumer associated with the channel does not exist on the server
-     * @throws TemporaryError: if the retrieval of subscriptions fails
      */
     public List<String> subscriptions() {
 
@@ -339,8 +354,6 @@ public class Channel {
 
     /**
      * Deletes the consumer from the consumer group
-     *
-     * @throws: TemporaryError: if the delete attempt fails.
      */
     public void delete() {
 
@@ -352,21 +365,22 @@ public class Channel {
                 .append("/consumers/")
                 .append(consumerId).toString();
 
-        try {
+        HttpResponse response = request.delete(api);
 
-            HttpResponse response = request.delete(api);
-
-            int statusCode = response.getStatusLine().getStatusCode();
-            if (!(statusCode >= 200 && statusCode < 300) && statusCode != 404) {
-
-                throw new TemporaryError("Unexpected temporary error " + statusCode + ": "
-                        + getConsumerServiceErrorMessage(getString(response.getEntity(), statusCode)));
-
-            }
-
-        } finally {
+        int statusCode = response.getStatusLine().getStatusCode();
+        if (statusCode >= 200 && statusCode < 300) {
 
             reset();
+
+        } else if (statusCode == 404) {
+
+            System.out.println("Consumer with ID " + consumerId + " not found. Resetting consumer anyways.");
+            reset();
+
+        } else {
+
+            throw new TemporaryError("Unexpected temporary error " + statusCode + ": "
+                    + getConsumerServiceErrorMessage(getString(response.getEntity(), statusCode)));
 
         }
 
@@ -376,10 +390,6 @@ public class Channel {
      * Consumes records from all the subscribed topics
      *
      * @return ConsumerRecords: a list of the consumer record objects from the records returned from the server.
-     * @throws ConsumerError: if the consumer associated with the channel does not exist on the server and retryOnFail
-     *         is set to False.
-     * @throws TemporaryError: if the consume attempt fails and retryOnFail is set to False.
-     * @throws PermanentError: if the channel has been destroyed or the channel has not been subscribed to any topics.
      */
     public ConsumerRecords consume() {
 
@@ -418,6 +428,234 @@ public class Channel {
                     + response.getStatusLine().getReasonPhrase() + " details: "
                     + getConsumerServiceErrorMessage(getString(response.getEntity(), statusCode)));
         }
+
+    }
+
+    /**
+     * Commits the record offsets to the channel. Committed offsets are the latest consumed ones on all consumed topics
+     * and partitions.
+     */
+    public void commit() {
+
+        String api = new StringBuilder(consumerPathPrefix)
+                .append("/consumers/")
+                .append(consumerId)
+                .append("/offsets").toString();
+
+        HttpResponse response = request.post(api, Optional.empty());
+
+        int statusCode = response.getStatusLine().getStatusCode();
+
+        if (statusCode >= 200 && statusCode < 300) {
+
+            recordsCommitLog.clear();
+
+        } else if (statusCode == 404) {
+            throw new ConsumerError("Consumer '" + consumerId + "' does not exist");
+        } else {
+            throw new TemporaryError("Unexpected temporary error " + statusCode + ": "
+                    + response.getStatusLine().getReasonPhrase());
+        }
+
+    }
+
+    /**
+     * Repeatedly consume records from the subscribed topics. The supplied consumerRecordProcessor.callback() method
+     * is invoked with a list containing each consumer record.
+     *
+     * The consumerRecordProcessor.callback() should return a value of True in order for this function to continue
+     * consuming additional records. For a return value of False or no return value, no additional records will be
+     * consumed and this function will return.
+     *
+     * The stop method can also be called to halt an execution of this method.
+     *
+     * @param processCallback: Callable which is invoked with a list of payloads from records which have been consumed.
+     * @param waitBetweenQueries: Number of seconds to wait between calls to consume records.
+     * @param topics: If set to a non-empty value, the channel will be subscribed to the specified topics.
+     *              If set to an empty value, the channel will use topics previously subscribed via a call to the
+     *              subscribe method.
+     */
+    public void run(final Optional<ConsumerRecordProcessor> processCallback, final int waitBetweenQueries,
+                    final Optional<List<String>> topics) {
+
+        if (!consumerGroup.isPresent()) {
+            throw new PermanentError("No value specified for 'consumerGroup' during channel init");
+        }
+
+        if (!processCallback.isPresent()) {
+            throw new PermanentError("processCallback not provided");
+        }
+
+        int waitPeriod = waitBetweenQueries > 0 ? waitBetweenQueries : _DEFAULT_WAIT_BETWEEN_QUERIES;
+
+        List<String> topicsOfInterest = topics.isPresent() && !topics.get().isEmpty() ? topics.get() : subscriptions;
+
+        continueRunning = true;
+        runLock.lock();
+        if (running) {
+            runLock.unlock();
+            throw new PermanentError("Previous run already in progress");
+        }
+
+        running = true;
+        continueRunning = !stopRequested;
+        runLock.unlock();
+
+        try {
+
+            while (continueRunning) {
+                subscribe(topicsOfInterest);
+                continueRunning = consumeLoop(processCallback.get(), waitPeriod, topicsOfInterest);
+            }
+
+        } catch (final StopError e) {
+            // Ignore it
+        } finally {
+            runLock.lock();
+            running = false;
+            stopRequested = false;
+            stoppedCondition.signalAll();
+            runLock.unlock();
+        }
+
+    }
+
+    public void run(final Optional<ConsumerRecordProcessor> processCallback, final int waitBetweenQueries,
+                    final String topic) {
+
+        run(processCallback, waitBetweenQueries,
+                topic != null && !topic.isEmpty() ? Optional.of(Arrays.asList(topic)) : Optional.empty());
+
+    }
+
+    /**
+     * Stop an active execution of the :meth:`run` call. If no :meth:`run` call is active, this function returns
+     * immediately. If a :meth:`run` call is active, this function blocks until the run has been completed.
+     */
+    public void stop() {
+
+        runLock.lock();
+
+        if (running) {
+
+            stopRequested = true;
+            stopRequestedCondition.signalAll();
+
+            while (running) {
+                try {
+
+                    stoppedCondition.await();
+
+                } catch (final Exception e) {
+                    throw new StopError("Channel was stopped");
+                }
+            }
+        }
+
+        runLock.unlock();
+
+    }
+
+    /**
+     * Destroys the channel (releases all associated resources).
+     *
+     * **NOTE:** Once the method has been invoked, no other calls should be made to the channel.
+     *
+     * Also note that this method should rarely be called directly. Instead, the preferred usage of the channel is via
+     * a Java "try-with-resources" statement as shown below:
+     *
+     *      // Create the channel
+     *      try (Channel channel = new Channel(("http://channel-server",
+     *              auth=ChannelAuth("http://channel-server,
+     *              "user", "password"),
+     *              consumer_group="thegroup")) {
+     *
+     *                  channel.create();
+     *      }
+     *
+     * The "try-with-resources" statement ensures that resources associated with the channel are properly cleaned up
+     * when the block is exited (the :func:`destroy` method is invoked).
+     */
+    public void destroy() {
+
+        destroyLock.lock();
+
+        if (active) {
+
+            stop();
+            delete();
+            request.close();
+
+            active = false;
+        }
+
+        destroyLock.unlock();
+
+    }
+
+    /**
+     * Closes the channel. It calls destroy() to stop the channel and to release its resources.
+     *
+     * This method is added to allow Channel to be used in conjunction with Java try-with-resources statement.
+     */
+    @Override
+    public void close() {
+
+        destroy();
+
+    }
+
+    /**
+     * Calls consume to get records, delivers them to processCallback and commit the consumed records.
+     *
+     * @param processCallback
+     * @param waitBetweenQueries
+     * @param topics
+     * @return true if callback has successfully processed records and stop has not been requested
+     *         false otherwise
+     */
+    private boolean consumeLoop(final ConsumerRecordProcessor processCallback, final long waitBetweenQueries,
+                                List<String> topics) {
+
+        boolean continueRunning = true;
+
+        while (continueRunning) {
+
+            try {
+
+                ConsumerRecords records = consume();
+                continueRunning = processCallback.processCallback(records, consumerId);
+                // Commit the offsets for the records which were just consumed.
+                commit();
+
+                runLock.lock();
+                if (stopRequested) {
+                    continueRunning = false;
+                } else if (continueRunning) {
+                    stopRequestedCondition.await(waitBetweenQueries, TimeUnit.SECONDS);
+                    continueRunning = !stopRequested;
+                }
+                runLock.unlock();
+
+            } catch (final ConsumerError e) {
+                // This exception could be raised if the consumer has been removed
+                System.out.println("Resetting consumer loop: " + e);
+                topics = subscriptions;
+                reset();
+                // TODO: implement retryOnFail
+//              if (!retryOnFail) {
+//                  continueRunning = false;
+//              }
+
+                // TODO: catch of ConsumerProcessorIrrecoverableException and ConsumerProcessorRecoverableException
+//            } catch(final ConsumerProcessorIrrecoverableException | ConsumerProcessorRecoverableException e) {
+            } catch (final Exception e) {
+                throw new TemporaryError("Unexpected temporary error " + e.getClass().getCanonicalName() + ": "
+                        + e.getClass().getCanonicalName() + " " + e.getMessage());
+            }
+        }
+
+        return continueRunning;
 
     }
 
@@ -474,6 +712,17 @@ class ConsumerId {
         return this.consumerInstanceId;
     }
 
+}
+
+class ConsumerConfig {
+
+    private String consumerGroup;
+    private Properties configs;
+
+    ConsumerConfig(final String consumerGroup, final Properties configs) {
+        this.consumerGroup = consumerGroup;
+        this.configs = configs;
+    }
 }
 
 class CommitLog {

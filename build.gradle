@@ -29,5 +29,10 @@ jar {
     }
 }
 
+javadoc {
+    source = sourceSets.main.allJava
+    classpath = configurations.compile
+}
+
 // Make check style run before creating a jar
 jar.dependsOn(checkstyleMain)

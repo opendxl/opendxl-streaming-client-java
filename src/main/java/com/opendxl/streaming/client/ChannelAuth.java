@@ -42,7 +42,7 @@ public class ChannelAuth {
      * @param base: Base URL to forward authentication requests to.
      * @param username: User name to supply for request authentication.
      * @param password: Password to supply for request authentication.
-     * @pathFragment: Path to append to the base URL for the request.
+     * @param pathFragment: Path to append to the base URL for the request.
      * @param verifyCertBundle: Path to a CA bundle file containing
      *    certificates of trusted CAs. The CA bundle is used to validate that
      *    the certificate of the authentication server being connected to was
@@ -74,11 +74,12 @@ public class ChannelAuth {
     /**
      * Adds an http header with the Authorization token to the given http request
      *
-     * @param httpRequest
-     * @throws IOException
-     * @throws KeyStoreException
-     * @throws NoSuchAlgorithmException
-     * @throws KeyManagementException
+     * TODO: add a better explanation when these exceptions are thrown
+     * @param httpRequest request where to add the Authorization header
+     * @throws IOException exception that might be thrown by CloseableHttpClient.execute()
+     * @throws KeyStoreException exception that might be thrown by SSLContextBuilder.loadTrustMaterial()
+     * @throws NoSuchAlgorithmException exception that might be thrown by SSLContextBuilder.loadTrustMaterial()
+     * @throws KeyManagementException exception that might be thrown by SSLContextBuilder.loadTrustMaterial.build()
      */
     public void authenticate(final HttpRequest httpRequest)
             throws IOException, KeyStoreException, NoSuchAlgorithmException, KeyManagementException {
@@ -103,11 +104,13 @@ public class ChannelAuth {
      *                        to validate that the certificate of the authentication server being connected to was
      *                        signed by a valid authority. If set to an empty string, the server certificate is not
      *                        validated.
-     * @return
-     * @throws IOException
-     * @throws KeyStoreException
-     * @throws NoSuchAlgorithmException
-     * @throws KeyManagementException
+     * @return an Optional containing the Authorization token if login succeeded
+     *         an empty Optional otherwise
+     * TODO: add a better explanation when these exceptions are thrown
+     * @throws IOException exception that might be thrown by CloseableHttpClient.execute()
+     * @throws KeyStoreException exception that might be thrown by SSLContextBuilder.loadTrustMaterial()
+     * @throws NoSuchAlgorithmException exception that might be thrown by SSLContextBuilder.loadTrustMaterial()
+     * @throws KeyManagementException exception that might be thrown by SSLContextBuilder.loadTrustMaterial.build()
      */
     private Optional<String> login(String uri, String username, String password, String pathFragment,
                                    String verifyCertBundle)
