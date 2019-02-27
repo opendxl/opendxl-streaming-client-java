@@ -55,8 +55,8 @@ public class BasicConsumerExample {
                     Optional.empty(),
                     Optional.empty(),
                     "earliest",
-                    30000,
-                    30000,
+                    301,
+                    300,
                     false,
                     verifyCertificateBundle,
                     Optional.empty());
