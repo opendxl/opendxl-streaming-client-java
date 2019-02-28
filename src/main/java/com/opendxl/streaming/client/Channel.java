@@ -39,8 +39,8 @@ import java.util.concurrent.locks.ReentrantLock;
  *                               Optional.empty(),              // pathPrefix
  *                               Optional.of("/databus/consumer-service/v1"),  // consumerPathPrefix
  *                               "earliest",                    // offset
- *                               30000,                         // requestTimeout
- *                               30000,                         // sessionTimeout
+ *                               301,                           // requestTimeout
+ *                               300,                           // sessionTimeout
  *                               false,                         // retryOnFail
  *                               "",                            // verifyCertificateBundle
  *                               extraConfigs);
@@ -193,7 +193,7 @@ public class Channel implements AutoCloseable {
         subscriptions.clear();
         recordsCommitLog.clear();
 
-        request.reset();
+        request.resetCookies();
 
     }
 
@@ -219,7 +219,7 @@ public class Channel implements AutoCloseable {
         int statusCode = response.getStatusLine().getStatusCode();
         String responseEntityString = getString(response.getEntity(), statusCode);
 
-        if (statusCode >= 200 && statusCode < 300) {
+        if (isSuccess(statusCode)) {
             ConsumerId consumer = (ConsumerId) gson.fromJson(responseEntityString, ConsumerId.class);
             consumerId = consumer.getConsumerInstanceId();
 
@@ -268,7 +268,7 @@ public class Channel implements AutoCloseable {
         HttpResponse response = request.post(api, Optional.of(body));
         int statusCode = response.getStatusLine().getStatusCode();
 
-        if (statusCode >= 200 && statusCode < 300) {
+        if (isSuccess(statusCode)) {
 
             subscriptions.clear();
             subscriptions.addAll(topics);
@@ -305,7 +305,7 @@ public class Channel implements AutoCloseable {
         final int statusCode = response.getStatusLine().getStatusCode();
         String responseEntityString = getString(response.getEntity(), statusCode);
 
-        if (statusCode >= 200 && statusCode < 300) {
+        if (isSuccess(statusCode)) {
 
             list.addAll(gson.fromJson(responseEntityString, List.class));
 
@@ -338,7 +338,7 @@ public class Channel implements AutoCloseable {
         HttpResponse response = request.delete(api);
         final int statusCode = response.getStatusLine().getStatusCode();
 
-        if (statusCode >= 200 && statusCode < 300) {
+        if (isSuccess(statusCode)) {
 
             subscriptions.clear();
             return;
@@ -367,17 +367,16 @@ public class Channel implements AutoCloseable {
 
         HttpResponse response = request.delete(api);
 
+        // Delete session attribute values, cookies and authorization token
+        reset();
+        request.resetAuthorization();
+
         int statusCode = response.getStatusLine().getStatusCode();
-        if (statusCode >= 200 && statusCode < 300) {
-
-            reset();
-
-        } else if (statusCode == 404) {
+        if (statusCode == 404) {
 
             System.out.println("Consumer with ID " + consumerId + " not found. Resetting consumer anyways.");
-            reset();
 
-        } else {
+        } else if (!isSuccess(statusCode)) {
 
             throw new TemporaryError("Unexpected temporary error " + statusCode + ": "
                     + getConsumerServiceErrorMessage(getString(response.getEntity(), statusCode)));
@@ -405,7 +404,7 @@ public class Channel implements AutoCloseable {
         HttpResponse response = request.get(api);
 
         int statusCode = response.getStatusLine().getStatusCode();
-        if (statusCode >= 200 && statusCode < 300) {
+        if (isSuccess(statusCode)) {
 
             try {
 
@@ -422,6 +421,7 @@ public class Channel implements AutoCloseable {
                         + e.getMessage());
             }
         } else if (statusCode == 404) {
+            //  TODO: ADD MORE INFORMATION, LIKE ERROR CODE, TO CONSUMER ERROR
             throw new ConsumerError("Consumer " + consumerId + " does not exist");
         } else {
             throw new TemporaryError("Unexpected temporary error " + statusCode + ": "
@@ -446,7 +446,7 @@ public class Channel implements AutoCloseable {
 
         int statusCode = response.getStatusLine().getStatusCode();
 
-        if (statusCode >= 200 && statusCode < 300) {
+        if (isSuccess(statusCode)) {
 
             recordsCommitLog.clear();
 
@@ -694,6 +694,19 @@ public class Channel implements AutoCloseable {
         return apiGatewayError != null
                 ? apiGatewayError.getMessage()
                 : responseEntityString;
+
+    }
+
+    /**
+     * Checks whether a status code is successful one
+     *
+     * @param statusCode an HTTP Response Status Code
+     * @return true if status code belongs to 2xx Success range
+     *         false otherwise
+     */
+    private boolean isSuccess(final int statusCode) {
+
+        return statusCode >= 200 && statusCode < 300;
 
     }
 
