@@ -14,19 +14,21 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * This example uses the opendxl-streaming-java-client to consume records from a Databus topic. It gets an
- * Authentication token from the configured channelUrlLogin and then it calls Databus Consumer Service APIs to create
- * a consumer, to subscribe to a topic and to consume records from such topic.
+ * This example uses the opendxl-streaming-java-client to consume records from a Databus topic. It instantiates
+ * a ChannelAuth object, a Channel object and a ConsumerRecordProcessor object. Then, the Channel run method is invoked
+ * and Channel starts to indefinitely consume records and to deliver them to ConsumerRecordProcessor which finally
+ * prints them out. To quit this sample program, press CTRL+C or execute kill to call Channel destroy method which
+ * will stop the Channel and gracefully exit.
  */
-public class ConsumerRecordProcessorLocalKafka {
+public class ConsumerRecordCallback {
 
-    private ConsumerRecordProcessorLocalKafka() { }
+    private ConsumerRecordCallback() { }
 
     public static void main(String[] args) {
 
-        String channelUrl = "http://127.0.0.1:48080";
-        String channelUsername = "me";
-        String channelPassword = "secret";
+        String channelUrl = "https://tmp.dev-copp2.fastdxl.net";
+        String channelUsername = "sys_integration";
+        String channelPassword = "VCH4YRg4kCM75TERMgHn";
         String channelConsumerGroup = "cg1";
         List<String> channelTopicSubscriptions = Arrays.asList("case-mgmt-events",
                 "my-topic",
@@ -51,7 +53,7 @@ public class ConsumerRecordProcessorLocalKafka {
                         verifyCertificateBundle),
                 channelConsumerGroup,
                 Optional.empty(),
-                Optional.of("/v1"),
+                Optional.empty(),
                 "earliest",
                 301,
                 300,

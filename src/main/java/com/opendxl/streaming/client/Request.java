@@ -147,9 +147,8 @@ public class Request implements AutoCloseable {
 
         int statusCode = httpResponse.getStatusLine().getStatusCode();
         if (statusCode == 401 || statusCode == 403) {
-            // TODO: do a reset of authorization attributes
-            // if hasattr(self._session.auth, "reset"):
-            //                    self._session.auth.reset()
+            // Reset authorization attribute
+            resetAuthorization();
             throw new TemporaryError("Token potentially expired (" + statusCode + "): "
                     + httpResponse.getStatusLine().getReasonPhrase() + " entity " + getString(httpResponse.getEntity(),
                     statusCode));
@@ -163,12 +162,21 @@ public class Request implements AutoCloseable {
     /**
      * Clean up session data which are sent in all requests, e.g.: delete cookies from HttpClientContext CookieStore
      */
-    public void reset() {
+    public void resetCookies() {
 
         httpClientContext.getCookieStore().clear();
+
+    }
+
+    /**
+     * Clean up authorization data which is sent in all requests, e.g.: delete authorization token
+     */
+    public void resetAuthorization() {
+
         auth.reset();
 
     }
+
 
     /**
      * Closes the request object and its supporting HttpClient.
@@ -182,7 +190,8 @@ public class Request implements AutoCloseable {
         try {
 
             httpClient.close();
-            reset();
+            resetCookies();
+            resetAuthorization();
 
         } catch (final Exception e) {
             throw new TemporaryError("Unexpected temporary error " + e.getClass().getCanonicalName() + ": "
