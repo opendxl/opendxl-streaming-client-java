@@ -32,6 +32,11 @@ public class OperationFactory {
                 new SubscribeOperation(optionSpecMap, options));
         operationArgumentsFactoryMap.put(OperationArguments.CONSUME,
                 new ConsumeOperation(optionSpecMap, options));
+        operationArgumentsFactoryMap.put(OperationArguments.COMMIT,
+                new CommitOperation(optionSpecMap, options));
+        operationArgumentsFactoryMap.put(OperationArguments.DELETE,
+                new DeleteOperation(optionSpecMap, options));
+
 
     }
 

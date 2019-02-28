@@ -12,7 +12,9 @@ public enum OperationArguments {
     LOGIN("login"),
     CREATE("create"),
     SUBSCRIBE("subscribe"),
-    CONSUME("consume");
+    CONSUME("consume"),
+    COMMIT("commit"),
+    DELETE("delete");
 
 
     OperationArguments(final String argumentName) {
