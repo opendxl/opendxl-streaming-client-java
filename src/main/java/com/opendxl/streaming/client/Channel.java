@@ -71,9 +71,9 @@ public class Channel implements AutoCloseable {
 
     private String consumerId;
     private List<String> subscriptions;
-    private List<CommitLog> recordsCommitLog;
 
-    private final Request request;
+    private final ChannelAuth auth;
+    private Request request;
 
     private final boolean retryOnFail;
     private boolean active;
@@ -126,13 +126,17 @@ public class Channel implements AutoCloseable {
      *                    sent to the streaming service when a consumer is created. Note that any values specified for
      *                    the `offset`, `requestTimeout`, and/or `sessionTimeout` parameters will override the
      *                    corresponding values, if specified, in the `extraConfigs` parameter.
+     * @throws PermanentError if offset value is not one of "latest", "earliest", "none".
+     * @throws TemporaryError if http client request object failed to be created.
      */
     public Channel(final String base, final ChannelAuth auth, final String consumerGroup,
             final Optional<String> pathPrefix, final Optional<String> consumerPathPrefix, final String offset,
             final Integer requestTimeout, final Integer sessionTimeout, final boolean retryOnFail,
-            final String verifyCertBundle, final Optional<Properties> extraConfigs) {
+            final String verifyCertBundle, final Optional<Properties> extraConfigs) throws PermanentError,
+            TemporaryError {
 
         this.base = base;
+        this.auth = auth;
         this.consumerPathPrefix = pathPrefix.isPresent() ? pathPrefix.get()
                 : consumerPathPrefix.orElse(_DEFAULT_CONSUMER_PATH_PREFIX);
 
@@ -166,7 +170,6 @@ public class Channel implements AutoCloseable {
         // State variables
         this.consumerId = null;
         this.subscriptions = new ArrayList<>();
-        this.recordsCommitLog = new ArrayList<>();
 
         // Create a custom Request object so that we can store cookies across requests
         this.request = new Request(base, auth);
@@ -191,7 +194,6 @@ public class Channel implements AutoCloseable {
 
         consumerId = null;
         subscriptions.clear();
-        recordsCommitLog.clear();
 
         request.resetCookies();
 
@@ -199,8 +201,11 @@ public class Channel implements AutoCloseable {
 
     /**
      * Creates a new consumer on the consumer group
+     *
+     * @throws PermanentError if no consumer group was specified.
+     * @throws TemporaryError if the creation attempt fails.
      */
-    public void create() {
+    public void create() throws PermanentError, TemporaryError {
 
         if (!consumerGroup.isPresent()) {
 
@@ -234,8 +239,11 @@ public class Channel implements AutoCloseable {
      * Subscribes the consumer to a list of topics
      *
      * @param topics: Topic list.
+     * @throws ConsumerError if the consumer associated with the channel does not exist on the server.
+     * @throws PermanentError if no topics were specified.
+     * @throws TemporaryError if the subscription attempt fails.
      */
-    public void subscribe(final List<String> topics) {
+    public void subscribe(final List<String> topics) throws ConsumerError, PermanentError, TemporaryError {
 
         if (topics == null) {
 
@@ -273,9 +281,9 @@ public class Channel implements AutoCloseable {
             subscriptions.clear();
             subscriptions.addAll(topics);
 
-        } else if (statusCode == 404) {
+        } else if (shouldRecreateConsumer(statusCode)) {
 
-            throw new ConsumerError("Consumer " + consumerId + " does not exist");
+            throw new ConsumerError("Consumer " + consumerId + " does not exist - Status code: " + statusCode);
 
         } else {
 
@@ -290,8 +298,10 @@ public class Channel implements AutoCloseable {
      * List the topic names to which the consumer is subscribed.
      *
      * @return List of topic names
+     * @throws ConsumerError if the consumer associated with the channel does not exist on the server.
+     * @throws TemporaryError if the retrieval of subscriptions fails.
      */
-    public List<String> subscriptions() {
+    public List<String> subscriptions() throws ConsumerError, TemporaryError {
 
         final Gson gson = new Gson();
         final String api =  new StringBuilder(consumerPathPrefix)
@@ -309,9 +319,9 @@ public class Channel implements AutoCloseable {
 
             list.addAll(gson.fromJson(responseEntityString, List.class));
 
-        } else if (statusCode == 404) {
+        } else if (shouldRecreateConsumer(statusCode)) {
 
-            throw new ConsumerError("Consumer " + consumerId + " does not exist");
+            throw new ConsumerError("Consumer " + consumerId + " does not exist - Status code: " + statusCode);
 
         } else {
 
@@ -327,8 +337,10 @@ public class Channel implements AutoCloseable {
     /**
      * Unsubscribe the consumer from all topics
      *
+     * @throws ConsumerError if the consumer associated with the channel does not exist on the server.
+     * @throws TemporaryError if the unsubscription attempt fails.
      */
-    public void unsubscribe() {
+    public void unsubscribe() throws ConsumerError, TemporaryError {
 
         final String api =  new StringBuilder(consumerPathPrefix)
                 .append("/consumers/")
@@ -343,8 +355,10 @@ public class Channel implements AutoCloseable {
             subscriptions.clear();
             return;
 
-        } else if (statusCode == 404) {
-            throw new ConsumerError("Consumer " + consumerId + " does not exist");
+        } else if (shouldRecreateConsumer(statusCode)) {
+
+            throw new ConsumerError("Consumer " + consumerId + " does not exist - Status code: " + statusCode);
+
         } else {
             throw new TemporaryError("Unexpected temporary error " + statusCode + ": "
                     + response.getStatusLine().getReasonPhrase());
@@ -354,8 +368,10 @@ public class Channel implements AutoCloseable {
 
     /**
      * Deletes the consumer from the consumer group
+     *
+     * @throws TemporaryError if the delete attempt fails.
      */
-    public void delete() {
+    public void delete() throws TemporaryError {
 
         if (consumerId == null) {
             return;
@@ -372,11 +388,15 @@ public class Channel implements AutoCloseable {
         request.resetAuthorization();
 
         int statusCode = response.getStatusLine().getStatusCode();
-        if (statusCode == 404) {
+        if (isSuccess(statusCode)) {
+
+            return;
+
+        } else if (statusCode == 404) {
 
             System.out.println("Consumer with ID " + consumerId + " not found. Resetting consumer anyways.");
 
-        } else if (!isSuccess(statusCode)) {
+        } else {
 
             throw new TemporaryError("Unexpected temporary error " + statusCode + ": "
                     + getConsumerServiceErrorMessage(getString(response.getEntity(), statusCode)));
@@ -388,9 +408,12 @@ public class Channel implements AutoCloseable {
     /**
      * Consumes records from all the subscribed topics
      *
-     * @return ConsumerRecords: a list of the consumer record objects from the records returned from the server.
+     * @return ConsumerRecords a list of the consumer record objects from the records returned by the server.
+     * @throws ConsumerError if the consumer associated with the channel does not exist on the server.
+     * @throws PermanentError if the channel has not been subscribed to any topics.
+     * @throws TemporaryError if the consume attempt fails.
      */
-    public ConsumerRecords consume() {
+    public ConsumerRecords consume() throws ConsumerError, PermanentError, TemporaryError {
 
         if (subscriptions.isEmpty()) {
             throw new PermanentError("Channel is not subscribed to any topic");
@@ -420,9 +443,10 @@ public class Channel implements AutoCloseable {
                 throw new TemporaryError("Error while parsing response: " + e.getClass().getCanonicalName() + " "
                         + e.getMessage());
             }
-        } else if (statusCode == 404) {
-            //  TODO: ADD MORE INFORMATION, LIKE ERROR CODE, TO CONSUMER ERROR
-            throw new ConsumerError("Consumer " + consumerId + " does not exist");
+        } else if (shouldRecreateConsumer(statusCode)) {
+
+            throw new ConsumerError("Consumer " + consumerId + " does not exist - Status code: " + statusCode);
+
         } else {
             throw new TemporaryError("Unexpected temporary error " + statusCode + ": "
                     + response.getStatusLine().getReasonPhrase() + " details: "
@@ -434,8 +458,11 @@ public class Channel implements AutoCloseable {
     /**
      * Commits the record offsets to the channel. Committed offsets are the latest consumed ones on all consumed topics
      * and partitions.
+     *
+     * @throws ConsumerError if the consumer associated with the channel does not exist on the server.
+     * @throws TemporaryError if the commit attempt fails.
      */
-    public void commit() {
+    public void commit() throws ConsumerError, TemporaryError {
 
         String api = new StringBuilder(consumerPathPrefix)
                 .append("/consumers/")
@@ -448,13 +475,17 @@ public class Channel implements AutoCloseable {
 
         if (isSuccess(statusCode)) {
 
-            recordsCommitLog.clear();
+            return;
 
-        } else if (statusCode == 404) {
-            throw new ConsumerError("Consumer '" + consumerId + "' does not exist");
+        } else if (shouldRecreateConsumer(statusCode)) {
+
+            throw new ConsumerError("Consumer " + consumerId + " does not exist - Status code: " + statusCode);
+
         } else {
+
             throw new TemporaryError("Unexpected temporary error " + statusCode + ": "
                     + response.getStatusLine().getReasonPhrase());
+
         }
 
     }
@@ -469,14 +500,17 @@ public class Channel implements AutoCloseable {
      *
      * The stop method can also be called to halt an execution of this method.
      *
-     * @param processCallback: Callable which is invoked with a list of payloads from records which have been consumed.
-     * @param waitBetweenQueries: Number of seconds to wait between calls to consume records.
-     * @param topics: If set to a non-empty value, the channel will be subscribed to the specified topics.
+     * @param processCallback Callable which is invoked with a list of payloads from records which have been consumed.
+     * @param waitBetweenQueries Number of seconds to wait between calls to consume records.
+     * @param topics If set to a non-empty value, the channel will be subscribed to the specified topics.
      *              If set to an empty value, the channel will use topics previously subscribed via a call to the
      *              subscribe method.
+     * @throws PermanentError if a prior run is already in progress or no consumer group value was specified or
+     *                         callback to deliver records was not specified
+     * @throws TemporaryError consume or commit attempts failed with errors other than ConsumerError.
      */
     public void run(final Optional<ConsumerRecordProcessor> processCallback, final int waitBetweenQueries,
-                    final Optional<List<String>> topics) {
+                    final Optional<List<String>> topics) throws PermanentError, TemporaryError {
 
         if (!consumerGroup.isPresent()) {
             throw new PermanentError("No value specified for 'consumerGroup' during channel init");
@@ -508,8 +542,6 @@ public class Channel implements AutoCloseable {
                 continueRunning = consumeLoop(processCallback.get(), waitPeriod, topicsOfInterest);
             }
 
-        } catch (final StopError e) {
-            // Ignore it
         } finally {
             runLock.lock();
             running = false;
@@ -521,7 +553,7 @@ public class Channel implements AutoCloseable {
     }
 
     public void run(final Optional<ConsumerRecordProcessor> processCallback, final int waitBetweenQueries,
-                    final String topic) {
+                    final String topic) throws PermanentError, TemporaryError {
 
         run(processCallback, waitBetweenQueries,
                 topic != null && !topic.isEmpty() ? Optional.of(Arrays.asList(topic)) : Optional.empty());
@@ -531,8 +563,10 @@ public class Channel implements AutoCloseable {
     /**
      * Stop an active execution of the :meth:`run` call. If no :meth:`run` call is active, this function returns
      * immediately. If a :meth:`run` call is active, this function blocks until the run has been completed.
+     *
+     * @throws StopError an error occurred while waiting for channel to be stopped
      */
-    public void stop() {
+    public void stop() throws StopError {
 
         runLock.lock();
 
@@ -547,7 +581,7 @@ public class Channel implements AutoCloseable {
                     stoppedCondition.await();
 
                 } catch (final Exception e) {
-                    throw new StopError("Channel was stopped");
+                    throw new StopError("Failed to stop channel");
                 }
             }
         }
@@ -575,8 +609,12 @@ public class Channel implements AutoCloseable {
      *
      * The "try-with-resources" statement ensures that resources associated with the channel are properly cleaned up
      * when the block is exited (the :func:`destroy` method is invoked).
+     *
+     * @throws TemporaryError if a consumer has previously been created for the channel but an attempt to delete the
+     *                         consumer from the channel fails.
+     * @throws StopError if the attempt to stop the channel fails.
      */
-    public void destroy() {
+    public void destroy() throws TemporaryError, StopError {
 
         destroyLock.lock();
 
@@ -597,9 +635,13 @@ public class Channel implements AutoCloseable {
      * Closes the channel. It calls destroy() to stop the channel and to release its resources.
      *
      * This method is added to allow Channel to be used in conjunction with Java try-with-resources statement.
+     *
+     * @throws TemporaryError if a consumer has previously been created for the channel but an attempt to delete the
+     *                         consumer from the channel fails.
+     * @throws StopError if the attempt to stop the channel fails.
      */
     @Override
-    public void close() {
+    public void close() throws TemporaryError, StopError {
 
         destroy();
 
@@ -612,10 +654,12 @@ public class Channel implements AutoCloseable {
      * @param waitBetweenQueries
      * @param topics
      * @return true if callback has successfully processed records and stop has not been requested
-     *         false otherwise
+     *         false otherwise.
+     * @throws TemporaryError the consume or commit attempt failed with an error other than ConsumerError.
+     * @throws PermanentError the callback asks to stop consuming records.
      */
     private boolean consumeLoop(final ConsumerRecordProcessor processCallback, final long waitBetweenQueries,
-                                List<String> topics) {
+                                List<String> topics) throws PermanentError, TemporaryError {
 
         boolean continueRunning = true;
 
@@ -624,7 +668,11 @@ public class Channel implements AutoCloseable {
             try {
 
                 ConsumerRecords records = consume();
-                continueRunning = processCallback.processCallback(records, consumerId);
+                try {
+                    continueRunning = processCallback.processCallback(records, consumerId);
+                } catch (final TemporaryError e) {
+                    throw new ConsumerError("Consume records callback requested to read records again");
+                }
                 // Commit the offsets for the records which were just consumed.
                 commit();
 
@@ -638,24 +686,55 @@ public class Channel implements AutoCloseable {
                 runLock.unlock();
 
             } catch (final ConsumerError e) {
-                // This exception could be raised if the consumer has been removed
-                System.out.println("Resetting consumer loop: " + e);
-                topics = subscriptions;
-                reset();
-                // TODO: implement retryOnFail
-//              if (!retryOnFail) {
-//                  continueRunning = false;
-//              }
 
-                // TODO: catch of ConsumerProcessorIrrecoverableException and ConsumerProcessorRecoverableException
-//            } catch(final ConsumerProcessorIrrecoverableException | ConsumerProcessorRecoverableException e) {
+                // ConsumerError exception could be raised if the consumer has been removed or if callback found errors
+                // in records and it wants them to be consumed again.
+                // In both cases, current consumer is deleted and a brand new one is created to resume consuming from
+                // last commit.
+                System.out.println("Resetting consumer loop: " + e.getMessage());
+                recreateConsumer(topics);
+
+                if (!retryOnFail) {
+                  continueRunning = false;
+                }
+
+            } catch (final PermanentError e) {
+
+                // Callback found errors in records and it does not want to retry consuming them.
+                // Delete consumer instance.
+                delete();
+                throw e;
+
             } catch (final Exception e) {
+                // Unexpected error occurred.
+                // Delete consumer instance.
+                delete();
                 throw new TemporaryError("Unexpected temporary error " + e.getClass().getCanonicalName() + ": "
                         + e.getClass().getCanonicalName() + " " + e.getMessage());
             }
         }
 
         return continueRunning;
+
+    }
+
+    /**
+     * Deletes the current consumer, creates a brand new one and subscribes it to topics.
+     *
+     * This method is used to easily get a new consumer to continue consuming records from the given topics.
+     *
+     * @param topics topics to which the new consumer will subscribe.
+     * @throws ConsumerError if the brand new consumer associated with the channel does not exist on the server.
+     * @throws PermanentError if consumer group or topics to subscribe to are not available.
+     * @throws TemporaryError if the attempt to create a new subscriber and subscribed it to the topics failed.
+     */
+    private void recreateConsumer(final List<String> topics) throws ConsumerError, PermanentError, TemporaryError {
+
+        delete();
+        request.close();
+        request = new Request(base, auth);
+        create();
+        subscribe(topics);
 
     }
 
@@ -668,7 +747,7 @@ public class Channel implements AutoCloseable {
      * @throws TemporaryError if creating a string from the httpEntity fails. TemporaryError also contains the
      *         status code.
      */
-    private static String getString(final HttpEntity httpEntity, final int httpStatusCode) {
+    private static String getString(final HttpEntity httpEntity, final int httpStatusCode) throws TemporaryError {
 
         try {
             return EntityUtils.toString(httpEntity);
@@ -707,6 +786,24 @@ public class Channel implements AutoCloseable {
     private boolean isSuccess(final int statusCode) {
 
         return statusCode >= 200 && statusCode < 300;
+
+    }
+
+
+    /**
+     * Checks whether a status code is a consumer error one.
+     *
+     * An error is considered a consumer one if such error can be overcome by using a brand new consumer instead of the
+     * current one.
+     *
+     * @param statusCode an HTTP Response Status Code
+     * @return true if status code is 404 Bad Request or 409 Conflict or 500 Internal Server Error
+     *         or 503 Server Unavailable
+     *         false otherwise
+     */
+    private boolean shouldRecreateConsumer(final int statusCode) {
+
+        return statusCode == 404 || statusCode == 409 || statusCode == 500 || statusCode == 503;
 
     }
 

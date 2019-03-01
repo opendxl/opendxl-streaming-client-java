@@ -11,6 +11,7 @@ import com.opendxl.streaming.client.entity.ConsumerRecords;
  */
 public interface ConsumerRecordProcessor {
 
-    boolean processCallback(final ConsumerRecords consumerRecords, final String consumerId);
+    boolean processCallback(final ConsumerRecords consumerRecords, final String consumerId)
+            throws TemporaryError, PermanentError;
 
 }

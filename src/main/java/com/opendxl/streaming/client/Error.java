@@ -7,7 +7,7 @@ package com.opendxl.streaming.client;
 /**
  * Error is a common base class from which other error classes are derived
  */
-public class Error extends RuntimeException {
+public class Error extends Exception {
 
     Error(final String message) {
         super(message);
@@ -58,16 +58,4 @@ class ConsumerError extends TemporaryError {
         super(message);
     }
 
-}
-
-/**
- * TODO: add class description for ConsumerProcessorIrrecoverableException
- */
-class ConsumerProcessorIrrecoverableException extends Exception {
-}
-
-/**
- * TODO: add class description for ConsumerProcessorRecoverableException
- */
-class ConsumerProcessorRecoverableException extends Exception {
 }
