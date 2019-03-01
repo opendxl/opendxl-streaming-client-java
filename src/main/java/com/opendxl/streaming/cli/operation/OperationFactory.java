@@ -36,6 +36,9 @@ public class OperationFactory {
                 new CommitOperation(optionSpecMap, options));
         operationArgumentsFactoryMap.put(OperationArguments.DELETE,
                 new DeleteOperation(optionSpecMap, options));
+        operationArgumentsFactoryMap.put(OperationArguments.SUBSCRIPTIONS,
+                new SubscriptionsOperation(optionSpecMap, options));
+
 
 
     }

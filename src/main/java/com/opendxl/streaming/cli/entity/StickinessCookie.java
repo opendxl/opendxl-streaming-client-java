@@ -5,7 +5,7 @@
 package com.opendxl.streaming.cli.entity;
 
 /**
- * Represent the Stickiness cookie used by ALB to route and forward request
+ * Represent the Stickiness cookie used by ALB to route and forward request to the right Consumer Service
  */
 public class StickinessCookie {
     private final String value;

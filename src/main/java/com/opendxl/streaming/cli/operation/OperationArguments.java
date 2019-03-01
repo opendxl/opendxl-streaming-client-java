@@ -14,7 +14,8 @@ public enum OperationArguments {
     SUBSCRIBE("subscribe"),
     CONSUME("consume"),
     COMMIT("commit"),
-    DELETE("delete");
+    DELETE("delete"),
+    SUBSCRIPTIONS("subscriptions");
 
 
     OperationArguments(final String argumentName) {
