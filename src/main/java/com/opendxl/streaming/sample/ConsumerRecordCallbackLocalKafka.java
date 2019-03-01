@@ -7,11 +7,13 @@ package com.opendxl.streaming.sample;
 import com.opendxl.streaming.client.Channel;
 import com.opendxl.streaming.client.ChannelAuth;
 import com.opendxl.streaming.client.ConsumerRecordProcessor;
+import com.opendxl.streaming.client.Error;
 import com.opendxl.streaming.client.entity.ConsumerRecords;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.Properties;
 
 /**
  * This example uses the opendxl-streaming-java-client to consume records from a Databus topic. It instantiates
@@ -43,7 +45,11 @@ public class ConsumerRecordCallbackLocalKafka {
 
         // This constant controls the frequency (in seconds) at which the channel 'run'
         // call below polls the streaming service for new records.
-        int waitBetweenQueries = 5;
+        int waitBetweenQueries = 20;
+
+        Properties extraConfigs = new Properties();
+        extraConfigs.put("enable.auto.commit", false);
+        extraConfigs.put("auto.commit.interval.ms", 0);
 
         try (Channel channel = new Channel(channelUrl,
                 new ChannelAuth(channelUrl,
@@ -55,17 +61,22 @@ public class ConsumerRecordCallbackLocalKafka {
                 Optional.empty(),
                 Optional.of("/v1"),
                 "earliest",
-                301,
-                300,
-                false,
+                16,
+                15,
+                true,
                 verifyCertificateBundle,
-                Optional.empty())) {
+                Optional.of(extraConfigs))) {
 
             // Setup shutdown hook to call stop when program is terminated
             Runtime.getRuntime().addShutdownHook(
                     new Thread(() -> {
                         System.out.println("Shutdown app requested. Exiting");
-                        channel.destroy();
+
+                        try {
+                            channel.destroy();
+                        } catch (final Error e) {
+                            System.out.println("Failed to shutdown app.");
+                        }
                     }));
 
             // Create object which processCallback() method will be called back upon by the run method (see below)

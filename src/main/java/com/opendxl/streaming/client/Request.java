@@ -40,8 +40,9 @@ public class Request implements AutoCloseable {
      *
      * @param base scheme (http or https) and host parts of target URLs
      * @param auth provider of the Authorization token header to be included in the HttpRequest
+     * @throws TemporaryError if attempt to create and configure the HttpClient instance fails
      */
-    Request(final String base, final ChannelAuth auth) {
+    Request(final String base, final ChannelAuth auth) throws TemporaryError {
 
         this.base = base;
         this.auth = auth;
@@ -79,7 +80,7 @@ public class Request implements AutoCloseable {
      * @return an HttpResponse
      * @throws TemporaryError if request was not successful
      */
-    public HttpResponse post(final String uri, final Optional<byte[]> body) {
+    public HttpResponse post(final String uri, final Optional<byte[]> body) throws TemporaryError {
 
         HttpPost httpRequest = new HttpPost(base + uri);
         body.ifPresent(value -> httpRequest.setEntity(new ByteArrayEntity(value)));
@@ -97,7 +98,7 @@ public class Request implements AutoCloseable {
      * @return an HttpResponse
      * @throws TemporaryError if request was not successful
      */
-    public HttpResponse get(final String uri) {
+    public HttpResponse get(final String uri) throws TemporaryError {
 
         HttpGet httpRequest = new HttpGet(base + uri);
 
@@ -114,7 +115,7 @@ public class Request implements AutoCloseable {
      * @return an HttpResponse
      * @throws TemporaryError if request was not successful
      */
-    public HttpResponse delete(final String uri) {
+    public HttpResponse delete(final String uri) throws TemporaryError {
 
         HttpDelete httpRequest = new HttpDelete(base + uri);
 
@@ -133,7 +134,7 @@ public class Request implements AutoCloseable {
      * @throws TemporaryError if the request throws exception or an HTTP Unauthorized (401) or Forbidden (403) response
      *         is received
      */
-    private HttpResponse request(final HttpRequestBase httpRequest) {
+    private HttpResponse request(final HttpRequestBase httpRequest) throws TemporaryError {
 
         HttpResponse httpResponse;
         try {
@@ -182,9 +183,11 @@ public class Request implements AutoCloseable {
      * Closes the request object and its supporting HttpClient.
      *
      * This method is added to allow Request to be used in conjunction with Java try-with-resources statement.
+     *
+     * @throws TemporaryError if an error occurs when closing the request object.
      */
     @Override
-    public void close() {
+    public void close() throws TemporaryError {
 
         // TODO: verify that Request object is not sending a request or awaiting for a response when closing it
         try {
@@ -209,7 +212,7 @@ public class Request implements AutoCloseable {
      * @throws TemporaryError if creating a string from the httpEntity fails. TemporaryError also contains the
      *         status code.
      */
-    private static String getString(final HttpEntity httpEntity, final int httpStatusCode) {
+    private static String getString(final HttpEntity httpEntity, final int httpStatusCode) throws TemporaryError {
 
         try {
             return EntityUtils.toString(httpEntity);

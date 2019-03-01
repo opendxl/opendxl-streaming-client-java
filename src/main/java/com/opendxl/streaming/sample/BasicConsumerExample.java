@@ -6,6 +6,7 @@ package com.opendxl.streaming.sample;
 
 import com.opendxl.streaming.client.Channel;
 import com.opendxl.streaming.client.ChannelAuth;
+import com.opendxl.streaming.client.Error;
 import com.opendxl.streaming.client.entity.ConsumerRecords;
 
 import java.util.Arrays;
