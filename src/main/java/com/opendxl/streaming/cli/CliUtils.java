@@ -4,6 +4,7 @@
 
 package com.opendxl.streaming.cli;
 
+import com.opendxl.streaming.Constants;
 import com.opendxl.streaming.cli.entity.StickinessCookie;
 import com.opendxl.streaming.cli.operation.CommandLineOperation;
 import com.opendxl.streaming.client.Channel;
@@ -31,9 +32,10 @@ import java.util.Properties;
 
 
 /**
- * Helper class to support some facilities for command line options
+ * Facilities for command line options
  */
 public class CliUtils {
+
 
     private CliUtils() {
 
@@ -56,6 +58,7 @@ public class CliUtils {
         Runtime.getRuntime().exit(1);
     }
 
+
     /**
      * This method validate the mandatory arguments for a specific operation
      *
@@ -77,8 +80,9 @@ public class CliUtils {
         });
     }
 
+
     /**
-     * Prints usage anc exits without system error
+     * Prints usage and exits without system error
      *
      * @param executionResult It represents the result of a command line operation
      */
@@ -141,14 +145,28 @@ public class CliUtils {
                 verifyCertBundle);
     }
 
+
+    /**
+     * Get url based String based on URL instance
+     *
+     * @param url instance
+     * @return url based String
+     */
     public static String getBaseURL(final URL url) {
         return url.getProtocol() + "://" + url.getHost() + ":" + url.getPort();
     }
 
-    public static Optional<Properties> configToMap(final String config) {
+
+    /**
+     * Get properties from comma-separated config String
+     *
+     * @param commaSeparatedConfig comma-separated config String
+     * @return Properties instance
+     */
+    public static Optional<Properties> configToMap(final String commaSeparatedConfig) {
         final Properties map = new Properties();
         try {
-            final String[] keyValuePairs = config.split(",");
+            final String[] keyValuePairs = commaSeparatedConfig.split(",");
 
             for (String pair : keyValuePairs) {
                 String[] entry = pair.split("=");
@@ -160,10 +178,17 @@ public class CliUtils {
         return Optional.of(map);
     }
 
-    public static List<String> topicsToList(final String topics) {
+
+    /**
+     * Get a List of topics from a command-separated topic String
+     *
+     * @param commaSeparatedTopics a comma-separated topic String
+     * @return a List of topics
+     */
+    public static List<String> topicsToList(final String commaSeparatedTopics) {
         final List<String> result = new ArrayList<>();
         try {
-            return Arrays.asList(topics.split(","));
+            return Arrays.asList(commaSeparatedTopics.split(","));
         } catch (Exception e) {
             CliUtils.printUsageAndFinish(CommandLineInterface.parser, e.getMessage());
         }
@@ -171,6 +196,7 @@ public class CliUtils {
     }
 
     /**
+     * Get stickiness cookie from channel
      *
      * @param channel Channel instance to get cookie
      * @return stickiness cookie
@@ -180,7 +206,7 @@ public class CliUtils {
         final HttpClientContext clientContext = (HttpClientContext) PA.getValue(request, "httpClientContext");
         final List<Cookie> cookies = clientContext.getCookieStore().getCookies();
         for (Cookie cookie : cookies) {
-            if (cookie.getName().equals("AWSALB")) {
+            if (cookie.getName().equals(Constants.STIKINESS_COOKIE_NAME)) {
                 return new StickinessCookie(cookie.getValue(), cookie.getDomain());
             }
         }
@@ -197,7 +223,7 @@ public class CliUtils {
         final Request request = (Request) PA.getValue(channel, "request");
         final HttpClientContext clientContext =
                 (HttpClientContext) PA.getValue(request, "httpClientContext");
-        BasicClientCookie cookie = new BasicClientCookie("AWSALB",
+        BasicClientCookie cookie = new BasicClientCookie(Constants.STIKINESS_COOKIE_NAME,
                 stickinessCookie.getValue());
         clientContext.getCookieStore().addCookie(cookie);
         cookie.setDomain(stickinessCookie.getDomain());

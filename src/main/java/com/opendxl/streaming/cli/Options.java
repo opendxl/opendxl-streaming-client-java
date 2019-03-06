@@ -5,7 +5,7 @@
 package com.opendxl.streaming.cli;
 
 /**
- * Command line options
+ * Each enumerated represents a command line option. Each option is made up by --optionName value
  */
 public enum Options {
     TOPIC,

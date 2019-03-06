@@ -25,6 +25,7 @@ public enum OperationArguments {
 
     /**
      * Return a OperationArgument enumerated based on a string
+     *
      * @param operationArgumentValue A string value to be converted in a OperationArguments enumerated
      * @return a OperationArguments enumerated
      */
