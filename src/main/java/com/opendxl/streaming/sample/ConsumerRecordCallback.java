@@ -7,8 +7,10 @@ package com.opendxl.streaming.sample;
 import com.opendxl.streaming.client.Channel;
 import com.opendxl.streaming.client.ChannelAuth;
 import com.opendxl.streaming.client.ConsumerRecordProcessor;
-import com.opendxl.streaming.client.Error;
 import com.opendxl.streaming.client.entity.ConsumerRecords;
+import com.opendxl.streaming.client.exception.PermanentError;
+import com.opendxl.streaming.client.exception.StopError;
+import com.opendxl.streaming.client.exception.TemporaryError;
 
 import java.util.Arrays;
 import java.util.List;
@@ -74,7 +76,7 @@ public class ConsumerRecordCallback {
 
                         try {
                             channel.destroy();
-                        } catch (final Error e) {
+                        } catch (final StopError | TemporaryError e) {
                             System.out.println("Failed to shutdown app.");
                         }
                     }));
@@ -88,7 +90,6 @@ public class ConsumerRecordCallback {
                     // Print the payloads which were received. 'payloads' is a list of
                     // dictionary objects extracted from the records received from the
                     // channel.
-                    // TODO: call a logger.info() method instead of System.out.println()
                     System.out.println(new StringBuilder("Received ")
                             .append(consumerRecords.getRecords().size())
                             .append(" records")
@@ -108,6 +109,7 @@ public class ConsumerRecordCallback {
                     }
 
                     // Return 'True' in order for the 'run' call to continue attempting to consume records.
+                    System.out.println("let commit records");
                     return true;
                 }
             };
@@ -116,7 +118,7 @@ public class ConsumerRecordCallback {
             channel.run(Optional.ofNullable(consumerRecordCallback), waitBetweenQueries,
                     Optional.ofNullable(channelTopicSubscriptions));
 
-        } catch (final Error e) {
+        } catch (final PermanentError | StopError | TemporaryError e) {
 
             System.out.println("Error occurred: " + e.getClass().getCanonicalName() + ": " + e.getMessage());
             System.out.println(e.getCause() != null

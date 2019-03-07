@@ -20,13 +20,14 @@ import java.util.Properties;
 /**
  * This example uses the opendxl-streaming-java-client to consume records from a Databus topic. It instantiates
  * a ChannelAuth object, a Channel object and a ConsumerRecordProcessor object. Then, the Channel run method is invoked
- * and Channel starts to indefinitely consume records and to deliver them to ConsumerRecordProcessor which finally
- * prints them out. To quit this sample program, press CTRL+C or execute kill to call Channel destroy method which
- * will stop the Channel and gracefully exit.
+ * and Channel starts to indefinitely consume records and to deliver them to ConsumerRecordProcessor which throws
+ * TemporaryError each 5 records consumed preventing some records from being committed. Then, a brand new consumer is
+ * created and record consumption is resumed and earlier non-committed records are consumed again.
+ * Additionally, a PermanentError is thrown when 20 records have been consumed, causing the program to exit.
  */
-public class ConsumerRecordCallbackLocalKafka {
+public class CallbackRetryConsumeRecordsLocalKafka {
 
-    private ConsumerRecordCallbackLocalKafka() { }
+    private CallbackRetryConsumeRecordsLocalKafka() { }
 
     public static void main(String[] args) {
 
@@ -47,10 +48,10 @@ public class ConsumerRecordCallbackLocalKafka {
 
         // This constant controls the frequency (in seconds) at which the channel 'run'
         // call below polls the streaming service for new records.
-        int waitBetweenQueries = 20;
+        int waitBetweenQueries = 5;
 
         Properties extraConfigs = new Properties();
-        extraConfigs.put("enable.auto.commit", false);
+        extraConfigs.put("enable.auto.commit", true);
         extraConfigs.put("auto.commit.interval.ms", 5000);
 
         try (Channel channel = new Channel(channelUrl,
@@ -63,8 +64,8 @@ public class ConsumerRecordCallbackLocalKafka {
                 Optional.empty(),
                 Optional.of("/v1"),
                 "earliest",
-                16,
-                15,
+                61,
+                60,
                 true,
                 verifyCertificateBundle,
                 Optional.of(extraConfigs))) {
@@ -85,8 +86,13 @@ public class ConsumerRecordCallbackLocalKafka {
             // when records are received from the channel
             ConsumerRecordProcessor consumerRecordCallback = new ConsumerRecordProcessor() {
 
+                int throwTemporaryErrorThreshold = 5;
+                int throwPermanentErrorThreshold = 20;
+                long recordCounter = 0;
+
                 @Override
-                public boolean processCallback(ConsumerRecords consumerRecords, String consumerId) {
+                public boolean processCallback(ConsumerRecords consumerRecords, String consumerId)
+                    throws PermanentError, TemporaryError {
                     // Print the payloads which were received. 'payloads' is a list of
                     // dictionary objects extracted from the records received from the
                     // channel.
@@ -106,10 +112,17 @@ public class ConsumerRecordCallbackLocalKafka {
                         System.out.println("decoded payload = " + new String(record.getDecodedPayload()));
                         System.out.println("");
 
+                        if (++recordCounter % throwTemporaryErrorThreshold == 0) {
+                            throw new TemporaryError("Callback requested to consume records again");
+                        }
+
+                        if (recordCounter >= throwPermanentErrorThreshold) {
+                            throw new PermanentError("Callback requested to stop consuming records");
+                        }
                     }
 
                     // Return 'True' in order for the 'run' call to continue attempting to consume records.
-                    System.out.println("let commit records");
+                    System.out.println("commit records");
                     return true;
                 }
             };

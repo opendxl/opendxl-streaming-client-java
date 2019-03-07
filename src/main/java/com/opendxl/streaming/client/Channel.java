@@ -9,11 +9,11 @@ import com.opendxl.streaming.client.entity.ConsumerRecords;
 import com.google.gson.Gson;
 
 import com.google.gson.annotations.SerializedName;
-import com.opendxl.streaming.client.entity.ConsumerServiceError;
 import com.opendxl.streaming.client.entity.Topics;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.util.EntityUtils;
+import com.opendxl.streaming.client.exception.ConsumerError;
+import com.opendxl.streaming.client.exception.PermanentError;
+import com.opendxl.streaming.client.exception.StopError;
+import com.opendxl.streaming.client.exception.TemporaryError;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -80,6 +80,7 @@ public class Channel implements AutoCloseable {
     private boolean running;
     private boolean continueRunning;
     private boolean stopRequested;
+    private final boolean isAutoCommitEnabled;
 
     private ReentrantLock runLock;
     private ReentrantLock destroyLock;
@@ -155,6 +156,8 @@ public class Channel implements AutoCloseable {
             this.configs.put(_ENABLE_AUTO_COMMIT_CONFIG_SETTING, "false");
         }
 
+        this.isAutoCommitEnabled = Boolean.valueOf(this.configs.get(_ENABLE_AUTO_COMMIT_CONFIG_SETTING).toString());
+
         this.configs.put(_AUTO_OFFSET_RESET_CONFIG_SETTING, offset);
 
         if (sessionTimeout != null) {
@@ -220,17 +223,25 @@ public class Channel implements AutoCloseable {
         Gson gson = new Gson();
         byte[] body = gson.toJson(consumerConfig).getBytes();
 
-        HttpResponse response = request.post(consumerPathPrefix + "/consumers", Optional.of(body));
-        int statusCode = response.getStatusLine().getStatusCode();
-        String responseEntityString = getString(response.getEntity(), statusCode);
+        try {
 
-        if (isSuccess(statusCode)) {
-            ConsumerId consumer = (ConsumerId) gson.fromJson(responseEntityString, ConsumerId.class);
-            consumerId = consumer.getConsumerInstanceId();
+            Optional<String> responseEntityString = request.post(consumerPathPrefix + "/consumers", Optional.of(body));
 
-        } else {
-            throw new TemporaryError("Unexpected temporary error " + statusCode + ": "
-                    + getConsumerServiceErrorMessage(responseEntityString));
+            responseEntityString.ifPresent(entity -> {
+                ConsumerId consumer = (ConsumerId) gson.fromJson(entity, ConsumerId.class);
+                consumerId = consumer.getConsumerInstanceId();
+                request.setConsumerId(consumerId);
+            });
+
+        } catch (final TemporaryError error) {
+            error.setApi("create");
+            throw error;
+        } catch (final Exception e) {
+            TemporaryError temporaryError = new TemporaryError("Error while parsing response: "
+                    + e.getClass().getCanonicalName() + " " + e.getMessage());
+            temporaryError.setApi("create");
+            temporaryError.setCause(e);
+            throw temporaryError;
         }
 
     }
@@ -273,23 +284,19 @@ public class Channel implements AutoCloseable {
                 .append(consumerId)
                 .append("/subscription").toString();
 
-        HttpResponse response = request.post(api, Optional.of(body));
-        int statusCode = response.getStatusLine().getStatusCode();
+        try {
 
-        if (isSuccess(statusCode)) {
+            request.post(api, Optional.of(body));
 
             subscriptions.clear();
             subscriptions.addAll(topics);
 
-        } else if (shouldRecreateConsumer(statusCode)) {
-
-            throw new ConsumerError("Consumer " + consumerId + " does not exist - Status code: " + statusCode);
-
-        } else {
-
-            throw new TemporaryError("Unexpected temporary error " + statusCode + ": "
-                    + getConsumerServiceErrorMessage(getString(response.getEntity(), statusCode)));
-
+        } catch (final TemporaryError error) {
+            error.setApi("subscribe");
+            throw error;
+        } catch (final ConsumerError error) {
+            error.setApi("subscribe");
+            throw error;
         }
 
     }
@@ -311,26 +318,26 @@ public class Channel implements AutoCloseable {
 
         final List<String> list = new ArrayList<>();
 
-        final HttpResponse response = request.get(api);
-        final int statusCode = response.getStatusLine().getStatusCode();
-        String responseEntityString = getString(response.getEntity(), statusCode);
+        try {
 
-        if (isSuccess(statusCode)) {
+            Optional<String> responseEntity = request.get(api);
 
-            list.addAll(gson.fromJson(responseEntityString, List.class));
+            responseEntity.ifPresent(value -> list.addAll(gson.fromJson(value, List.class)));
+            return list;
 
-        } else if (shouldRecreateConsumer(statusCode)) {
-
-            throw new ConsumerError("Consumer " + consumerId + " does not exist - Status code: " + statusCode);
-
-        } else {
-
-            throw new TemporaryError("Unexpected temporary error " + statusCode + ": "
-                    + getConsumerServiceErrorMessage(responseEntityString));
-
+        } catch (final TemporaryError error) {
+            error.setApi("subscriptions");
+            throw error;
+        } catch (final ConsumerError error) {
+            error.setApi("subscriptions");
+            throw error;
+        } catch (final Exception e) {
+            TemporaryError temporaryError = new TemporaryError("Error while parsing response: "
+                    + e.getClass().getCanonicalName() + " " + e.getMessage());
+            temporaryError.setApi("subscriptions");
+            temporaryError.setCause(e);
+            throw temporaryError;
         }
-
-        return list;
 
     }
 
@@ -338,7 +345,7 @@ public class Channel implements AutoCloseable {
      * Unsubscribe the consumer from all topics
      *
      * @throws ConsumerError if the consumer associated with the channel does not exist on the server.
-     * @throws TemporaryError if the unsubscription attempt fails.
+     * @throws TemporaryError if the unsubscribe attempt fails.
      */
     public void unsubscribe() throws ConsumerError, TemporaryError {
 
@@ -347,21 +354,18 @@ public class Channel implements AutoCloseable {
                 .append(consumerId)
                 .append("/subscription").toString();
 
-        HttpResponse response = request.delete(api);
-        final int statusCode = response.getStatusLine().getStatusCode();
+        try {
 
-        if (isSuccess(statusCode)) {
-
+            request.delete(api);
             subscriptions.clear();
             return;
 
-        } else if (shouldRecreateConsumer(statusCode)) {
-
-            throw new ConsumerError("Consumer " + consumerId + " does not exist - Status code: " + statusCode);
-
-        } else {
-            throw new TemporaryError("Unexpected temporary error " + statusCode + ": "
-                    + response.getStatusLine().getReasonPhrase());
+        }  catch (final TemporaryError error) {
+            error.setApi("unsubscribe");
+            throw error;
+        } catch (final ConsumerError error) {
+            error.setApi("unsubscribe");
+            throw error;
         }
 
     }
@@ -381,26 +385,21 @@ public class Channel implements AutoCloseable {
                 .append("/consumers/")
                 .append(consumerId).toString();
 
-        HttpResponse response = request.delete(api);
+        try {
 
-        // Delete session attribute values, cookies and authorization token
-        reset();
-        request.resetAuthorization();
+            request.delete(api);
 
-        int statusCode = response.getStatusLine().getStatusCode();
-        if (isSuccess(statusCode)) {
-
-            return;
-
-        } else if (statusCode == 404) {
+        } catch (final ConsumerError consumerError) {
 
             System.out.println("Consumer with ID " + consumerId + " not found. Resetting consumer anyways.");
 
-        } else {
-
-            throw new TemporaryError("Unexpected temporary error " + statusCode + ": "
-                    + getConsumerServiceErrorMessage(getString(response.getEntity(), statusCode)));
-
+        } catch (final TemporaryError error) {
+            error.setApi("delete");
+            throw error;
+        } finally {
+            // Delete session attribute values, cookies and authorization token
+            reset();
+            request.resetAuthorization();
         }
 
     }
@@ -424,33 +423,27 @@ public class Channel implements AutoCloseable {
                 .append(consumerId)
                 .append("/records").toString();
 
-        HttpResponse response = request.get(api);
+        try {
 
-        int statusCode = response.getStatusLine().getStatusCode();
-        if (isSuccess(statusCode)) {
+            Optional<String> responseEntity = request.get(api);
 
-            try {
+            final Gson gson = new Gson();
+            final ConsumerRecords consumerRecords = gson.fromJson(responseEntity.get(), ConsumerRecords.class);
 
-                List<CommitLog> commitLogs = new ArrayList<>();
+            return consumerRecords;
 
-                final Gson gson = new Gson();
-                final String responseEntity = EntityUtils.toString(response.getEntity());
-                final ConsumerRecords consumerRecords = gson.fromJson(responseEntity, ConsumerRecords.class);
-
-                return consumerRecords;
-
-            } catch (final Exception e) {
-                throw new TemporaryError("Error while parsing response: " + e.getClass().getCanonicalName() + " "
-                        + e.getMessage());
-            }
-        } else if (shouldRecreateConsumer(statusCode)) {
-
-            throw new ConsumerError("Consumer " + consumerId + " does not exist - Status code: " + statusCode);
-
-        } else {
-            throw new TemporaryError("Unexpected temporary error " + statusCode + ": "
-                    + response.getStatusLine().getReasonPhrase() + " details: "
-                    + getConsumerServiceErrorMessage(getString(response.getEntity(), statusCode)));
+        } catch (final TemporaryError error) {
+            error.setApi("consume");
+            throw error;
+        } catch (final ConsumerError error) {
+            error.setApi("consume");
+            throw error;
+        } catch (final Exception e) {
+            TemporaryError temporaryError = new TemporaryError("Error while parsing response: "
+                    + e.getClass().getCanonicalName() + " " + e.getMessage());
+            temporaryError.setApi("consume");
+            temporaryError.setCause(e);
+            throw temporaryError;
         }
 
     }
@@ -464,28 +457,25 @@ public class Channel implements AutoCloseable {
      */
     public void commit() throws ConsumerError, TemporaryError {
 
+        if (isAutoCommitEnabled) {
+            return;
+        }
+
         String api = new StringBuilder(consumerPathPrefix)
                 .append("/consumers/")
                 .append(consumerId)
                 .append("/offsets").toString();
 
-        HttpResponse response = request.post(api, Optional.empty());
+        try {
 
-        int statusCode = response.getStatusLine().getStatusCode();
+            request.post(api, Optional.empty());
 
-        if (isSuccess(statusCode)) {
-
-            return;
-
-        } else if (shouldRecreateConsumer(statusCode)) {
-
-            throw new ConsumerError("Consumer " + consumerId + " does not exist - Status code: " + statusCode);
-
-        } else {
-
-            throw new TemporaryError("Unexpected temporary error " + statusCode + ": "
-                    + response.getStatusLine().getReasonPhrase());
-
+        } catch (final TemporaryError error) {
+            error.setApi("commit");
+            throw error;
+        } catch (final ConsumerError error) {
+            error.setApi("commit");
+            throw error;
         }
 
     }
@@ -538,7 +528,6 @@ public class Channel implements AutoCloseable {
         try {
 
             while (continueRunning) {
-                subscribe(topicsOfInterest);
                 continueRunning = consumeLoop(processCallback.get(), waitPeriod, topicsOfInterest);
             }
 
@@ -662,18 +651,28 @@ public class Channel implements AutoCloseable {
                                 List<String> topics) throws PermanentError, TemporaryError {
 
         boolean continueRunning = true;
+        boolean subscribed = false;
 
         while (continueRunning) {
 
             try {
 
+                if (!subscribed) {
+                    subscribe(topics);
+                    subscribed = true;
+                }
+
                 ConsumerRecords records = consume();
                 try {
                     continueRunning = processCallback.processCallback(records, consumerId);
                 } catch (final TemporaryError e) {
-                    throw new ConsumerError("Consume records callback requested to read records again");
+                    ConsumerError consumerError = new ConsumerError("Consume records callback requested "
+                            + "to read records again");
+                    consumerError.setApi("run");
+                    consumerError.setCause(e);
+                    throw consumerError;
                 }
-                // Commit the offsets for the records which were just consumed.
+                // Commit offsets for just consumed records.
                 commit();
 
                 runLock.lock();
@@ -687,12 +686,13 @@ public class Channel implements AutoCloseable {
 
             } catch (final ConsumerError e) {
 
-                // ConsumerError exception could be raised if the consumer has been removed or if callback found errors
+                // ConsumerError exception can be raised if the consumer has been removed or if callback found errors
                 // in records and it wants them to be consumed again.
                 // In both cases, current consumer is deleted and a brand new one is created to resume consuming from
                 // last commit.
                 System.out.println("Resetting consumer loop: " + e.getMessage());
                 recreateConsumer(topics);
+                subscribed = false;
 
                 if (!retryOnFail) {
                   continueRunning = false;
@@ -703,14 +703,19 @@ public class Channel implements AutoCloseable {
                 // Callback found errors in records and it does not want to retry consuming them.
                 // Delete consumer instance.
                 delete();
+                e.setApi("run");
                 throw e;
 
             } catch (final Exception e) {
                 // Unexpected error occurred.
                 // Delete consumer instance.
                 delete();
-                throw new TemporaryError("Unexpected temporary error " + e.getClass().getCanonicalName() + ": "
-                        + e.getClass().getCanonicalName() + " " + e.getMessage());
+                TemporaryError temporaryError = new TemporaryError("Unexpected temporary error "
+                        + e.getClass().getCanonicalName() + ": " + e.getMessage());
+                temporaryError.setApi("run");
+                temporaryError.setCause(e);
+                throw temporaryError;
+
             }
         }
 
@@ -724,86 +729,15 @@ public class Channel implements AutoCloseable {
      * This method is used to easily get a new consumer to continue consuming records from the given topics.
      *
      * @param topics topics to which the new consumer will subscribe.
-     * @throws ConsumerError if the brand new consumer associated with the channel does not exist on the server.
      * @throws PermanentError if consumer group or topics to subscribe to are not available.
      * @throws TemporaryError if the attempt to create a new subscriber and subscribed it to the topics failed.
      */
-    private void recreateConsumer(final List<String> topics) throws ConsumerError, PermanentError, TemporaryError {
+    private void recreateConsumer(final List<String> topics) throws PermanentError, TemporaryError {
 
         delete();
         request.close();
         request = new Request(base, auth);
         create();
-        subscribe(topics);
-
-    }
-
-    /**
-     * Get a string from an HttpEntity.
-     *
-     * @param httpEntity entity to get a string from
-     * @param httpStatusCode status code
-     * @return String with HttpEntity contents
-     * @throws TemporaryError if creating a string from the httpEntity fails. TemporaryError also contains the
-     *         status code.
-     */
-    private static String getString(final HttpEntity httpEntity, final int httpStatusCode) throws TemporaryError {
-
-        try {
-            return EntityUtils.toString(httpEntity);
-        } catch (final Exception e) {
-            throw new TemporaryError("Unexpected temporary error " + httpStatusCode + ": "
-                    + e.getClass().getCanonicalName() + " " + e.getMessage());
-        }
-
-    }
-
-    /**
-     * Get the error message of a ConsumerServiceError object in JSON format.
-     *
-     * @param responseEntityString string representing a ConsumerServiceError in JSON format
-     * @return String with error message
-     */
-    private static String getConsumerServiceErrorMessage(final String responseEntityString) {
-
-        Gson gson = new Gson();
-        ConsumerServiceError apiGatewayError = (ConsumerServiceError) gson.fromJson(responseEntityString,
-                ConsumerServiceError.class);
-
-        return apiGatewayError != null
-                ? apiGatewayError.getMessage()
-                : responseEntityString;
-
-    }
-
-    /**
-     * Checks whether a status code is successful one
-     *
-     * @param statusCode an HTTP Response Status Code
-     * @return true if status code belongs to 2xx Success range
-     *         false otherwise
-     */
-    private boolean isSuccess(final int statusCode) {
-
-        return statusCode >= 200 && statusCode < 300;
-
-    }
-
-
-    /**
-     * Checks whether a status code is a consumer error one.
-     *
-     * An error is considered a consumer one if such error can be overcome by using a brand new consumer instead of the
-     * current one.
-     *
-     * @param statusCode an HTTP Response Status Code
-     * @return true if status code is 404 Bad Request or 409 Conflict or 500 Internal Server Error
-     *         or 503 Server Unavailable
-     *         false otherwise
-     */
-    private boolean shouldRecreateConsumer(final int statusCode) {
-
-        return statusCode == 404 || statusCode == 409 || statusCode == 500 || statusCode == 503;
 
     }
 
