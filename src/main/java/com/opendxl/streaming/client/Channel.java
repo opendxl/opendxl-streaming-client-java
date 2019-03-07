@@ -90,16 +90,16 @@ public class Channel implements AutoCloseable {
     /**
      * Constructor parameters:
      *
-     * @param base: Base URL at which the streaming service resides.
-     * @param auth: Authentication object to use for channel requests.
-     * @param consumerGroup: Consumer group to subscribe the channel consumer to.
-     * @param pathPrefix: Path to append to streaming service requests.
-     * @param consumerPathPrefix: Path to append to consumer-related requests made to the streaming service. Note that
+     * @param base Base URL at which the streaming service resides.
+     * @param auth Authentication object to use for channel requests.
+     * @param consumerGroup Consumer group to subscribe the channel consumer to.
+     * @param pathPrefix Path to append to streaming service requests.
+     * @param consumerPathPrefix Path to append to consumer-related requests made to the streaming service. Note that
      *                          if the path_prefix parameter is set to a non-empty value, the pathPrefix value will be
      *                          appended to consumer-related requests instead of the consumerPathPrefix value.
-     * @param offset: Offset for the next record to retrieve from the streaming service for the new consume() call.
+     * @param offset Offset for the next record to retrieve from the streaming service for the new consume() call.
      *              Must be one of 'latest', 'earliest', or 'none'.
-     * @param requestTimeout: The configuration controls the maximum amount of time the client (consumer) will wait for
+     * @param requestTimeout The configuration controls the maximum amount of time the client (consumer) will wait for
      *                      the broker response of a request. If the response is not received before the request timeout
      *                      elapses the client may resend the request or fail the request if retries are exhausted. If
      *                      set to `None` (the default), the request timeout is determined automatically by the
@@ -108,7 +108,7 @@ public class Channel implements AutoCloseable {
      *                      consumers properly. To ensure that the request timeout is greater than the `sessionTimeout`,
      *                      values for either both (or neither) of the `requestTimeout` and `sessionTimeout` parameters
      *                      should be specified.
-     * @param sessionTimeout: The timeout (in seconds) used to detect channel consumer failures. The consumer sends
+     * @param sessionTimeout The timeout (in seconds) used to detect channel consumer failures. The consumer sends
      *                      periodic heartbeats to indicate its liveness to the broker. If no heartbeats are received by
      *                      the broker before the expiration of this session timeout, then the broker may remove this
      *                      consumer from the group. If set to `None` (the default), the session timeout is determined
@@ -117,13 +117,13 @@ public class Channel implements AutoCloseable {
      *                      fail to create new consumers properly. To ensure that the session timeout is less than the
      *                      `requestTimeout`, values for either both (or neither) of the `requesTimeout` and
      *                      `sessionTimeout` parameters should be specified.
-     * @param retryOnFail: Whether or not the channel will automatically retry a call which failed due to a temporary
+     * @param retryOnFail Whether or not the channel will automatically retry a call which failed due to a temporary
      *                   error.
-     * @param verifyCertBundle: Path to a CA bundle file containing certificates of trusted CAs. The CA bundle is used
+     * @param verifyCertBundle Path to a CA bundle file containing certificates of trusted CAs. The CA bundle is used
      *                        to validate that the certificate of the authentication server being connected to was
      *                        signed by a valid authority. If set to an empty string, the server certificate is not
      *                        validated.
-     * @param extraConfigs: Dictionary of key/value pairs containing any custom configuration settings which should be
+     * @param extraConfigs Dictionary of key/value pairs containing any custom configuration settings which should be
      *                    sent to the streaming service when a consumer is created. Note that any values specified for
      *                    the `offset`, `requestTimeout`, and/or `sessionTimeout` parameters will override the
      *                    corresponding values, if specified, in the `extraConfigs` parameter.
@@ -249,7 +249,7 @@ public class Channel implements AutoCloseable {
     /**
      * Subscribes the consumer to a list of topics
      *
-     * @param topics: Topic list.
+     * @param topics Topic list.
      * @throws ConsumerError if the consumer associated with the channel does not exist on the server.
      * @throws PermanentError if no topics were specified.
      * @throws TemporaryError if the subscription attempt fails.

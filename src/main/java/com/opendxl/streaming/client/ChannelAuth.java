@@ -39,11 +39,11 @@ public class ChannelAuth {
     /**
      * Constructor parameters:
      *
-     * @param base: Base URL to forward authentication requests to.
-     * @param username: User name to supply for request authentication.
-     * @param password: Password to supply for request authentication.
-     * @param pathFragment: Path to append to the base URL for the request.
-     * @param verifyCertBundle: Path to a CA bundle file containing
+     * @param base Base URL to forward authentication requests to.
+     * @param username User name to supply for request authentication.
+     * @param password Password to supply for request authentication.
+     * @param pathFragment Path to append to the base URL for the request.
+     * @param verifyCertBundle Path to a CA bundle file containing
      *    certificates of trusted CAs. The CA bundle is used to validate that
      *    the certificate of the authentication server being connected to was
      *    signed by a valid authority. If set to an empty string, the server
@@ -95,11 +95,11 @@ public class ChannelAuth {
     /**
      * Make a login request to the supplied login url.
      *
-     * @param uri: Base URL at which to make the request.
-     * @param username: User name to supply for request authentication.
-     * @param password: Password to supply for request authentication.
-     * @param pathFragment: Path to append to the base URL for the request.
-     * @param verifyCertBundle: Path to a CA bundle file containing certificates of trusted CAs. The CA bundle is used
+     * @param uri Base URL at which to make the request.
+     * @param username User name to supply for request authentication.
+     * @param password Password to supply for request authentication.
+     * @param pathFragment Path to append to the base URL for the request.
+     * @param verifyCertBundle Path to a CA bundle file containing certificates of trusted CAs. The CA bundle is used
      *                        to validate that the certificate of the authentication server being connected to was
      *                        signed by a valid authority. If set to an empty string, the server certificate is not
      *                        validated.
