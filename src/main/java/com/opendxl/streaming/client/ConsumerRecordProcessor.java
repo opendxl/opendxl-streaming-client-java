@@ -5,6 +5,8 @@
 package com.opendxl.streaming.client;
 
 import com.opendxl.streaming.client.entity.ConsumerRecords;
+import com.opendxl.streaming.client.exception.PermanentError;
+import com.opendxl.streaming.client.exception.TemporaryError;
 
 /**
  * ConsumerRecordProcessor is an interface that must be implemented by the process which receives the consumed records

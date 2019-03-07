@@ -6,8 +6,10 @@ package com.opendxl.streaming.sample;
 
 import com.opendxl.streaming.client.Channel;
 import com.opendxl.streaming.client.ChannelAuth;
-import com.opendxl.streaming.client.Error;
 import com.opendxl.streaming.client.entity.ConsumerRecords;
+import com.opendxl.streaming.client.exception.ConsumerError;
+import com.opendxl.streaming.client.exception.PermanentError;
+import com.opendxl.streaming.client.exception.TemporaryError;
 
 import java.util.Arrays;
 import java.util.List;
@@ -110,7 +112,7 @@ public class BasicConsumerExample {
             // delete consumer instance from Databus Consumer Service
             channel.delete();
 
-        } catch (final Error e) {
+        } catch (final ConsumerError | PermanentError | TemporaryError e) {
 
             System.out.println("Error occurred: " + e.getClass().getCanonicalName() + ": " + e.getMessage());
             System.out.println(e.getCause() != null

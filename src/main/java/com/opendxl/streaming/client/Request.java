@@ -4,6 +4,10 @@
 
 package com.opendxl.streaming.client;
 
+import com.google.gson.Gson;
+import com.opendxl.streaming.client.entity.ConsumerServiceError;
+import com.opendxl.streaming.client.exception.ConsumerError;
+import com.opendxl.streaming.client.exception.TemporaryError;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.config.CookieSpecs;
@@ -34,6 +38,8 @@ public class Request implements AutoCloseable {
 
     private final CloseableHttpClient httpClient;
     private final HttpClientContext httpClientContext;
+
+    private Optional<String> consumerId;
 
     /**
      * Request Constructor
@@ -67,8 +73,22 @@ public class Request implements AutoCloseable {
                     .build();
 
         } catch (final Throwable e) {
-            throw new TemporaryError("Unexpected temporary error " + e.getClass() + ": " + e.getMessage());
+            TemporaryError temporaryError = new TemporaryError("Unexpected temporary error when instantiating Request"
+                    + e.getClass() + ": " + e.getMessage());
+            temporaryError.setCause(e);
+            throw temporaryError;
         }
+
+    }
+
+    /**
+     * Set the consumerId. It is only used in error messages.
+     *
+     * @param consumerId the consumer identifier given by ConsumerService
+     */
+    public void setConsumerId(final String consumerId) {
+
+        this.consumerId = Optional.ofNullable(consumerId);
 
     }
 
@@ -78,16 +98,15 @@ public class Request implements AutoCloseable {
      * @param uri path plus query string components of the destination URL
      * @param body to include in the request
      * @return an HttpResponse
+     * @throws ConsumerError if consumer was not found
      * @throws TemporaryError if request was not successful
      */
-    public HttpResponse post(final String uri, final Optional<byte[]> body) throws TemporaryError {
+    public Optional<String> post(final String uri, final Optional<byte[]> body) throws ConsumerError, TemporaryError {
 
         HttpPost httpRequest = new HttpPost(base + uri);
         body.ifPresent(value -> httpRequest.setEntity(new ByteArrayEntity(value)));
 
-        HttpResponse response = request(httpRequest);
-
-        return response;
+        return request(httpRequest);
 
     }
 
@@ -96,15 +115,14 @@ public class Request implements AutoCloseable {
      *
      * @param uri path plus query string components of the destination URL
      * @return an HttpResponse
+     * @throws ConsumerError if consumer was not found
      * @throws TemporaryError if request was not successful
      */
-    public HttpResponse get(final String uri) throws TemporaryError {
+    public Optional<String> get(final String uri) throws ConsumerError, TemporaryError {
 
         HttpGet httpRequest = new HttpGet(base + uri);
 
-        HttpResponse response = request(httpRequest);
-
-        return response;
+        return request(httpRequest);
 
     }
 
@@ -113,15 +131,14 @@ public class Request implements AutoCloseable {
      *
      * @param uri path plus query string components of the destination URL
      * @return an HttpResponse
+     * @throws ConsumerError if consumer was not found
      * @throws TemporaryError if request was not successful
      */
-    public HttpResponse delete(final String uri) throws TemporaryError {
+    public Optional<String> delete(final String uri) throws ConsumerError, TemporaryError {
 
         HttpDelete httpRequest = new HttpDelete(base + uri);
 
-        HttpResponse response = request(httpRequest);
-
-        return response;
+        return request(httpRequest);
 
     }
 
@@ -131,32 +148,74 @@ public class Request implements AutoCloseable {
      *
      * @param httpRequest
      * @return an HttpResponse object
+     * @throws ConsumerError if the request throws exception or an HTTP Not Found (404) or Conflict (409) response
+     *         or Internal Server Error (500) is received
      * @throws TemporaryError if the request throws exception or an HTTP Unauthorized (401) or Forbidden (403) response
      *         is received
      */
-    private HttpResponse request(final HttpRequestBase httpRequest) throws TemporaryError {
+    private Optional<String> request(final HttpRequestBase httpRequest) throws ConsumerError, TemporaryError {
 
         HttpResponse httpResponse;
+        int statusCode = 0;
+        Optional<String> returnValue = Optional.empty();
+
         try {
 
             auth.authenticate(httpRequest);
             httpResponse = httpClient.execute(httpRequest, httpClientContext);
+            statusCode = httpResponse.getStatusLine().getStatusCode();
+
+            if (httpResponse.getEntity() != null) {
+                returnValue = Optional.ofNullable(EntityUtils.toString(httpResponse.getEntity()));
+            }
 
         } catch (final Throwable e) {
-            throw new TemporaryError("Unexpected temporary error " + e.getClass() + ": " + e.getMessage());
+            TemporaryError temporaryError = new TemporaryError("Unexpected temporary error "
+                    + e.getClass().getCanonicalName() + ": " + e.getMessage());
+            temporaryError.setCause(e);
+            temporaryError.setHttpRequest(httpRequest);
+            temporaryError.setStatusCode(statusCode);
+            throw temporaryError;
         }
 
-        int statusCode = httpResponse.getStatusLine().getStatusCode();
-        if (statusCode == 401 || statusCode == 403) {
+        // Evaluate Response HTTP Status Code
+        if (isSuccess(statusCode)) {
+
+            return returnValue;
+
+        } else if (statusCode == 401 || statusCode == 403) {
             // Reset authorization attribute
             resetAuthorization();
-            throw new TemporaryError("Token potentially expired (" + statusCode + "): "
-                    + httpResponse.getStatusLine().getReasonPhrase() + " entity " + getString(httpResponse.getEntity(),
-                    statusCode));
+            TemporaryError temporaryError = new TemporaryError("Token potentially expired (" + statusCode + "): "
+                    + httpResponse.getStatusLine().getReasonPhrase() + " entity "
+                    + getString(httpResponse.getEntity(), statusCode));
+            temporaryError.setApi(httpRequest.getMethod() + " " + httpRequest.getURI());
+            temporaryError.setStatusCode(statusCode);
+            temporaryError.setCause(null);
+
+            throw temporaryError;
+
+        } else if (shouldRecreateConsumer(statusCode)) {
+
+            ConsumerError consumerError = new ConsumerError("Consumer " + consumerId.orElse("unknown")
+                    + " does not exist - Status code: " + statusCode);
+            consumerError.setApi(httpRequest.getMethod() + " " + httpRequest.getURI());
+            consumerError.setStatusCode(statusCode);
+            consumerError.setCause(null);
+
+            throw consumerError;
+
+        } else {
+            // any other Response HTTP Status Code
+            TemporaryError temporaryError = new TemporaryError("Unexpected temporary error " + statusCode + ": "
+                    + getConsumerServiceErrorMessage(returnValue.get()));
+            temporaryError.setApi(httpRequest.getMethod() + " " + httpRequest.getURI());
+            temporaryError.setStatusCode(statusCode);
+            temporaryError.setCause(null);
+
+            throw temporaryError;
 
         }
-
-        return httpResponse;
 
     }
 
@@ -166,6 +225,7 @@ public class Request implements AutoCloseable {
     public void resetCookies() {
 
         httpClientContext.getCookieStore().clear();
+        consumerId = Optional.empty();
 
     }
 
@@ -189,7 +249,6 @@ public class Request implements AutoCloseable {
     @Override
     public void close() throws TemporaryError {
 
-        // TODO: verify that Request object is not sending a request or awaiting for a response when closing it
         try {
 
             httpClient.close();
@@ -220,6 +279,55 @@ public class Request implements AutoCloseable {
             throw new TemporaryError("Unexpected temporary error " + httpStatusCode + ": "
                     + e.getClass().getCanonicalName() + " " + e.getMessage());
         }
+
+    }
+
+    /**
+     * Checks whether a status code is successful one
+     *
+     * @param statusCode an HTTP Response Status Code
+     * @return true if status code belongs to 2xx Success range
+     *         false otherwise
+     */
+    private static boolean isSuccess(final int statusCode) {
+
+        return statusCode >= 200 && statusCode < 300;
+
+    }
+
+
+    /**
+     * Checks whether a status code is a consumer error one.
+     *
+     * An error is considered a consumer one if such error can be overcome by using a brand new consumer instead of the
+     * current one.
+     *
+     * @param statusCode an HTTP Response Status Code
+     * @return true if status code is 404 Bad Request or 409 Conflict or 500 Internal Server Error
+     *         or 503 Server Unavailable
+     *         false otherwise
+     */
+    private boolean shouldRecreateConsumer(final int statusCode) {
+
+        return statusCode == 404 || statusCode == 409 || statusCode == 500 || statusCode == 503;
+
+    }
+
+    /**
+     * Get the error message of a ConsumerServiceError object in JSON format.
+     *
+     * @param responseEntityString string representing a ConsumerServiceError in JSON format
+     * @return String with error message
+     */
+    private static String getConsumerServiceErrorMessage(final String responseEntityString) {
+
+        Gson gson = new Gson();
+        ConsumerServiceError apiGatewayError = (ConsumerServiceError) gson.fromJson(responseEntityString,
+                ConsumerServiceError.class);
+
+        return apiGatewayError != null
+                ? apiGatewayError.getMessage()
+                : responseEntityString;
 
     }
 

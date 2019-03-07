@@ -74,7 +74,6 @@ public class ChannelAuth {
     /**
      * Adds an http header with the Authorization token to the given http request
      *
-     * TODO: add a better explanation when these exceptions are thrown
      * @param httpRequest request where to add the Authorization header
      * @throws IOException exception that might be thrown by CloseableHttpClient.execute()
      * @throws KeyStoreException exception that might be thrown by SSLContextBuilder.loadTrustMaterial()
@@ -106,7 +105,7 @@ public class ChannelAuth {
      *                        validated.
      * @return an Optional containing the Authorization token if login succeeded
      *         an empty Optional otherwise
-     * TODO: add a better explanation when these exceptions are thrown
+     *
      * @throws IOException exception that might be thrown by CloseableHttpClient.execute()
      * @throws KeyStoreException exception that might be thrown by SSLContextBuilder.loadTrustMaterial()
      * @throws NoSuchAlgorithmException exception that might be thrown by SSLContextBuilder.loadTrustMaterial()
