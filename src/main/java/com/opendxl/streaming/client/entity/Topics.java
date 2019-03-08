@@ -12,6 +12,9 @@ import java.util.List;
 public class Topics {
     private List<String> topics;
 
+    /**
+     * @param topics list of topic names
+     */
     public Topics(List<String> topics) {
         this.topics = topics;
     }

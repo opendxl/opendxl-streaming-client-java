@@ -25,10 +25,12 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * The `Channel` class is responsible for all communication with the streaming service.
- * The following example demonstrates the creation of a :class:`Channel` instance and creating a consumer for the
- * consumer group:
+ * <p>The {@link Channel} class is responsible for all communication with the streaming service.
+ * </p>
+ * <p>The following example demonstrates the creation of a {@link Channel} instance and creating a consumer for the
+ * consumer group:</p>
  *
+ * <pre>
  * // Create the channel
  * Channel channel = new Channel("http://channel-server",       // channelUrl
  *                               new ChannelAuth("http://channel-server",   // channelUrlLogin
@@ -48,7 +50,7 @@ import java.util.concurrent.locks.ReentrantLock;
  *
  * // Create a new consumer on the consumer group
  * channel.create()
- *
+ * </pre>
  */
 public class Channel implements AutoCloseable {
 
@@ -88,35 +90,33 @@ public class Channel implements AutoCloseable {
     private Condition stoppedCondition;
 
     /**
-     * Constructor parameters:
-     *
      * @param base Base URL at which the streaming service resides.
      * @param auth Authentication object to use for channel requests.
      * @param consumerGroup Consumer group to subscribe the channel consumer to.
      * @param pathPrefix Path to append to streaming service requests.
      * @param consumerPathPrefix Path to append to consumer-related requests made to the streaming service. Note that
-     *                          if the path_prefix parameter is set to a non-empty value, the pathPrefix value will be
+     *                          if the pathPrefix parameter is set to a non-empty value, the pathPrefix value will be
      *                          appended to consumer-related requests instead of the consumerPathPrefix value.
-     * @param offset Offset for the next record to retrieve from the streaming service for the new consume() call.
-     *              Must be one of 'latest', 'earliest', or 'none'.
+     * @param offset Offset for the next record to retrieve from the streaming service for the new
+     *               {@link Channel#consume()} call. Must be one of 'latest', 'earliest', or 'none'.
      * @param requestTimeout The configuration controls the maximum amount of time the client (consumer) will wait for
      *                      the broker response of a request. If the response is not received before the request timeout
      *                      elapses the client may resend the request or fail the request if retries are exhausted. If
-     *                      set to `None` (the default), the request timeout is determined automatically by the
+     *                      set to {@code null}, the request timeout is determined automatically by the
      *                      streaming service. Note that if a value is set for the request timeout, the value should
-     *                      exceed the `sessionTimeout`. Otherwise, the streaming service may fail to create new
-     *                      consumers properly. To ensure that the request timeout is greater than the `sessionTimeout`,
-     *                      values for either both (or neither) of the `requestTimeout` and `sessionTimeout` parameters
+     *                      exceed the sessionTimeout. Otherwise, the streaming service may fail to create new
+     *                      consumers properly. To ensure that the request timeout is greater than the sessionTimeout,
+     *                      values for either both (or neither) of the requestTimeout and sessionTimeout parameters
      *                      should be specified.
      * @param sessionTimeout The timeout (in seconds) used to detect channel consumer failures. The consumer sends
      *                      periodic heartbeats to indicate its liveness to the broker. If no heartbeats are received by
      *                      the broker before the expiration of this session timeout, then the broker may remove this
-     *                      consumer from the group. If set to `None` (the default), the session timeout is determined
+     *                      consumer from the group. If set to {@code null}, the session timeout is determined
      *                      automatically by the streaming service. Note that if a value is set for the session timeout,
-     *                      the value should be less than the `requestTimeout`. Otherwise, the streaming service may
+     *                      the value should be less than the requestTimeout. Otherwise, the streaming service may
      *                      fail to create new consumers properly. To ensure that the session timeout is less than the
-     *                      `requestTimeout`, values for either both (or neither) of the `requesTimeout` and
-     *                      `sessionTimeout` parameters should be specified.
+     *                      requestTimeout, values for either both (or neither) of the requesTimeout and
+     *                      sessionTimeout parameters should be specified.
      * @param retryOnFail Whether or not the channel will automatically retry a call which failed due to a temporary
      *                   error.
      * @param verifyCertBundle Path to a CA bundle file containing certificates of trusted CAs. The CA bundle is used
@@ -125,9 +125,9 @@ public class Channel implements AutoCloseable {
      *                        validated.
      * @param extraConfigs Dictionary of key/value pairs containing any custom configuration settings which should be
      *                    sent to the streaming service when a consumer is created. Note that any values specified for
-     *                    the `offset`, `requestTimeout`, and/or `sessionTimeout` parameters will override the
-     *                    corresponding values, if specified, in the `extraConfigs` parameter.
-     * @throws PermanentError if offset value is not one of "latest", "earliest", "none".
+     *                    the offset, requestTimeout, and/or sessionTimeout parameters will override the
+     *                    corresponding values, if specified, in the extraConfigs parameter.
+     * @throws PermanentError if offset value is not one of 'latest', 'earliest', 'none'.
      * @throws TemporaryError if http client request object failed to be created.
      */
     public Channel(final String base, final ChannelAuth auth, final String consumerGroup,
@@ -240,7 +240,7 @@ public class Channel implements AutoCloseable {
             TemporaryError temporaryError = new TemporaryError("Error while parsing response: "
                     + e.getClass().getCanonicalName() + " " + e.getMessage());
             temporaryError.setApi("create");
-            temporaryError.setCause(e);
+            temporaryError.initCause(e);
             throw temporaryError;
         }
 
@@ -407,7 +407,7 @@ public class Channel implements AutoCloseable {
     /**
      * Consumes records from all the subscribed topics
      *
-     * @return ConsumerRecords a list of the consumer record objects from the records returned by the server.
+     * @return {@link ConsumerRecords} a list of the consumer record objects from the records returned by the server.
      * @throws ConsumerError if the consumer associated with the channel does not exist on the server.
      * @throws PermanentError if the channel has not been subscribed to any topics.
      * @throws TemporaryError if the consume attempt fails.
@@ -449,8 +449,9 @@ public class Channel implements AutoCloseable {
     }
 
     /**
-     * Commits the record offsets to the channel. Committed offsets are the latest consumed ones on all consumed topics
-     * and partitions.
+     * <p>Commits the record offsets to the channel.</p>
+     *
+     * <p>Committed offsets are the latest consumed ones on all consumed topics and partitions.</p>
      *
      * @throws ConsumerError if the consumer associated with the channel does not exist on the server.
      * @throws TemporaryError if the commit attempt fails.
@@ -481,16 +482,19 @@ public class Channel implements AutoCloseable {
     }
 
     /**
-     * Repeatedly consume records from the subscribed topics. The supplied consumerRecordProcessor.callback() method
-     * is invoked with a list containing each consumer record.
+     * <p>Repeatedly consume records from the subscribed topics.</p>
      *
-     * The consumerRecordProcessor.callback() should return a value of True in order for this function to continue
-     * consuming additional records. For a return value of False or no return value, no additional records will be
-     * consumed and this function will return.
+     * <p>The supplied
+     * {@link ConsumerRecordProcessor#processCallback(ConsumerRecords, String)} method is invoked with a list containing
+     * each consumer record.</p>
      *
-     * The stop method can also be called to halt an execution of this method.
+     * <p>{@link ConsumerRecordProcessor#processCallback(ConsumerRecords, String)} should return a value of {@code true}
+     * in order for this function to continue consuming additional records. For a return value of {@code false}, no
+     * additional records will be consumed and this function will return.</p>
      *
-     * @param processCallback Callable which is invoked with a list of payloads from records which have been consumed.
+     * <p>The {@link Channel#stop()} method can also be called to halt an execution of this method.</p>
+     *
+     * @param processCallback Callable which is invoked with a list of records which have been consumed.
      * @param waitBetweenQueries Number of seconds to wait between calls to consume records.
      * @param topics If set to a non-empty value, the channel will be subscribed to the specified topics.
      *              If set to an empty value, the channel will use topics previously subscribed via a call to the
@@ -550,8 +554,11 @@ public class Channel implements AutoCloseable {
     }
 
     /**
-     * Stop an active execution of the :meth:`run` call. If no :meth:`run` call is active, this function returns
-     * immediately. If a :meth:`run` call is active, this function blocks until the run has been completed.
+     * <p>Stop an active execution of the {@link Channel#run(Optional, int, Optional)} call.</p>
+     *
+     * <p>If no {@link Channel#run(Optional, int, Optional)} call is active, this function returns
+     * immediately. If a {@link Channel#run(Optional, int, Optional)} call is active, this function blocks until
+     * the run has been completed.</p>
      *
      * @throws StopError an error occurred while waiting for channel to be stopped
      */
@@ -580,13 +587,14 @@ public class Channel implements AutoCloseable {
     }
 
     /**
-     * Destroys the channel (releases all associated resources).
+     * <p>Destroys the channel (releases all associated resources).</p>
      *
-     * **NOTE:** Once the method has been invoked, no other calls should be made to the channel.
+     * <b>**NOTE:** Once the method has been invoked, no other calls should be made to the channel.</b>
      *
-     * Also note that this method should rarely be called directly. Instead, the preferred usage of the channel is via
-     * a Java "try-with-resources" statement as shown below:
+     * <p>Also note that this method should rarely be called directly. Instead, the preferred usage of the channel is
+     * via a Java "try-with-resources" statement as shown below:</p>
      *
+     * <pre>
      *      // Create the channel
      *      try (Channel channel = new Channel(("http://channel-server",
      *              auth=ChannelAuth("http://channel-server,
@@ -595,9 +603,11 @@ public class Channel implements AutoCloseable {
      *
      *                  channel.create();
      *      }
+     * </pre>
      *
-     * The "try-with-resources" statement ensures that resources associated with the channel are properly cleaned up
-     * when the block is exited (the :func:`destroy` method is invoked).
+     * <p>The "try-with-resources" statement ensures that resources associated with the channel are properly cleaned up
+     * when the block is exited (the {@link Channel#close()} method is invoked which calls {@link Channel#destroy()}
+     * in turn).</p>
      *
      * @throws TemporaryError if a consumer has previously been created for the channel but an attempt to delete the
      *                         consumer from the channel fails.
@@ -621,9 +631,11 @@ public class Channel implements AutoCloseable {
     }
 
     /**
-     * Closes the channel. It calls destroy() to stop the channel and to release its resources.
+     * <p>Closes the channel.</p>
      *
-     * This method is added to allow Channel to be used in conjunction with Java try-with-resources statement.
+     * <p>It calls {@link Channel#destroy()} to stop the channel and to release its resources.</p>
+     *
+     * <p>This method is added to allow Channel to be used in conjunction with Java try-with-resources statement.</p>
      *
      * @throws TemporaryError if a consumer has previously been created for the channel but an attempt to delete the
      *                         consumer from the channel fails.
@@ -637,13 +649,14 @@ public class Channel implements AutoCloseable {
     }
 
     /**
-     * Calls consume to get records, delivers them to processCallback and commit the consumed records.
+     * <p>Calls consume to get records, then delivers them to processCallback and finally commit the consumed records.
+     * </p>
      *
      * @param processCallback
      * @param waitBetweenQueries
      * @param topics
-     * @return true if callback has successfully processed records and stop has not been requested
-     *         false otherwise.
+     * @return <code>true</code> if callback has successfully processed records and stop has not been requested
+     *         <code>false</code> otherwise.
      * @throws TemporaryError the consume or commit attempt failed with an error other than ConsumerError.
      * @throws PermanentError the callback asks to stop consuming records.
      */
@@ -724,9 +737,9 @@ public class Channel implements AutoCloseable {
     }
 
     /**
-     * Deletes the current consumer, creates a brand new one and subscribes it to topics.
+     * <p>Deletes the current consumer and then creates a brand new one.</p>
      *
-     * This method is used to easily get a new consumer to continue consuming records from the given topics.
+     * <p>This method is used to easily get a new consumer to continue consuming records from the given topics.</p>
      *
      * @param topics topics to which the new consumer will subscribe.
      * @throws PermanentError if consumer group or topics to subscribe to are not available.

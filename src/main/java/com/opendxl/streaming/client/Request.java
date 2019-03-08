@@ -28,8 +28,9 @@ import org.apache.http.util.EntityUtils;
 import java.util.Optional;
 
 /**
- * Request class is used to set up and send HTTP Post, Get and Delete requests to a given URI. It also keeps received
- * Cookies in the CookieStore of its HttpClientContext attribute.
+ * <p>Request class is used to set up and send HTTP Post, Get and Delete requests to a given URI.</p>
+ * <p>It also manages received Cookies and it includes them in sent requests. It uses
+ * {@link org.apache.http.client.HttpClient} and {@link org.apache.http.client.protocol.HttpClientContext} classes.</p>
  */
 public class Request implements AutoCloseable {
 
@@ -42,13 +43,13 @@ public class Request implements AutoCloseable {
     private Optional<String> consumerId;
 
     /**
-     * Request Constructor
-     *
-     * @param base scheme (http or https) and host parts of target URLs
+     * @param base scheme (http or https) and host parts of target URLs. It will be prepended to uri parameter of
+     *             {@link Request#post(String, Optional)}, {@link Request#get(String)} and
+     *             {@link Request#delete(String)} methods.
      * @param auth provider of the Authorization token header to be included in the HttpRequest
      * @throws TemporaryError if attempt to create and configure the HttpClient instance fails
      */
-    Request(final String base, final ChannelAuth auth) throws TemporaryError {
+    public Request(final String base, final ChannelAuth auth) throws TemporaryError {
 
         this.base = base;
         this.auth = auth;
@@ -96,7 +97,8 @@ public class Request implements AutoCloseable {
      * Send a POST request
      *
      * @param uri path plus query string components of the destination URL
-     * @param body to include in the request
+     * @param body to include in the request. If body is {@link Optional#empty()}, then no entity body is added to the
+     *             request.
      * @return an HttpResponse
      * @throws ConsumerError if consumer was not found
      * @throws TemporaryError if request was not successful

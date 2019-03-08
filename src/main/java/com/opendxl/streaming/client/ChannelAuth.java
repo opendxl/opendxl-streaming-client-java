@@ -37,9 +37,7 @@ public class ChannelAuth {
     private Optional<String> token;
 
     /**
-     * Constructor parameters:
-     *
-     * @param base Base URL to forward authentication requests to.
+     * @param base Base URL to forward authentication requests to. Its value will be prepended to pathFragment.
      * @param username User name to supply for request authentication.
      * @param password Password to supply for request authentication.
      * @param pathFragment Path to append to the base URL for the request.
@@ -72,7 +70,7 @@ public class ChannelAuth {
 
 
     /**
-     * Adds an http header with the Authorization token to the given http request
+     * Adds the http header with the Authorization token to the given http request
      *
      * @param httpRequest request where to add the Authorization header
      * @throws IOException exception that might be thrown by CloseableHttpClient.execute()
