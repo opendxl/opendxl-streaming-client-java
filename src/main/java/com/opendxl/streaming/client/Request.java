@@ -4,12 +4,15 @@
 
 package com.opendxl.streaming.client;
 
-import com.google.gson.Gson;
 import com.opendxl.streaming.client.entity.ConsumerServiceError;
 import com.opendxl.streaming.client.exception.ConsumerError;
+import com.opendxl.streaming.client.exception.ErrorType;
+import com.opendxl.streaming.client.exception.PermanentError;
 import com.opendxl.streaming.client.exception.TemporaryError;
+
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
+import org.apache.http.ParseException;
 import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpDelete;
@@ -25,7 +28,11 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.util.EntityUtils;
 
+import com.google.gson.Gson;
+
+import java.io.IOException;
 import java.util.Optional;
+import java.util.Map;
 
 /**
  * <p>Request class is used to set up and send HTTP Post, Get and Delete requests to a given URI.</p>
@@ -40,12 +47,10 @@ public class Request implements AutoCloseable {
     private final CloseableHttpClient httpClient;
     private final HttpClientContext httpClientContext;
 
-    private Optional<String> consumerId;
-
     /**
      * @param base scheme (http or https) and host parts of target URLs. It will be prepended to uri parameter of
-     *             {@link Request#post(String, Optional)}, {@link Request#get(String)} and
-     *             {@link Request#delete(String)} methods.
+     *             {@link Request#post(String, Optional, Map)}, {@link Request#get(String, Map)} and
+     *             {@link Request#delete(String, Map)} methods.
      * @param auth provider of the Authorization token header to be included in the HttpRequest
      * @throws TemporaryError if attempt to create and configure the HttpClient instance fails
      */
@@ -74,22 +79,9 @@ public class Request implements AutoCloseable {
                     .build();
 
         } catch (final Throwable e) {
-            TemporaryError temporaryError = new TemporaryError("Unexpected temporary error when instantiating Request"
-                    + e.getClass() + ": " + e.getMessage());
-            temporaryError.setCause(e);
-            throw temporaryError;
+            throw new TemporaryError("Unexpected temporary error when instantiating Request"
+                    + e.getClass() + ": " + e.getMessage(), e);
         }
-
-    }
-
-    /**
-     * Set the consumerId. It is only used in error messages.
-     *
-     * @param consumerId the consumer identifier given by ConsumerService
-     */
-    public void setConsumerId(final String consumerId) {
-
-        this.consumerId = Optional.ofNullable(consumerId);
 
     }
 
@@ -99,16 +91,22 @@ public class Request implements AutoCloseable {
      * @param uri path plus query string components of the destination URL
      * @param body to include in the request. If body is {@link Optional#empty()}, then no entity body is added to the
      *             request.
-     * @return an HttpResponse
+     * @param httpStatusMapping map HTTP Status Code to {@link ErrorType}
+     * @return the HttpResponse
      * @throws ConsumerError if consumer was not found
-     * @throws TemporaryError if request was not successful
+     * @throws TemporaryError if request was not successful and httpStatusMapping maps the response http status code to
+     * a TemporaryError
+     * @throws PermanentError if request was not successful and httpStatusMapping maps the response http status code to
+     * a PermanentError
      */
-    public Optional<String> post(final String uri, final Optional<byte[]> body) throws ConsumerError, TemporaryError {
+    public Optional<String> post(final String uri, final Optional<byte[]> body,
+                                 final Map<Integer, ErrorType> httpStatusMapping)
+            throws ConsumerError, TemporaryError, PermanentError {
 
         HttpPost httpRequest = new HttpPost(base + uri);
         body.ifPresent(value -> httpRequest.setEntity(new ByteArrayEntity(value)));
 
-        return request(httpRequest);
+        return request(httpRequest, httpStatusMapping);
 
     }
 
@@ -116,15 +114,20 @@ public class Request implements AutoCloseable {
      * Send a GET request
      *
      * @param uri path plus query string components of the destination URL
-     * @return an HttpResponse
+     * @param httpStatusMapping map HTTP Status Code to {@link ErrorType}
+     * @return the HttpResponse
      * @throws ConsumerError if consumer was not found
-     * @throws TemporaryError if request was not successful
+     * @throws TemporaryError if request was not successful and httpStatusMapping maps the response http status code to
+     * a TemporaryError
+     * @throws PermanentError if request was not successful and httpStatusMapping maps the response http status code to
+     * a PermanentError
      */
-    public Optional<String> get(final String uri) throws ConsumerError, TemporaryError {
+    public Optional<String> get(final String uri, final Map<Integer, ErrorType> httpStatusMapping) throws ConsumerError,
+            TemporaryError, PermanentError {
 
         HttpGet httpRequest = new HttpGet(base + uri);
 
-        return request(httpRequest);
+        return request(httpRequest, httpStatusMapping);
 
     }
 
@@ -132,15 +135,20 @@ public class Request implements AutoCloseable {
      * Send a DELETE request
      *
      * @param uri path plus query string components of the destination URL
-     * @return an HttpResponse
+     * @param httpStatusMapping map HTTP Status Code to {@link ErrorType}
+     * @return the HttpResponse
      * @throws ConsumerError if consumer was not found
-     * @throws TemporaryError if request was not successful
+     * @throws TemporaryError if request was not successful and httpStatusMapping maps the response http status code to
+     * a TemporaryError
+     * @throws PermanentError if request was not successful and httpStatusMapping maps the response http status code to
+     * a PermanentError
      */
-    public Optional<String> delete(final String uri) throws ConsumerError, TemporaryError {
+    public Optional<String> delete(final String uri, final Map<Integer, ErrorType> httpStatusMapping)
+            throws ConsumerError, TemporaryError, PermanentError {
 
         HttpDelete httpRequest = new HttpDelete(base + uri);
 
-        return request(httpRequest);
+        return request(httpRequest, httpStatusMapping);
 
     }
 
@@ -149,13 +157,18 @@ public class Request implements AutoCloseable {
      * It uses the internal HttpClient which stored the Cookie got when Consumer was created
      *
      * @param httpRequest
-     * @return an HttpResponse object
-     * @throws ConsumerError if the request throws exception or an HTTP Not Found (404) or Conflict (409) response
-     *         or Internal Server Error (500) is received
-     * @throws TemporaryError if the request throws exception or an HTTP Unauthorized (401) or Forbidden (403) response
-     *         is received
+     * @param httpStatusMapping map HTTP Status Code to {@link ErrorType}
+     * @return the entity string of the HttpResponse object
+     * @throws ConsumerError if request was not successful and httpStatusMapping maps the response http status code to a
+     * ConsumerError
+     * @throws TemporaryError if request was not successful and httpStatusMapping maps the response http status code to
+     * a TemporaryError
+     * @throws PermanentError if request was not successful and httpStatusMapping maps the response http status code to
+     * a PermanentError
      */
-    private Optional<String> request(final HttpRequestBase httpRequest) throws ConsumerError, TemporaryError {
+    private Optional<String> request(final HttpRequestBase httpRequest, final Map<Integer, ErrorType> httpStatusMapping)
+            throws ConsumerError, TemporaryError, PermanentError {
+
 
         HttpResponse httpResponse;
         int statusCode = 0;
@@ -173,10 +186,7 @@ public class Request implements AutoCloseable {
 
         } catch (final Throwable e) {
             TemporaryError temporaryError = new TemporaryError("Unexpected temporary error "
-                    + e.getClass().getCanonicalName() + ": " + e.getMessage());
-            temporaryError.setCause(e);
-            temporaryError.setHttpRequest(httpRequest);
-            temporaryError.setStatusCode(statusCode);
+                    + e.getClass().getCanonicalName() + ": " + e.getMessage(), e, 0, httpRequest);
             throw temporaryError;
         }
 
@@ -185,38 +195,28 @@ public class Request implements AutoCloseable {
 
             return returnValue;
 
-        } else if (statusCode == 401 || statusCode == 403) {
-            // Reset authorization attribute
-            resetAuthorization();
-            TemporaryError temporaryError = new TemporaryError("Token potentially expired (" + statusCode + "): "
-                    + httpResponse.getStatusLine().getReasonPhrase() + " entity "
-                    + getString(httpResponse.getEntity(), statusCode));
-            temporaryError.setApi(httpRequest.getMethod() + " " + httpRequest.getURI());
-            temporaryError.setStatusCode(statusCode);
-            temporaryError.setCause(null);
+        } else if (httpStatusMapping.containsKey(statusCode)) {
 
-            throw temporaryError;
+            // http status code maps to an error. Then an exception must be thrown.
+            ErrorType errorType = httpStatusMapping.get(statusCode);
+            // Create the error message
+            Gson gson = new Gson();
+            String message = "";
+            if (returnValue.isPresent()) {
+                message = getConsumerServiceErrorMessage(returnValue.get());
+            }
 
-        } else if (shouldRecreateConsumer(statusCode)) {
-
-            ConsumerError consumerError = new ConsumerError("Consumer " + consumerId.orElse("unknown")
-                    + " does not exist - Status code: " + statusCode);
-            consumerError.setApi(httpRequest.getMethod() + " " + httpRequest.getURI());
-            consumerError.setStatusCode(statusCode);
-            consumerError.setCause(null);
-
-            throw consumerError;
+            // throw suitable exception
+            if (errorType == ErrorType.CONSUMER_ERROR) {
+                throw new ConsumerError(message, statusCode, httpRequest);
+            } else if (errorType == ErrorType.TEMPORARY_ERROR) {
+                throw new TemporaryError(message, statusCode, httpRequest);
+            } else {
+                throw new PermanentError(message, statusCode, httpRequest);
+            }
 
         } else {
-            // any other Response HTTP Status Code
-            TemporaryError temporaryError = new TemporaryError("Unexpected temporary error " + statusCode + ": "
-                    + getConsumerServiceErrorMessage(returnValue.get()));
-            temporaryError.setApi(httpRequest.getMethod() + " " + httpRequest.getURI());
-            temporaryError.setStatusCode(statusCode);
-            temporaryError.setCause(null);
-
-            throw temporaryError;
-
+            throw new TemporaryError("Unexpected temporary error", statusCode, httpRequest);
         }
 
     }
@@ -227,7 +227,6 @@ public class Request implements AutoCloseable {
     public void resetCookies() {
 
         httpClientContext.getCookieStore().clear();
-        consumerId = Optional.empty();
 
     }
 
@@ -257,9 +256,9 @@ public class Request implements AutoCloseable {
             resetCookies();
             resetAuthorization();
 
-        } catch (final Exception e) {
+        } catch (final IOException e) {
             throw new TemporaryError("Unexpected temporary error " + e.getClass().getCanonicalName() + ": "
-                    + e.getClass().getCanonicalName() + " " + e.getMessage());
+                    + " " + e.getMessage(), e);
         }
 
     }
@@ -268,18 +267,14 @@ public class Request implements AutoCloseable {
      * Get a string from an HttpEntity.
      *
      * @param httpEntity entity to get a string from
-     * @param httpStatusCode status code
      * @return String with HttpEntity contents
-     * @throws TemporaryError if creating a string from the httpEntity fails. TemporaryError also contains the
-     *         status code.
      */
-    private static String getString(final HttpEntity httpEntity, final int httpStatusCode) throws TemporaryError {
+    private static String getString(final HttpEntity httpEntity) throws TemporaryError {
 
         try {
             return EntityUtils.toString(httpEntity);
-        } catch (final Exception e) {
-            throw new TemporaryError("Unexpected temporary error " + httpStatusCode + ": "
-                    + e.getClass().getCanonicalName() + " " + e.getMessage());
+        } catch (final IOException | ParseException e) {
+            return "'failure when when parsing HttpEntity'";
         }
 
     }
@@ -294,24 +289,6 @@ public class Request implements AutoCloseable {
     private static boolean isSuccess(final int statusCode) {
 
         return statusCode >= 200 && statusCode < 300;
-
-    }
-
-
-    /**
-     * Checks whether a status code is a consumer error one.
-     *
-     * An error is considered a consumer one if such error can be overcome by using a brand new consumer instead of the
-     * current one.
-     *
-     * @param statusCode an HTTP Response Status Code
-     * @return true if status code is 404 Bad Request or 409 Conflict or 500 Internal Server Error
-     *         or 503 Server Unavailable
-     *         false otherwise
-     */
-    private boolean shouldRecreateConsumer(final int statusCode) {
-
-        return statusCode == 404 || statusCode == 409 || statusCode == 500 || statusCode == 503;
 
     }
 

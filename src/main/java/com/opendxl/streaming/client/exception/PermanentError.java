@@ -12,15 +12,37 @@ import org.apache.http.HttpRequest;
 public class PermanentError extends Exception {
 
     private int statusCode;
-    private Throwable cause;
     private String api;
     private HttpRequest httpRequest;
 
     /**
      * @param message error description
+     * @param cause if PermanentError is thrown as consequence of another exception. If PermanentError is not caused by
+     *              another exception, then it set to {@code null}.
+     * @param statusCode HTTP Status Code that caused the PermanentError. If PermanentError is caused by an HTTP Client
+     *                   or HTTP Server error, then it is set to the HTTP status code. If PermanentError is not due to
+     *                   an HTTP error, then it is set to zero.
+     * @param httpRequest HttpRequest in which the PermanentError occurred
      */
+    public PermanentError(final String message, final Throwable cause, final int statusCode,
+                          final HttpRequest httpRequest) {
+
+        super(message, cause);
+        this.statusCode = statusCode;
+        this.httpRequest = httpRequest;
+
+    }
+
+    public PermanentError(final String message, final int statusCode, final HttpRequest httpRequest) {
+
+        this(message, null, statusCode, httpRequest);
+
+    }
+
     public PermanentError(final String message) {
-        super(message);
+
+        this(message, null, 0, null);
+
     }
 
     /**
@@ -33,38 +55,9 @@ public class PermanentError extends Exception {
     }
 
     /**
-     * Sets the HTTP Status Code which caused the PermanentError to be thrown.
-     *
-     * @param statusCode if PermanentError is caused by an HTTP Client or Server error, then it is set to the HTTP
-     *                   status code. If PermanentError is not due to an HTTP error, then it is set to zero.
-     */
-    public void setStatusCode(final int statusCode) {
-        this.statusCode = statusCode;
-    }
-
-    /**
-     * Gets the exception which caused the PermanentError.
-     *
-     * @return original exception
-     */
-    public Throwable getCause() {
-        return cause;
-    }
-
-    /**
-     * Sets the exception which caused the PermanentError to be thrown.
-     *
-     * @param cause if PermanentError is thrown as consequence of another exception. If PermanentError is not caused by
-     *              another exception, then it set to {@code null}.
-     */
-    public void setCause(final Throwable cause) {
-        this.cause = cause;
-    }
-
-    /**
      * Gets the {@link com.opendxl.streaming.client.Channel} method name in which the PermanentError occurred.
      *
-     * @return Channel API name
+     * @return Channel API name, e.g.: create, subscribe, consume, commit, run
      */
     public String getApi() {
         return api;
@@ -86,15 +79,6 @@ public class PermanentError extends Exception {
      */
     public HttpRequest getHttpRequest() {
         return httpRequest;
-    }
-
-    /**
-     * Sets the HttpRequest in which the PermanentError occurred.
-     *
-     * @param httpRequest http request which was sent when PermanentError occurred.
-     */
-    public void setHttpRequest(final HttpRequest httpRequest) {
-        this.httpRequest = httpRequest;
     }
 
 }

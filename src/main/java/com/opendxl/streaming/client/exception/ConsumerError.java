@@ -13,15 +13,31 @@ import org.apache.http.HttpRequest;
 public class ConsumerError extends Exception {
 
     private int statusCode;
-    private Throwable cause;
     private String api;
     private HttpRequest httpRequest;
 
     /**
      * @param message error description
+     * @param cause if ConsumerError is thrown as consequence of another exception. If ConsumerError is not caused by
+     *              another exception, then it set to {@code null}.
+     * @param statusCode HTTP Status Code that caused the ConsumerError. If ConsumerError is caused by an HTTP Client
+     *                   or HTTP Server error, then it is set to the HTTP status code. If ConsumerError is not due to
+     *                   an HTTP error, then it is set to zero.
+     * @param httpRequest HttpRequest in which the ConsumerError occurred
      */
-    public ConsumerError(final String message) {
-        super(message);
+    public ConsumerError(final String message, final Throwable cause, final int statusCode,
+                         final HttpRequest httpRequest) {
+
+        super(message, cause);
+        this.statusCode = statusCode;
+        this.httpRequest = httpRequest;
+
+    }
+
+    public ConsumerError(final String message, final int statusCode, final HttpRequest httpRequest) {
+
+        this(message, null, statusCode, httpRequest);
+
     }
 
     /**
@@ -31,35 +47,6 @@ public class ConsumerError extends Exception {
      */
     public int getStatusCode() {
         return statusCode;
-    }
-
-    /**
-     * Sets the HTTP Status Code which caused the ConsumerError to be thrown.
-     *
-     * @param statusCode if ConsumerError is caused by an HTTP Client or Server error, then it is set to the HTTP
-     *                   status code. If ConsumerError is not due to an HTTP error, then it is set to zero.
-     */
-    public void setStatusCode(final int statusCode) {
-        this.statusCode = statusCode;
-    }
-
-    /**
-     * Gets the exception which caused the ConsumerError.
-     *
-     * @return original exception
-     */
-    public Throwable getCause() {
-        return cause;
-    }
-
-    /**
-     * Sets the exception which caused the ConsumerError to be thrown.
-     *
-     * @param cause if ConsumerError is thrown as consequence of another exception. If ConsumerError is not caused by
-     *              another exception, then it set to {@code null}.
-     */
-    public void setCause(final Throwable cause) {
-        this.cause = cause;
     }
 
     /**
@@ -87,15 +74,6 @@ public class ConsumerError extends Exception {
      */
     public HttpRequest getHttpRequest() {
         return httpRequest;
-    }
-
-    /**
-     * Sets the HttpRequest in which the ConsumerError occurred.
-     *
-     * @param httpRequest http request which was sent when ConsumerError occurred.
-     */
-    public void setHttpRequest(final HttpRequest httpRequest) {
-        this.httpRequest = httpRequest;
     }
 
 }

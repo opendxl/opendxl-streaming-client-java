@@ -4,6 +4,7 @@
 
 package com.opendxl.streaming.client;
 
+import com.google.gson.JsonSyntaxException;
 import com.opendxl.streaming.client.entity.ConsumerRecords;
 
 import com.google.gson.Gson;
@@ -11,13 +12,16 @@ import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 import com.opendxl.streaming.client.entity.Topics;
 import com.opendxl.streaming.client.exception.ConsumerError;
+import com.opendxl.streaming.client.exception.ErrorType;
 import com.opendxl.streaming.client.exception.PermanentError;
 import com.opendxl.streaming.client.exception.StopError;
 import com.opendxl.streaming.client.exception.TemporaryError;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
@@ -225,22 +229,21 @@ public class Channel implements AutoCloseable {
 
         try {
 
-            Optional<String> responseEntityString = request.post(consumerPathPrefix + "/consumers", Optional.of(body));
+            Optional<String> responseEntityString = request.post(consumerPathPrefix + "/consumers", Optional.of(body),
+                    CREATE_ERROR_MAP);
 
             responseEntityString.ifPresent(entity -> {
                 ConsumerId consumer = (ConsumerId) gson.fromJson(entity, ConsumerId.class);
                 consumerId = consumer.getConsumerInstanceId();
-                request.setConsumerId(consumerId);
             });
 
         } catch (final TemporaryError error) {
             error.setApi("create");
             throw error;
-        } catch (final Exception e) {
+        } catch (final JsonSyntaxException | ConsumerError e) {
             TemporaryError temporaryError = new TemporaryError("Error while parsing response: "
-                    + e.getClass().getCanonicalName() + " " + e.getMessage());
+                    + e.getClass().getCanonicalName() + " " + e.getMessage(), e, 0, null);
             temporaryError.setApi("create");
-            temporaryError.initCause(e);
             throw temporaryError;
         }
 
@@ -286,7 +289,7 @@ public class Channel implements AutoCloseable {
 
         try {
 
-            request.post(api, Optional.of(body));
+            request.post(api, Optional.of(body), SUBSCRIBE_ERROR_MAP);
 
             subscriptions.clear();
             subscriptions.addAll(topics);
@@ -307,8 +310,9 @@ public class Channel implements AutoCloseable {
      * @return List of topic names
      * @throws ConsumerError if the consumer associated with the channel does not exist on the server.
      * @throws TemporaryError if the retrieval of subscriptions fails.
+     * @throws PermanentError if request was malformed.
      */
-    public List<String> subscriptions() throws ConsumerError, TemporaryError {
+    public List<String> subscriptions() throws ConsumerError, PermanentError, TemporaryError {
 
         final Gson gson = new Gson();
         final String api =  new StringBuilder(consumerPathPrefix)
@@ -320,7 +324,7 @@ public class Channel implements AutoCloseable {
 
         try {
 
-            Optional<String> responseEntity = request.get(api);
+            Optional<String> responseEntity = request.get(api, GET_SUBSCRIPTIONS_ERROR_MAP);
 
             responseEntity.ifPresent(value -> list.addAll(gson.fromJson(value, List.class)));
             return list;
@@ -331,11 +335,13 @@ public class Channel implements AutoCloseable {
         } catch (final ConsumerError error) {
             error.setApi("subscriptions");
             throw error;
-        } catch (final Exception e) {
+        } catch (final PermanentError error) {
+            error.setApi("subscriptions");
+            throw error;
+        } catch (final JsonSyntaxException e) {
             TemporaryError temporaryError = new TemporaryError("Error while parsing response: "
-                    + e.getClass().getCanonicalName() + " " + e.getMessage());
+                    + e.getClass().getCanonicalName() + " " + e.getMessage(), e, 0, null);
             temporaryError.setApi("subscriptions");
-            temporaryError.setCause(e);
             throw temporaryError;
         }
 
@@ -346,8 +352,9 @@ public class Channel implements AutoCloseable {
      *
      * @throws ConsumerError if the consumer associated with the channel does not exist on the server.
      * @throws TemporaryError if the unsubscribe attempt fails.
+     * @throws PermanentError if request was malformed.
      */
-    public void unsubscribe() throws ConsumerError, TemporaryError {
+    public void unsubscribe() throws ConsumerError, PermanentError, TemporaryError {
 
         final String api =  new StringBuilder(consumerPathPrefix)
                 .append("/consumers/")
@@ -356,7 +363,7 @@ public class Channel implements AutoCloseable {
 
         try {
 
-            request.delete(api);
+            request.delete(api, UNSUBSCRIBE_ERROR_MAP);
             subscriptions.clear();
             return;
 
@@ -364,6 +371,9 @@ public class Channel implements AutoCloseable {
             error.setApi("unsubscribe");
             throw error;
         } catch (final ConsumerError error) {
+            error.setApi("unsubscribe");
+            throw error;
+        } catch (final PermanentError error) {
             error.setApi("unsubscribe");
             throw error;
         }
@@ -374,8 +384,9 @@ public class Channel implements AutoCloseable {
      * Deletes the consumer from the consumer group
      *
      * @throws TemporaryError if the delete attempt fails.
+     * @throws PermanentError if request was malformed.
      */
-    public void delete() throws TemporaryError {
+    public void delete() throws TemporaryError, PermanentError {
 
         if (consumerId == null) {
             return;
@@ -387,13 +398,16 @@ public class Channel implements AutoCloseable {
 
         try {
 
-            request.delete(api);
+            request.delete(api, DELETE_ERROR_MAP);
 
         } catch (final ConsumerError consumerError) {
 
             System.out.println("Consumer with ID " + consumerId + " not found. Resetting consumer anyways.");
 
         } catch (final TemporaryError error) {
+            error.setApi("delete");
+            throw error;
+        } catch (final PermanentError error) {
             error.setApi("delete");
             throw error;
         } finally {
@@ -425,7 +439,7 @@ public class Channel implements AutoCloseable {
 
         try {
 
-            Optional<String> responseEntity = request.get(api);
+            Optional<String> responseEntity = request.get(api, CONSUME_RECORDS_ERROR_MAP);
 
             final Gson gson = new Gson();
             final ConsumerRecords consumerRecords = gson.fromJson(responseEntity.get(), ConsumerRecords.class);
@@ -438,11 +452,10 @@ public class Channel implements AutoCloseable {
         } catch (final ConsumerError error) {
             error.setApi("consume");
             throw error;
-        } catch (final Exception e) {
+        } catch (final JsonSyntaxException e) {
             TemporaryError temporaryError = new TemporaryError("Error while parsing response: "
-                    + e.getClass().getCanonicalName() + " " + e.getMessage());
+                    + e.getClass().getCanonicalName() + " " + e.getMessage(), e, 0, null);
             temporaryError.setApi("consume");
-            temporaryError.setCause(e);
             throw temporaryError;
         }
 
@@ -455,8 +468,9 @@ public class Channel implements AutoCloseable {
      *
      * @throws ConsumerError if the consumer associated with the channel does not exist on the server.
      * @throws TemporaryError if the commit attempt fails.
+     * @throws PermanentError if request was malformed.
      */
-    public void commit() throws ConsumerError, TemporaryError {
+    public void commit() throws ConsumerError, TemporaryError, PermanentError {
 
         if (isAutoCommitEnabled) {
             return;
@@ -469,12 +483,15 @@ public class Channel implements AutoCloseable {
 
         try {
 
-            request.post(api, Optional.empty());
+            request.post(api, Optional.empty(), COMMIT_ALL_RECORDS_ERROR_MAP);
 
         } catch (final TemporaryError error) {
             error.setApi("commit");
             throw error;
         } catch (final ConsumerError error) {
+            error.setApi("commit");
+            throw error;
+        } catch (final PermanentError error) {
             error.setApi("commit");
             throw error;
         }
@@ -612,8 +629,9 @@ public class Channel implements AutoCloseable {
      * @throws TemporaryError if a consumer has previously been created for the channel but an attempt to delete the
      *                         consumer from the channel fails.
      * @throws StopError if the attempt to stop the channel fails.
+     * @throws PermanentError if delete request was malformed.
      */
-    public void destroy() throws TemporaryError, StopError {
+    public void destroy() throws TemporaryError, StopError, PermanentError {
 
         destroyLock.lock();
 
@@ -642,7 +660,7 @@ public class Channel implements AutoCloseable {
      * @throws StopError if the attempt to stop the channel fails.
      */
     @Override
-    public void close() throws TemporaryError, StopError {
+    public void close() throws TemporaryError, StopError, PermanentError {
 
         destroy();
 
@@ -668,67 +686,98 @@ public class Channel implements AutoCloseable {
 
         while (continueRunning) {
 
+            // if consumer is not subscribed yet, then subscribe it
             try {
-
                 if (!subscribed) {
                     subscribe(topics);
                     subscribed = true;
                 }
-
-                ConsumerRecords records = consume();
-                try {
-                    continueRunning = processCallback.processCallback(records, consumerId);
-                } catch (final TemporaryError e) {
-                    ConsumerError consumerError = new ConsumerError("Consume records callback requested "
-                            + "to read records again");
-                    consumerError.setApi("run");
-                    consumerError.setCause(e);
-                    throw consumerError;
-                }
-                // Commit offsets for just consumed records.
-                commit();
-
-                runLock.lock();
-                if (stopRequested) {
-                    continueRunning = false;
-                } else if (continueRunning) {
-                    stopRequestedCondition.await(waitBetweenQueries, TimeUnit.SECONDS);
-                    continueRunning = !stopRequested;
-                }
-                runLock.unlock();
-
-            } catch (final ConsumerError e) {
-
-                // ConsumerError exception can be raised if the consumer has been removed or if callback found errors
-                // in records and it wants them to be consumed again.
-                // In both cases, current consumer is deleted and a brand new one is created to resume consuming from
+            } catch (final ConsumerError error) {
+                // ConsumerError exception can be raised if the consumer has been removed.
+                // Then, current consumer is deleted and a brand new one is created to resume consuming from
                 // last commit.
-                System.out.println("Resetting consumer loop: " + e.getMessage());
-                recreateConsumer(topics);
                 subscribed = false;
+                recreateConsumer(topics, error);
+                continueRunning = !retryOnFail ? false : continueRunning;
+                continue;
+            } catch (final PermanentError | TemporaryError error) {
+                // Delete consumer instance.
+                delete();
+                throw error;
+            } finally {
+                runLock.lock();
+                continueRunning = stopRequested ? false : continueRunning;
+                runLock.unlock();
+            }
 
-                if (!retryOnFail) {
-                  continueRunning = false;
-                }
+            // consume records
+            ConsumerRecords records = null;
+            try {
+                records = consume();
+            } catch (final ConsumerError error) {
+                subscribed = false;
+                recreateConsumer(topics, error);
+                continueRunning = !retryOnFail ? false : continueRunning;
+                continue;
+            } catch (final PermanentError | TemporaryError error) {
+                // Delete consumer instance.
+                delete();
+                throw error;
+            } finally {
+                runLock.lock();
+                continueRunning = stopRequested ? false : continueRunning;
+                runLock.unlock();
+            }
 
-            } catch (final PermanentError e) {
-
+            // invoke callback
+            try {
+                continueRunning = processCallback.processCallback(records, consumerId);
+            } catch (final TemporaryError error) {
+                subscribed = false;
+                recreateConsumer(topics, error);
+                continueRunning = !retryOnFail ? false : continueRunning;
+                continue;
+            } catch (final PermanentError error) {
                 // Callback found errors in records and it does not want to retry consuming them.
                 // Delete consumer instance.
                 delete();
-                e.setApi("run");
-                throw e;
+                error.setApi("run");
+                throw error;
+            } finally {
+                runLock.lock();
+                continueRunning = stopRequested ? false : continueRunning;
+                runLock.unlock();
+            }
 
-            } catch (final Exception e) {
-                // Unexpected error occurred.
+            // Commit offsets for just consumed records
+            try {
+                commit();
+            } catch (final ConsumerError error) {
+                subscribed = false;
+                recreateConsumer(topics, error);
+                continueRunning = !retryOnFail ? false : continueRunning;
+                continue;
+            } catch (final TemporaryError error) {
                 // Delete consumer instance.
                 delete();
-                TemporaryError temporaryError = new TemporaryError("Unexpected temporary error "
-                        + e.getClass().getCanonicalName() + ": " + e.getMessage());
-                temporaryError.setApi("run");
-                temporaryError.setCause(e);
-                throw temporaryError;
+                throw error;
+            } finally {
+                runLock.lock();
+                continueRunning = stopRequested ? false : continueRunning;
+                runLock.unlock();
+            }
 
+            // Wait for a while
+            try {
+                runLock.lock();
+                if (continueRunning) {
+                    stopRequestedCondition.await(waitBetweenQueries, TimeUnit.SECONDS);
+                    continueRunning = !stopRequested;
+                }
+            } catch (final InterruptedException e) {
+                // Ignore it
+            } finally {
+                runLock.unlock();
             }
         }
 
@@ -745,14 +794,99 @@ public class Channel implements AutoCloseable {
      * @throws PermanentError if consumer group or topics to subscribe to are not available.
      * @throws TemporaryError if the attempt to create a new subscriber and subscribed it to the topics failed.
      */
-    private void recreateConsumer(final List<String> topics) throws PermanentError, TemporaryError {
+    private void recreateConsumer(final List<String> topics, final Exception error) throws PermanentError,
+            TemporaryError {
 
+        System.out.println("Resetting consumer loop: " + error.getMessage());
         delete();
         request.close();
         request = new Request(base, auth);
         create();
 
     }
+
+    /**
+     * Mapping of HTTP Status Code errors to {@link ErrorType} for {@link Channel#create()} API
+     */
+    private static final Map<Integer, ErrorType> CREATE_ERROR_MAP = new HashMap() {{
+        put(400, ErrorType.PERMANENT_ERROR);
+        put(401, ErrorType.TEMPORARY_ERROR);
+        put(403, ErrorType.TEMPORARY_ERROR);
+        put(404, ErrorType.PERMANENT_ERROR);
+        put(500, ErrorType.TEMPORARY_ERROR);
+    }};
+
+    /**
+     * Mapping of HTTP Status Code errors to {@link ErrorType} for {@link Channel#delete()} API
+     */
+    private static final Map<Integer, ErrorType> DELETE_ERROR_MAP = new HashMap() {{
+        put(400, ErrorType.PERMANENT_ERROR);
+        put(401, ErrorType.TEMPORARY_ERROR);
+        put(403, ErrorType.TEMPORARY_ERROR);
+        put(404, ErrorType.CONSUMER_ERROR);
+        put(409, ErrorType.TEMPORARY_ERROR);
+        put(500, ErrorType.TEMPORARY_ERROR);
+    }};
+
+    /**
+     * Mapping of HTTP Status Code errors to {@link ErrorType} for {@link Channel#subscribe(List)} API
+     */
+    private static final Map<Integer, ErrorType> SUBSCRIBE_ERROR_MAP = new HashMap() {{
+        put(400, ErrorType.PERMANENT_ERROR);
+        put(401, ErrorType.TEMPORARY_ERROR);
+        put(403, ErrorType.TEMPORARY_ERROR);
+        put(404, ErrorType.CONSUMER_ERROR);
+        put(409, ErrorType.TEMPORARY_ERROR);
+        put(500, ErrorType.TEMPORARY_ERROR);
+    }};
+
+    /**
+     * Mapping of HTTP Status Code errors to {@link ErrorType} for {@link Channel#subscriptions()} API
+     */
+    private static final Map<Integer, ErrorType> GET_SUBSCRIPTIONS_ERROR_MAP = new  HashMap() {{
+        put(400, ErrorType.PERMANENT_ERROR);
+        put(401, ErrorType.TEMPORARY_ERROR);
+        put(403, ErrorType.TEMPORARY_ERROR);
+        put(404, ErrorType.CONSUMER_ERROR);
+        put(409, ErrorType.TEMPORARY_ERROR);
+        put(500, ErrorType.TEMPORARY_ERROR);
+    }};
+
+    /**
+     * Mapping of HTTP Status Code errors to {@link ErrorType} for {@link Channel#unsubscribe()} API
+     */
+    private static final Map<Integer, ErrorType> UNSUBSCRIBE_ERROR_MAP = new HashMap() {{
+        put(400, ErrorType.PERMANENT_ERROR);
+        put(401, ErrorType.TEMPORARY_ERROR);
+        put(403, ErrorType.TEMPORARY_ERROR);
+        put(404, ErrorType.CONSUMER_ERROR);
+        put(409, ErrorType.TEMPORARY_ERROR);
+        put(500, ErrorType.TEMPORARY_ERROR);
+    }};
+
+    /**
+     * Mapping of HTTP Status Code errors to {@link ErrorType} for {@link Channel#consume()} API
+     */
+    private static final Map<Integer, ErrorType> CONSUME_RECORDS_ERROR_MAP = new HashMap() {{
+        put(400, ErrorType.PERMANENT_ERROR);
+        put(401, ErrorType.TEMPORARY_ERROR);
+        put(403, ErrorType.TEMPORARY_ERROR);
+        put(404, ErrorType.CONSUMER_ERROR);
+        put(409, ErrorType.TEMPORARY_ERROR);
+        put(500, ErrorType.TEMPORARY_ERROR);
+    }};
+
+    /**
+     * Mapping of HTTP Status Code errors to {@link ErrorType} for {@link Channel#commit()} API
+     */
+    private static final Map<Integer, ErrorType> COMMIT_ALL_RECORDS_ERROR_MAP = new HashMap() {{
+        put(400, ErrorType.PERMANENT_ERROR);
+        put(401, ErrorType.TEMPORARY_ERROR);
+        put(403, ErrorType.TEMPORARY_ERROR);
+        put(404, ErrorType.CONSUMER_ERROR);
+        put(409, ErrorType.TEMPORARY_ERROR);
+        put(500, ErrorType.TEMPORARY_ERROR);
+    }};
 
 }
 

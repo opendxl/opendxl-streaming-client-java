@@ -76,7 +76,7 @@ public class ConsumerRecordCallback {
 
                         try {
                             channel.destroy();
-                        } catch (final StopError | TemporaryError e) {
+                        } catch (final StopError | TemporaryError | PermanentError e) {
                             System.out.println("Failed to shutdown app.");
                         }
                     }));

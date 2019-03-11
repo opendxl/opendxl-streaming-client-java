@@ -12,15 +12,37 @@ import org.apache.http.HttpRequest;
 public class TemporaryError extends Exception {
 
     private int statusCode;
-    private Throwable cause;
     private String api;
     private HttpRequest httpRequest;
 
     /**
      * @param message error description
+     * @param cause if TemporaryError is thrown as consequence of another exception. If TemporaryError is not caused by
+     *              another exception, then it set to {@code null}.
+     * @param statusCode HTTP Status Code that caused the TemporaryError. If TemporaryError is caused by an HTTP Client
+     *                   or HTTP Server error, then it is set to the HTTP status code. If TemporaryError is not due to
+     *                   an HTTP error, then it is set to zero.
+     * @param httpRequest HttpRequest in which the TemporaryError occurred
      */
-    public TemporaryError(final String message) {
-        super(message);
+    public TemporaryError(final String message, final Throwable cause, final int statusCode,
+                          final HttpRequest httpRequest) {
+
+        super(message, cause);
+        this.statusCode = statusCode;
+        this.httpRequest = httpRequest;
+
+    }
+
+    public TemporaryError(final String message, final int statusCode, final HttpRequest httpRequest) {
+
+        this(message, null, statusCode, httpRequest);
+
+    }
+
+    public TemporaryError(final String message, final Throwable cause) {
+
+        this(message, cause, 0, null);
+
     }
 
     /**
@@ -33,38 +55,9 @@ public class TemporaryError extends Exception {
     }
 
     /**
-     * Sets the HTTP Status Code which caused the TemporaryError to be thrown.
-     *
-     * @param statusCode if TemporaryError is caused by an HTTP Client or Server error, then it is set to the HTTP
-     *                   status code. If TemporaryError is not due to an HTTP error, then it is set to zero.
-     */
-    public void setStatusCode(final int statusCode) {
-        this.statusCode = statusCode;
-    }
-
-    /**
-     * Gets the exception which caused the TemporaryError.
-     *
-     * @return original exception
-     */
-    public Throwable getCause() {
-        return cause;
-    }
-
-    /**
-     * Sets the exception which caused the TemporaryError to be thrown.
-     *
-     * @param cause if TemporaryError is thrown as consequence of another exception. If TemporaryError is not caused by
-     *              another exception, then it set to {@code null}.
-     */
-    public void setCause(final Throwable cause) {
-        this.cause = cause;
-    }
-
-    /**
      * Gets the {@link com.opendxl.streaming.client.Channel} method name in which the TemporaryError occurred.
      *
-     * @return Channel API name
+     * @return Channel API name, e.g.: create, subscribe, consume, commit, run
      */
     public String getApi() {
         return api;
@@ -86,15 +79,6 @@ public class TemporaryError extends Exception {
      */
     public HttpRequest getHttpRequest() {
         return httpRequest;
-    }
-
-    /**
-     * Sets the HttpRequest in which the TemporaryError occurred.
-     *
-     * @param httpRequest http request which was sent when TemporaryError occurred.
-     */
-    public void setHttpRequest(final HttpRequest httpRequest) {
-        this.httpRequest = httpRequest;
     }
 
 }
