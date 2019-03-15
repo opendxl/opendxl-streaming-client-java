@@ -20,6 +20,9 @@ public class StopError extends Exception {
         super(message, cause);
     }
 
+    /**
+     * @param message error description
+     */
     public StopError(final String message) {
         this(message, null);
     }

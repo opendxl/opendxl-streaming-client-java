@@ -34,6 +34,13 @@ public class ConsumerError extends Exception {
 
     }
 
+    /**
+     * @param message error description
+     * @param statusCode HTTP Status Code that caused the ConsumerError. If ConsumerError is caused by an HTTP Client
+     *                   or HTTP Server error, then it is set to the HTTP status code. If ConsumerError is not due to
+     *                   an HTTP error, then it is set to zero.
+     * @param httpRequest HttpRequest in which the ConsumerError occurred
+     */
     public ConsumerError(final String message, final int statusCode, final HttpRequest httpRequest) {
 
         this(message, null, statusCode, httpRequest);

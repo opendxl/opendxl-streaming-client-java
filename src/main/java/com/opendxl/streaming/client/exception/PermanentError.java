@@ -33,12 +33,33 @@ public class PermanentError extends Exception {
 
     }
 
+    /**
+     * @param message error description
+     * @param statusCode HTTP Status Code that caused the PermanentError. If PermanentError is caused by an HTTP Client
+     *                   or HTTP Server error, then it is set to the HTTP status code. If PermanentError is not due to
+     *                   an HTTP error, then it is set to zero.
+     * @param httpRequest HttpRequest in which the PermanentError occurred
+     */
     public PermanentError(final String message, final int statusCode, final HttpRequest httpRequest) {
 
         this(message, null, statusCode, httpRequest);
 
     }
 
+    /**
+     * @param message error description
+     * @param cause if PermanentError is thrown as consequence of another exception. If PermanentError is not caused by
+     *              another exception, then it set to {@code null}.
+     */
+    public PermanentError(final String message, final Throwable cause) {
+
+        this(message, cause, 0, null);
+
+    }
+
+    /**
+     * @param message error description
+     */
     public PermanentError(final String message) {
 
         this(message, null, 0, null);

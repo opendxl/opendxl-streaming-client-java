@@ -9,7 +9,6 @@ import com.opendxl.streaming.client.entity.ConsumerRecords;
 
 import com.google.gson.Gson;
 
-import com.google.gson.annotations.SerializedName;
 import com.opendxl.streaming.client.entity.Topics;
 import com.opendxl.streaming.client.exception.ConsumerError;
 import com.opendxl.streaming.client.exception.ErrorType;
@@ -771,7 +770,7 @@ public class Channel implements AutoCloseable {
             try {
                 runLock.lock();
                 if (continueRunning) {
-                    stopRequestedCondition.await(waitBetweenQueries, TimeUnit.SECONDS);
+                    stopRequestedCondition.await(waitBetweenQueries, TimeUnit.MILLISECONDS);
                     continueRunning = !stopRequested;
                 }
             } catch (final InterruptedException e) {
@@ -928,25 +927,6 @@ class CommitLog {
         this.partition = partition;
         this.offset = offset;
 
-    }
-
-}
-
-class AuthorizationToken {
-
-    @SerializedName(value = "authorizationToken", alternate = {"AuthorizationToken"})
-    private String authorizationToken;
-
-    AuthorizationToken(final String authorizationToken) {
-        this.authorizationToken = authorizationToken;
-    }
-
-    public String getAuthorizationToken() {
-        return authorizationToken;
-    }
-
-    public void setAuthorizationToken(final String authorizationToken) {
-        this.authorizationToken = authorizationToken;
     }
 
 }

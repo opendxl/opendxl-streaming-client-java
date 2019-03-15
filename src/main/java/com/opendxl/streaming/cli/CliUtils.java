@@ -8,7 +8,6 @@ import com.opendxl.streaming.Constants;
 import com.opendxl.streaming.cli.entity.StickinessCookie;
 import com.opendxl.streaming.cli.operation.CommandLineOperation;
 import com.opendxl.streaming.client.Channel;
-import com.opendxl.streaming.client.ChannelAuth;
 import com.opendxl.streaming.client.Request;
 import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.OptionParser;
@@ -20,7 +19,6 @@ import org.apache.http.cookie.Cookie;
 import org.apache.http.impl.cookie.BasicClientCookie;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -115,34 +113,6 @@ public class CliUtils {
             }
         }
         return result;
-    }
-
-
-    /**
-     * Create a ChannelAuth
-     *
-     * @param authURL Identity service URL
-     * @param user user name
-     * @param password password
-     * @param verifyCertBundle ca cert
-     * @return ChannelAuth
-     */
-    public static ChannelAuth channelAuthFactory(final String authURL,
-                                                 final String user,
-                                                 final String password,
-                                                 final String verifyCertBundle) {
-        URL url = null;
-        try {
-            url = new URL(authURL);
-        } catch (MalformedURLException e) {
-            CliUtils.printUsageAndFinish(CommandLineInterface.parser, e.getMessage());
-        }
-
-        return new ChannelAuth(getBaseURL(url),
-                user,
-                password,
-                Optional.of(url.getPath()),
-                verifyCertBundle);
     }
 
 
