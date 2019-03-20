@@ -693,97 +693,62 @@ public class Channel implements AutoCloseable {
 
         while (continueRunning) {
 
-            // if consumer is not subscribed yet, then subscribe it
             try {
+                // if consumer is not subscribed yet, then subscribe it
                 if (!subscribed) {
                     subscribe(topics);
                     subscribed = true;
                 }
+
+                // consume records
+                ConsumerRecords records = consume();
+
+                // invoke callback
+                try {
+                    continueRunning = processCallback.processCallback(records, consumerId);
+                } catch (final TemporaryError error) {
+                    // Callback found errors in records and it wants to retry consuming them from the last commit.
+                    // Recovery procedure is the same as when a ConsumerError occurs.
+                    throw new ConsumerError("Consume records callback requested to read records again.", error);
+                }
+
+                // Commit offsets for just consumed records
+                commit();
+
             } catch (final ConsumerError error) {
-                // ConsumerError exception can be raised if the consumer has been removed.
+                // ConsumerError exception can be raised if the consumer has been removed or if callback found errors
+                // in records and it wants them to be consumed again.
                 // Then, current consumer is deleted and a brand new one is created to resume consuming from
                 // last commit.
                 subscribed = false;
                 recreateConsumer(topics, error);
-                continueRunning = !retryOnFail ? false : continueRunning;
+
+                if (!retryOnFail) {
+                    continueRunning = false;
+                }
+
                 continue;
             } catch (final PermanentError | TemporaryError error) {
                 // Delete consumer instance.
                 delete();
                 throw error;
             } finally {
+                // Check if there is a request to stop consuming records
                 runLock.lock();
-                continueRunning = stopRequested ? false : continueRunning;
-                runLock.unlock();
-            }
-
-            // consume records
-            ConsumerRecords records = null;
-            try {
-                records = consume();
-            } catch (final ConsumerError error) {
-                subscribed = false;
-                recreateConsumer(topics, error);
-                continueRunning = !retryOnFail ? false : continueRunning;
-                continue;
-            } catch (final PermanentError | TemporaryError error) {
-                // Delete consumer instance.
-                delete();
-                throw error;
-            } finally {
-                runLock.lock();
-                continueRunning = stopRequested ? false : continueRunning;
-                runLock.unlock();
-            }
-
-            // invoke callback
-            try {
-                continueRunning = processCallback.processCallback(records, consumerId);
-            } catch (final TemporaryError error) {
-                subscribed = false;
-                recreateConsumer(topics, error);
-                continueRunning = !retryOnFail ? false : continueRunning;
-                continue;
-            } catch (final PermanentError error) {
-                // Callback found errors in records and it does not want to retry consuming them.
-                // Delete consumer instance.
-                delete();
-                error.setApi("run");
-                throw error;
-            } finally {
-                runLock.lock();
-                continueRunning = stopRequested ? false : continueRunning;
-                runLock.unlock();
-            }
-
-            // Commit offsets for just consumed records
-            try {
-                commit();
-            } catch (final ConsumerError error) {
-                subscribed = false;
-                recreateConsumer(topics, error);
-                continueRunning = !retryOnFail ? false : continueRunning;
-                continue;
-            } catch (final TemporaryError error) {
-                // Delete consumer instance.
-                delete();
-                throw error;
-            } finally {
-                runLock.lock();
-                continueRunning = stopRequested ? false : continueRunning;
-                runLock.unlock();
-            }
-
-            // Wait for a while
-            try {
-                runLock.lock();
-                if (continueRunning) {
-                    stopRequestedCondition.await(waitBetweenQueries, TimeUnit.MILLISECONDS);
+                if (stopRequested) {
+                    // Exit consume loop immediately
+                    continueRunning = false;
+                } else if (continueRunning) {
+                    // Wait for a while.
+                    // If stop API method is invoked, then stopRequestedCondition will be signalled and
+                    // the wait will end before waitBetweenQueries period has elapsed.
+                    try {
+                        stopRequestedCondition.await(waitBetweenQueries, TimeUnit.MILLISECONDS);
+                    } catch (final InterruptedException e) {
+                        // Ignore it.
+                    }
                     continueRunning = !stopRequested;
                 }
-            } catch (final InterruptedException e) {
-                // Ignore it
-            } finally {
                 runLock.unlock();
             }
         }

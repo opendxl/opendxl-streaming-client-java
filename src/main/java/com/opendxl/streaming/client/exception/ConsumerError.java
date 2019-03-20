@@ -48,6 +48,17 @@ public class ConsumerError extends Exception {
     }
 
     /**
+     * @param message error description
+     * @param cause if ConsumerError is thrown as consequence of another exception. If ConsumerError is not caused by
+     *              another exception, then it set to {@code null}.
+     */
+    public ConsumerError(final String message, final Throwable cause) {
+
+        this(message, cause, 0, null);
+
+    }
+
+    /**
      * Get the HTTP Status Code that caused the ConsumerError.
      *
      * @return HTTP Status Code
