@@ -8,11 +8,11 @@ import com.opendxl.streaming.client.entity.ConsumerRecords;
 import com.opendxl.streaming.client.exception.PermanentError;
 import com.opendxl.streaming.client.exception.TemporaryError;
 
-import java.util.Optional;
+import java.util.List;
 
 /**
  * ConsumerRecordProcessor is an interface that must be implemented by the process which receives the consumed records.
- * The {@link Channel#run(Optional, int, Optional)} method invokes the
+ * The {@link Channel#run(ConsumerRecordProcessor, int, List)} )} method invokes the
  * {@link ConsumerRecordProcessor#processCallback(ConsumerRecords, String)} method to deliver the consumed records to
  * the user for further processing.
  */

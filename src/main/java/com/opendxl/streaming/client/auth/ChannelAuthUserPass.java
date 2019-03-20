@@ -23,7 +23,6 @@ import org.apache.http.util.EntityUtils;
 import javax.net.ssl.SSLContext;
 import java.nio.charset.Charset;
 import java.util.Base64;
-import java.util.Optional;
 
 /**
  * Authentication class where a token is retrieved from a base URL for the given user and password and such token is
@@ -36,7 +35,7 @@ public class ChannelAuthUserPass implements ChannelAuth {
     private final String password;
     private final String pathFragment;
     private final String verifyCertBundle;
-    private Optional<String> token;
+    private String token;
 
     /**
      * @param base Base URL to forward authentication requests to. Its value will be prepended to pathFragment.
@@ -49,15 +48,15 @@ public class ChannelAuthUserPass implements ChannelAuth {
      *    signed by a valid authority. If set to an empty string, the server
      *    certificate is not validated.
      */
-    public ChannelAuthUserPass(final String base, final String username, final String password,
-                               Optional<String> pathFragment, final String verifyCertBundle) {
+    public ChannelAuthUserPass(final String base, final String username, final String password, String pathFragment,
+                               final String verifyCertBundle) {
 
         this.base = base;
         this.username = username;
         this.password = password;
-        this.pathFragment = pathFragment.orElse("/identity/v1/login");
+        this.pathFragment = pathFragment != null ? pathFragment : "/identity/v1/login";
         this.verifyCertBundle = verifyCertBundle == null ? "" : verifyCertBundle;
-        token = Optional.ofNullable(null);
+        token = null;
 
     }
 
@@ -67,7 +66,7 @@ public class ChannelAuthUserPass implements ChannelAuth {
     @Override
     public void reset() {
 
-        token = Optional.ofNullable(null);
+        token = null;
 
     }
 
@@ -78,12 +77,15 @@ public class ChannelAuthUserPass implements ChannelAuth {
     public void authenticate(final HttpRequest httpRequest)
             throws PermanentError, TemporaryError {
 
-        if (!token.isPresent()) {
+        if (token == null) {
             // Ask for the token
             token = login(base, username, password, pathFragment, verifyCertBundle);
         }
 
-        token.ifPresent(value -> httpRequest.addHeader("Authorization", "Bearer " + value));
+        if (token != null) {
+            // Add authorization header with token to request
+            httpRequest.addHeader("Authorization", "Bearer " + token);
+        }
 
     }
 
@@ -98,14 +100,13 @@ public class ChannelAuthUserPass implements ChannelAuth {
      *                        to validate that the certificate of the authentication server being connected to was
      *                        signed by a valid authority. If set to an empty string, the server certificate is not
      *                        validated.
-     * @return an Optional containing the Authorization token if login succeeded
-     *         an empty Optional otherwise
+     * @return a String containing the Authorization token if login succeeded
      *
      * @throws TemporaryError if an unexpected (but possibly recoverable) authentication error occurs for the request.
      * @throws PermanentError if the request fails due to the user not being authenticated successfully or if the user
      * is unauthorized to make the request or if a non-recoverable error occurs for the request.
      */
-    private Optional<String> login(String uri, String username, String password, String pathFragment,
+    private String login(String uri, String username, String password, String pathFragment,
                                    String verifyCertBundle)
             throws PermanentError, TemporaryError {
 
@@ -144,7 +145,7 @@ public class ChannelAuthUserPass implements ChannelAuth {
         if (statusCode >= 200 && statusCode < 300) {
 
             AuthorizationToken authorizationToken = new Gson().fromJson(entityString, AuthorizationToken.class);
-            return Optional.ofNullable(authorizationToken.getAuthorizationToken());
+            return authorizationToken.getAuthorizationToken();
 
         } else if (statusCode == 401 || statusCode == 403) {
 

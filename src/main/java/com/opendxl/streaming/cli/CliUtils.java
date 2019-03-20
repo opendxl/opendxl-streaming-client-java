@@ -25,7 +25,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Properties;
 
 
@@ -133,7 +132,7 @@ public class CliUtils {
      * @param commaSeparatedConfig comma-separated config String
      * @return Properties instance
      */
-    public static Optional<Properties> configToMap(final String commaSeparatedConfig) {
+    public static Properties configToMap(final String commaSeparatedConfig) {
         final Properties map = new Properties();
         try {
             final String[] keyValuePairs = commaSeparatedConfig.split(",");
@@ -145,7 +144,7 @@ public class CliUtils {
         } catch (Exception e) {
             CliUtils.printUsageAndFinish(CommandLineInterface.parser, e.getMessage());
         }
-        return Optional.of(map);
+        return map;
     }
 
 

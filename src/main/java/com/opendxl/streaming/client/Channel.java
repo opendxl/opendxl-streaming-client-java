@@ -21,7 +21,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
@@ -41,8 +40,8 @@ import java.util.concurrent.locks.ReentrantLock;
  *                                               "password",                // channelPassword
  *                                               ""),                       // verifyCertificateBundle
  *                               "thegroup",                    // channelConsumerGroup
- *                               Optional.empty(),              // pathPrefix
- *                               Optional.of("/databus/consumer-service/v1"),  // consumerPathPrefix
+ *                               null,                          // pathPrefix
+ *                               "/databus/consumer-service/v1",  // consumerPathPrefix
  *                               "earliest",                    // offset
  *                               301,                           // requestTimeout
  *                               300,                           // sessionTimeout
@@ -70,7 +69,7 @@ public class Channel implements AutoCloseable {
 
     private final String base;
     private final String consumerPathPrefix;
-    private final Optional<String> consumerGroup;
+    private final String consumerGroup;
     private final List<String> offsetValues = Arrays.asList("latest", "earliest", "none");
     private final Properties configs = new Properties();
 
@@ -134,17 +133,23 @@ public class Channel implements AutoCloseable {
      * @throws TemporaryError if http client request object failed to be created.
      */
     public Channel(final String base, final ChannelAuth auth, final String consumerGroup,
-            final Optional<String> pathPrefix, final Optional<String> consumerPathPrefix, final String offset,
+            final String pathPrefix, final String consumerPathPrefix, final String offset,
             final Integer requestTimeout, final Integer sessionTimeout, final boolean retryOnFail,
-            final String verifyCertBundle, final Optional<Properties> extraConfigs) throws PermanentError,
+            final String verifyCertBundle, final Properties extraConfigs) throws PermanentError,
             TemporaryError {
 
         this.base = base;
         this.auth = auth;
-        this.consumerPathPrefix = pathPrefix.isPresent() ? pathPrefix.get()
-                : consumerPathPrefix.orElse(_DEFAULT_CONSUMER_PATH_PREFIX);
 
-        this.consumerGroup = Optional.of(consumerGroup);
+        if (pathPrefix != null) {
+            this.consumerPathPrefix = pathPrefix;
+        } else if (consumerPathPrefix != null) {
+            this.consumerPathPrefix = consumerPathPrefix;
+        } else {
+            this.consumerPathPrefix = _DEFAULT_CONSUMER_PATH_PREFIX;
+        }
+
+        this.consumerGroup = consumerGroup;
 
         if (!this.offsetValues.contains(offset)) {
 
@@ -152,7 +157,9 @@ public class Channel implements AutoCloseable {
         }
 
         // Setup customer configs from supplied parameters
-        extraConfigs.ifPresent(values -> this.configs.putAll(values));
+        if (extraConfigs != null) {
+            this.configs.putAll(extraConfigs);
+        }
 
         if (!this.configs.containsKey(_ENABLE_AUTO_COMMIT_CONFIG_SETTING)) {
             // this has to be false for now
@@ -213,7 +220,7 @@ public class Channel implements AutoCloseable {
      */
     public void create() throws PermanentError, TemporaryError {
 
-        if (!consumerGroup.isPresent()) {
+        if (consumerGroup == null || consumerGroup.isEmpty()) {
 
             throw new PermanentError("No value specified for 'consumerGroup' during channel init");
 
@@ -222,19 +229,18 @@ public class Channel implements AutoCloseable {
         reset();
 
         // Add consumerGroup value and config properties to request payload
-        ConsumerConfig consumerConfig = new ConsumerConfig(consumerGroup.get(), configs);
+        ConsumerConfig consumerConfig = new ConsumerConfig(consumerGroup, configs);
         Gson gson = new Gson();
         byte[] body = gson.toJson(consumerConfig).getBytes();
 
         try {
 
-            Optional<String> responseEntityString = request.post(consumerPathPrefix + "/consumers", Optional.of(body),
-                    CREATE_ERROR_MAP);
+            String responseEntityString = request.post(consumerPathPrefix + "/consumers", body, CREATE_ERROR_MAP);
 
-            responseEntityString.ifPresent(entity -> {
-                ConsumerId consumer = (ConsumerId) gson.fromJson(entity, ConsumerId.class);
+            if (responseEntityString != null) {
+                ConsumerId consumer = (ConsumerId) gson.fromJson(responseEntityString, ConsumerId.class);
                 consumerId = consumer.getConsumerInstanceId();
-            });
+            }
 
         } catch (final TemporaryError error) {
             error.setApi("create");
@@ -288,7 +294,7 @@ public class Channel implements AutoCloseable {
 
         try {
 
-            request.post(api, Optional.of(body), SUBSCRIBE_ERROR_MAP);
+            request.post(api, body, SUBSCRIBE_ERROR_MAP);
 
             subscriptions.clear();
             subscriptions.addAll(topics);
@@ -323,9 +329,11 @@ public class Channel implements AutoCloseable {
 
         try {
 
-            Optional<String> responseEntity = request.get(api, GET_SUBSCRIPTIONS_ERROR_MAP);
+            String responseEntity = request.get(api, GET_SUBSCRIPTIONS_ERROR_MAP);
 
-            responseEntity.ifPresent(value -> list.addAll(gson.fromJson(value, List.class)));
+            if (responseEntity != null) {
+                list.addAll(gson.fromJson(responseEntity, List.class));
+            }
             return list;
 
         } catch (final TemporaryError error) {
@@ -438,10 +446,10 @@ public class Channel implements AutoCloseable {
 
         try {
 
-            Optional<String> responseEntity = request.get(api, CONSUME_RECORDS_ERROR_MAP);
+            String responseEntity = request.get(api, CONSUME_RECORDS_ERROR_MAP);
 
             final Gson gson = new Gson();
-            final ConsumerRecords consumerRecords = gson.fromJson(responseEntity.get(), ConsumerRecords.class);
+            final ConsumerRecords consumerRecords = gson.fromJson(responseEntity, ConsumerRecords.class);
 
             return consumerRecords;
 
@@ -482,7 +490,7 @@ public class Channel implements AutoCloseable {
 
         try {
 
-            request.post(api, Optional.empty(), COMMIT_ALL_RECORDS_ERROR_MAP);
+            request.post(api, null, COMMIT_ALL_RECORDS_ERROR_MAP);
 
         } catch (final TemporaryError error) {
             error.setApi("commit");
@@ -519,20 +527,20 @@ public class Channel implements AutoCloseable {
      *                         callback to deliver records was not specified
      * @throws TemporaryError consume or commit attempts failed with errors other than ConsumerError.
      */
-    public void run(final Optional<ConsumerRecordProcessor> processCallback, final int waitBetweenQueries,
-                    final Optional<List<String>> topics) throws PermanentError, TemporaryError {
+    public void run(final ConsumerRecordProcessor processCallback, final int waitBetweenQueries,
+                    final List<String> topics) throws PermanentError, TemporaryError {
 
-        if (!consumerGroup.isPresent()) {
+        if (consumerGroup == null || consumerGroup.isEmpty()) {
             throw new PermanentError("No value specified for 'consumerGroup' during channel init");
         }
 
-        if (!processCallback.isPresent()) {
+        if (processCallback == null) {
             throw new PermanentError("processCallback not provided");
         }
 
         int waitPeriod = waitBetweenQueries > 0 ? waitBetweenQueries : _DEFAULT_WAIT_BETWEEN_QUERIES;
 
-        List<String> topicsOfInterest = topics.isPresent() && !topics.get().isEmpty() ? topics.get() : subscriptions;
+        List<String> topicsOfInterest = topics != null && !topics.isEmpty() ? topics : subscriptions;
 
         continueRunning = true;
         runLock.lock();
@@ -548,7 +556,7 @@ public class Channel implements AutoCloseable {
         try {
 
             while (continueRunning) {
-                continueRunning = consumeLoop(processCallback.get(), waitPeriod, topicsOfInterest);
+                continueRunning = consumeLoop(processCallback, waitPeriod, topicsOfInterest);
             }
 
         } finally {
@@ -561,20 +569,20 @@ public class Channel implements AutoCloseable {
 
     }
 
-    public void run(final Optional<ConsumerRecordProcessor> processCallback, final int waitBetweenQueries,
+    public void run(final ConsumerRecordProcessor processCallback, final int waitBetweenQueries,
                     final String topic) throws PermanentError, TemporaryError {
 
         run(processCallback, waitBetweenQueries,
-                topic != null && !topic.isEmpty() ? Optional.of(Arrays.asList(topic)) : Optional.empty());
+                topic != null && !topic.isEmpty() ? Arrays.asList(topic) : null);
 
     }
 
     /**
-     * <p>Stop an active execution of the {@link Channel#run(Optional, int, Optional)} call.</p>
+     * <p>Stop an active execution of the {@link Channel#run(ConsumerRecordProcessor, int, List)} call.</p>
      *
-     * <p>If no {@link Channel#run(Optional, int, Optional)} call is active, this function returns
-     * immediately. If a {@link Channel#run(Optional, int, Optional)} call is active, this function blocks until
-     * the run has been completed.</p>
+     * <p>If no {@link Channel#run(ConsumerRecordProcessor, int, List)} call is active, this function returns
+     * immediately. If a {@link Channel#run(ConsumerRecordProcessor, int, List)} call is active, this function blocks
+     * until the run has been completed.</p>
      *
      * @throws StopError an error occurred while waiting for channel to be stopped
      */

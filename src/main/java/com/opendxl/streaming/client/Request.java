@@ -31,7 +31,6 @@ import org.apache.http.util.EntityUtils;
 import com.google.gson.Gson;
 
 import java.io.IOException;
-import java.util.Optional;
 import java.util.Map;
 
 /**
@@ -49,7 +48,7 @@ public class Request implements AutoCloseable {
 
     /**
      * @param base scheme (http or https) and host parts of target URLs. It will be prepended to uri parameter of
-     *             {@link Request#post(String, Optional, Map)}, {@link Request#get(String, Map)} and
+     *             {@link Request#post(String, byte[], Map)}, {@link Request#get(String, Map)} and
      *             {@link Request#delete(String, Map)} methods.
      * @param auth provider of the Authorization token header to be included in the HttpRequest
      * @throws TemporaryError if attempt to create and configure the HttpClient instance fails
@@ -89,22 +88,23 @@ public class Request implements AutoCloseable {
      * Send a POST request
      *
      * @param uri path plus query string components of the destination URL
-     * @param body to include in the request. If body is {@link Optional#empty()}, then no entity body is added to the
-     *             request.
+     * @param body to include in the request. If body is {@code null}, then no entity body is added to the request.
      * @param httpStatusMapping map HTTP Status Code to {@link ErrorType}
-     * @return the HttpResponse
+     * @return the entity string of the HttpResponse object
      * @throws ConsumerError if consumer was not found
      * @throws TemporaryError if request was not successful and httpStatusMapping maps the response http status code to
      * a TemporaryError
      * @throws PermanentError if request was not successful and httpStatusMapping maps the response http status code to
      * a PermanentError
      */
-    public Optional<String> post(final String uri, final Optional<byte[]> body,
+    public String post(final String uri, final byte[] body,
                                  final Map<Integer, ErrorType> httpStatusMapping)
             throws ConsumerError, TemporaryError, PermanentError {
 
         HttpPost httpRequest = new HttpPost(base + uri);
-        body.ifPresent(value -> httpRequest.setEntity(new ByteArrayEntity(value)));
+        if (body != null) {
+            httpRequest.setEntity(new ByteArrayEntity(body));
+        }
 
         return request(httpRequest, httpStatusMapping);
 
@@ -115,14 +115,14 @@ public class Request implements AutoCloseable {
      *
      * @param uri path plus query string components of the destination URL
      * @param httpStatusMapping map HTTP Status Code to {@link ErrorType}
-     * @return the HttpResponse
+     * @return the entity string of the HttpResponse object
      * @throws ConsumerError if consumer was not found
      * @throws TemporaryError if request was not successful and httpStatusMapping maps the response http status code to
      * a TemporaryError
      * @throws PermanentError if request was not successful and httpStatusMapping maps the response http status code to
      * a PermanentError
      */
-    public Optional<String> get(final String uri, final Map<Integer, ErrorType> httpStatusMapping) throws ConsumerError,
+    public String get(final String uri, final Map<Integer, ErrorType> httpStatusMapping) throws ConsumerError,
             TemporaryError, PermanentError {
 
         HttpGet httpRequest = new HttpGet(base + uri);
@@ -136,14 +136,14 @@ public class Request implements AutoCloseable {
      *
      * @param uri path plus query string components of the destination URL
      * @param httpStatusMapping map HTTP Status Code to {@link ErrorType}
-     * @return the HttpResponse
+     * @return the entity string of the HttpResponse object
      * @throws ConsumerError if consumer was not found
      * @throws TemporaryError if request was not successful and httpStatusMapping maps the response http status code to
      * a TemporaryError
      * @throws PermanentError if request was not successful and httpStatusMapping maps the response http status code to
      * a PermanentError
      */
-    public Optional<String> delete(final String uri, final Map<Integer, ErrorType> httpStatusMapping)
+    public String delete(final String uri, final Map<Integer, ErrorType> httpStatusMapping)
             throws ConsumerError, TemporaryError, PermanentError {
 
         HttpDelete httpRequest = new HttpDelete(base + uri);
@@ -166,13 +166,13 @@ public class Request implements AutoCloseable {
      * @throws PermanentError if request was not successful and httpStatusMapping maps the response http status code to
      * a PermanentError
      */
-    private Optional<String> request(final HttpRequestBase httpRequest, final Map<Integer, ErrorType> httpStatusMapping)
+    private String request(final HttpRequestBase httpRequest, final Map<Integer, ErrorType> httpStatusMapping)
             throws ConsumerError, TemporaryError, PermanentError {
 
 
         HttpResponse httpResponse;
         int statusCode = 0;
-        Optional<String> returnValue = Optional.empty();
+        String returnValue = null;
 
         try {
 
@@ -181,7 +181,7 @@ public class Request implements AutoCloseable {
             statusCode = httpResponse.getStatusLine().getStatusCode();
 
             if (httpResponse.getEntity() != null) {
-                returnValue = Optional.ofNullable(EntityUtils.toString(httpResponse.getEntity()));
+                returnValue = EntityUtils.toString(httpResponse.getEntity());
             }
 
         } catch (final Throwable e) {
@@ -202,8 +202,8 @@ public class Request implements AutoCloseable {
             // Create the error message
             Gson gson = new Gson();
             String message = "";
-            if (returnValue.isPresent()) {
-                message = getConsumerServiceErrorMessage(returnValue.get());
+            if (returnValue != null) {
+                message = getConsumerServiceErrorMessage(returnValue);
             }
 
             // throw suitable exception

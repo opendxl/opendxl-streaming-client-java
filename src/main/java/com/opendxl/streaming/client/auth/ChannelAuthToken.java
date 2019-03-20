@@ -8,14 +8,12 @@ import com.opendxl.streaming.client.ChannelAuth;
 
 import org.apache.http.HttpRequest;
 
-import java.util.Optional;
-
 /**
  * Authentication class where a given fixed token is used in Authorization headers of channel requests.
  */
 public class ChannelAuthToken implements ChannelAuth {
 
-    private Optional<String> token;
+    private String token;
 
     /**
      * @param token token value to use in the Authorization HTTP Header. The token is added to HTTP requests when
@@ -23,7 +21,7 @@ public class ChannelAuthToken implements ChannelAuth {
      */
     public ChannelAuthToken(final String token) {
 
-        this.token = Optional.ofNullable(token);
+        this.token = token;
 
     }
 
@@ -33,7 +31,9 @@ public class ChannelAuthToken implements ChannelAuth {
     @Override
     public void authenticate(HttpRequest httpRequest) {
 
-        token.ifPresent(value -> httpRequest.addHeader("Authorization", "Bearer " + value));
+        if (token != null) {
+            httpRequest.addHeader("Authorization", "Bearer " + token);
+        }
 
     }
 
