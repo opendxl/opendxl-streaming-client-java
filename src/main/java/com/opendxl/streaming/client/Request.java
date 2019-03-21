@@ -13,19 +13,11 @@ import com.opendxl.streaming.client.exception.TemporaryError;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.ParseException;
-import org.apache.http.client.config.CookieSpecs;
-import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpRequestBase;
-import org.apache.http.client.protocol.HttpClientContext;
-import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.entity.ByteArrayEntity;
-import org.apache.http.impl.client.BasicCookieStore;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.util.EntityUtils;
 
 import com.google.gson.Gson;
@@ -43,39 +35,25 @@ public class Request implements AutoCloseable {
     private final String base;
     private final ChannelAuth auth;
 
-    private final CloseableHttpClient httpClient;
-    private final HttpClientContext httpClientContext;
+    private final HttpConnection httpConnection;
 
     /**
      * @param base scheme (http or https) and host parts of target URLs. It will be prepended to uri parameter of
      *             {@link Request#post(String, byte[], Map)}, {@link Request#get(String, Map)} and
      *             {@link Request#delete(String, Map)} methods.
      * @param auth provider of the Authorization token header to be included in the HttpRequest
+     * @param verifyCertBundle Certificate Bundle filename. This file contains allowed certificates, which are used for
+     *                         HTTPS certificate validation.
      * @throws TemporaryError if attempt to create and configure the HttpClient instance fails
      */
-    public Request(final String base, final ChannelAuth auth) throws TemporaryError {
+    public Request(final String base, final ChannelAuth auth, final String verifyCertBundle) throws TemporaryError {
 
         this.base = base;
         this.auth = auth;
 
         try {
 
-            RequestConfig globalConfig = RequestConfig.custom()
-                    .setCookieSpec(CookieSpecs.STANDARD_STRICT)
-                    .build();
-
-            this.httpClientContext = HttpClientContext.create();
-            this.httpClientContext.setRequestConfig(globalConfig);
-            this.httpClientContext.setCookieStore(new BasicCookieStore());
-
-            // Create a session object so that we can store cookies across requests
-            this.httpClient = HttpClients.custom()
-                    .setDefaultRequestConfig(globalConfig)
-                    // Accept any certificate
-                    .setSSLContext(new SSLContextBuilder()
-                            .loadTrustMaterial(null, (certificate, authType) -> true).build())
-                    .setSSLHostnameVerifier(new NoopHostnameVerifier())
-                    .build();
+            this.httpConnection = new HttpConnection(verifyCertBundle);
 
         } catch (final Throwable e) {
             throw new TemporaryError("Unexpected temporary error when instantiating Request"
@@ -174,10 +152,10 @@ public class Request implements AutoCloseable {
         int statusCode = 0;
         String returnValue = null;
 
+        auth.authenticate(httpRequest);
         try {
 
-            auth.authenticate(httpRequest);
-            httpResponse = httpClient.execute(httpRequest, httpClientContext);
+            httpResponse = httpConnection.execute(httpRequest);
             statusCode = httpResponse.getStatusLine().getStatusCode();
 
             if (httpResponse.getEntity() != null) {
@@ -226,7 +204,7 @@ public class Request implements AutoCloseable {
      */
     public void resetCookies() {
 
-        httpClientContext.getCookieStore().clear();
+        httpConnection.resetCookies();
 
     }
 
@@ -241,7 +219,7 @@ public class Request implements AutoCloseable {
 
 
     /**
-     * Closes the request object and its supporting HttpClient.
+     * Closes the request object and its supporting HttpConnection.
      *
      * This method is added to allow Request to be used in conjunction with Java try-with-resources statement.
      *
@@ -252,7 +230,7 @@ public class Request implements AutoCloseable {
 
         try {
 
-            httpClient.close();
+            httpConnection.close();
             resetCookies();
             resetAuthorization();
 

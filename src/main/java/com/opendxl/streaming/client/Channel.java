@@ -72,6 +72,7 @@ public class Channel implements AutoCloseable {
     private final String consumerGroup;
     private final List<String> offsetValues = Arrays.asList("latest", "earliest", "none");
     private final Properties configs = new Properties();
+    private final String verifyCertBundle;
 
     private String consumerId;
     private List<String> subscriptions;
@@ -150,6 +151,7 @@ public class Channel implements AutoCloseable {
         }
 
         this.consumerGroup = consumerGroup;
+        this.verifyCertBundle = verifyCertBundle;
 
         if (!this.offsetValues.contains(offset)) {
 
@@ -185,7 +187,7 @@ public class Channel implements AutoCloseable {
         this.subscriptions = new ArrayList<>();
 
         // Create a custom Request object so that we can store cookies across requests
-        this.request = new Request(base, auth);
+        this.request = new Request(base, auth, this.verifyCertBundle);
 
         this.retryOnFail = retryOnFail;
 
@@ -772,7 +774,7 @@ public class Channel implements AutoCloseable {
         System.out.println("Resetting consumer loop: " + error.getMessage());
         delete();
         request.close();
-        request = new Request(base, auth);
+        request = new Request(base, auth, verifyCertBundle);
         create();
 
     }

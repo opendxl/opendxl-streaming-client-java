@@ -5,6 +5,7 @@
 package com.opendxl.streaming.client.auth;
 
 import com.opendxl.streaming.client.ChannelAuth;
+import com.opendxl.streaming.client.HttpConnection;
 import com.opendxl.streaming.client.exception.PermanentError;
 import com.opendxl.streaming.client.exception.TemporaryError;
 
@@ -14,13 +15,8 @@ import org.apache.http.HttpHeaders;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.conn.ssl.NoopHostnameVerifier;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.util.EntityUtils;
 
-import javax.net.ssl.SSLContext;
 import java.nio.charset.Charset;
 import java.util.Base64;
 
@@ -117,16 +113,10 @@ public class ChannelAuthUserPass implements ChannelAuth {
         String authHeader = "Basic " + new String(encodedAuth);
         httpGet.setHeader(HttpHeaders.AUTHORIZATION, authHeader);
 
-        CloseableHttpClient client;
+        HttpConnection httpConnection;
         try {
-            // Create an httpClient which accepts any Certificate
-            SSLContext sslContext = new SSLContextBuilder()
-                    .loadTrustMaterial(null, (certificate, authType) -> true).build();
-
-            client = HttpClients.custom()
-                    .setSSLContext(sslContext)
-                    .setSSLHostnameVerifier(new NoopHostnameVerifier())
-                    .build();
+            // Create an http connection which client will use the given Certificate Bundle file
+            httpConnection = new HttpConnection(verifyCertBundle);
         } catch (final Throwable e) {
             throw new PermanentError("Unexpected error: " + e.getMessage(), e);
         }
@@ -135,7 +125,7 @@ public class ChannelAuthUserPass implements ChannelAuth {
         HttpResponse response;
         String entityString;
         try {
-            response = client.execute(httpGet);
+            response = httpConnection.execute(httpGet);
             entityString = EntityUtils.toString(response.getEntity());
         } catch (final Throwable e) {
             throw new TemporaryError("Unexpected error: " + e.getMessage(), e);
