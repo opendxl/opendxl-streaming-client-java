@@ -8,6 +8,7 @@ import com.opendxl.streaming.Constants;
 import com.opendxl.streaming.cli.entity.StickinessCookie;
 import com.opendxl.streaming.cli.operation.CommandLineOperation;
 import com.opendxl.streaming.client.Channel;
+import com.opendxl.streaming.client.HttpConnection;
 import com.opendxl.streaming.client.Request;
 import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.OptionParser;
@@ -172,7 +173,8 @@ public class CliUtils {
      */
     public static StickinessCookie getCookie(final Channel channel) {
         final Request request = (Request) PA.getValue(channel, "request");
-        final HttpClientContext clientContext = (HttpClientContext) PA.getValue(request, "httpClientContext");
+        final HttpConnection httpConnection = (HttpConnection) PA.getValue(request, "httpConnection");
+        final HttpClientContext clientContext = (HttpClientContext) PA.getValue(httpConnection, "httpClientContext");
         final List<Cookie> cookies = clientContext.getCookieStore().getCookies();
         for (Cookie cookie : cookies) {
             if (cookie.getName().equals(Constants.STIKINESS_COOKIE_NAME)) {
@@ -190,8 +192,9 @@ public class CliUtils {
      */
     public static  void setCookie(final Channel channel, final StickinessCookie stickinessCookie) {
         final Request request = (Request) PA.getValue(channel, "request");
+        final HttpConnection httpConnection = (HttpConnection) PA.getValue(request, "httpConnection");
         final HttpClientContext clientContext =
-                (HttpClientContext) PA.getValue(request, "httpClientContext");
+                (HttpClientContext) PA.getValue(httpConnection, "httpClientContext");
         BasicClientCookie cookie = new BasicClientCookie(Constants.STIKINESS_COOKIE_NAME,
                 stickinessCookie.getValue());
         clientContext.getCookieStore().addCookie(cookie);
