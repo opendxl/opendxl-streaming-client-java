@@ -22,9 +22,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * <p>The {@link Channel} class is responsible for all communication with the streaming service.
@@ -64,9 +64,6 @@ public class Channel implements AutoCloseable {
 
     private static final String _DEFAULT_CONSUMER_PATH_PREFIX = "/databus/consumer-service/v1";
 
-    // Default number of seconds to wait between consume queries made to the streaming service
-    private static final int _DEFAULT_WAIT_BETWEEN_QUERIES = 30;
-
     private final String base;
     private final String consumerPathPrefix;
     private final String consumerGroup;
@@ -82,15 +79,39 @@ public class Channel implements AutoCloseable {
 
     private final boolean retryOnFail;
     private boolean active;
-    private boolean running;
-    private boolean continueRunning;
-    private boolean stopRequested;
+    /**
+     * Flag that is set when Channel object is executing the {@link Channel#run(ConsumerRecordProcessor,List)}.
+     * It is set to true when entering {@link Channel#run(ConsumerRecordProcessor, List)}
+     * It is set to false on exit of {@link Channel#run(ConsumerRecordProcessor, List)}
+     */
+    private AtomicBoolean running;
+    /**
+     * Flag used to indicate that {@link Channel#stop()} has been called to stop a running Channel.
+     * It is set to true when entering {@link Channel#stop()}.
+     * It is set to false on exit of {@link Channel#stop()} after the channel has been stopped and thus no thread is
+     * executing {@link Channel#run(ConsumerRecordProcessor,List)}
+     */
+    private AtomicBoolean stopRequested;
+    /**
+     * Flag used to indicate that a stop has been completed.
+     * It is set to true when entering {@link Channel#stop()}.
+     * It is set to false on exit of {@link Channel#stop()} after the channel has been stopped and thus no thread is
+     * executing {@link Channel#run(ConsumerRecordProcessor,List)}
+     */
+    private AtomicBoolean stopDone;
+    /**
+     * Flag used to ensure {@link Channel#destroy()} is run by one thread at a time.
+     * It is set to true when entering {@link Channel#destroy()} and it is set back to false before leaving the method.
+     */
+    private AtomicBoolean destroying;
     private final boolean isAutoCommitEnabled;
 
-    private ReentrantLock runLock;
-    private ReentrantLock destroyLock;
-    private Condition stopRequestedCondition;
-    private Condition stoppedCondition;
+    private static final long NO_CURRENT_THREAD = -1L;
+    // currentThread holds the threadId of the current thread accessing Channel
+    // and is used to prevent multi-threaded access
+    private final AtomicLong currentThread = new AtomicLong(NO_CURRENT_THREAD);
+    // refcount is used to allow reentrant access by the thread who has acquired currentThread
+    private final AtomicInteger refcount = new AtomicInteger(0);
 
     /**
      * @param base Base URL at which the streaming service resides.
@@ -191,14 +212,12 @@ public class Channel implements AutoCloseable {
 
         this.retryOnFail = retryOnFail;
 
-        this.destroyLock = new ReentrantLock();
+        this.destroying = new AtomicBoolean(false);
         this.active = true;
 
-        this.runLock = new ReentrantLock();
-        this.running = false;
-        this.stopRequested = false;
-        this.stopRequestedCondition = this.runLock.newCondition();
-        this.stoppedCondition = this.runLock.newCondition();
+        this.running = new AtomicBoolean(false);
+        this.stopRequested = new AtomicBoolean(false);
+        this.stopDone = new AtomicBoolean(false);
 
     }
 
@@ -222,36 +241,41 @@ public class Channel implements AutoCloseable {
      */
     public void create() throws PermanentError, TemporaryError {
 
-        if (consumerGroup == null || consumerGroup.isEmpty()) {
-
-            throw new PermanentError("No value specified for 'consumerGroup' during channel init");
-
-        }
-
-        reset();
-
-        // Add consumerGroup value and config properties to request payload
-        ConsumerConfig consumerConfig = new ConsumerConfig(consumerGroup, configs);
-        Gson gson = new Gson();
-        byte[] body = gson.toJson(consumerConfig).getBytes();
-
+        acquireAndEnsureChannelIsActive();
         try {
+            if (consumerGroup == null || consumerGroup.isEmpty()) {
 
-            String responseEntityString = request.post(consumerPathPrefix + "/consumers", body, CREATE_ERROR_MAP);
+                throw new PermanentError("No value specified for 'consumerGroup' during channel init");
 
-            if (responseEntityString != null) {
-                ConsumerId consumer = (ConsumerId) gson.fromJson(responseEntityString, ConsumerId.class);
-                consumerId = consumer.getConsumerInstanceId();
             }
 
-        } catch (final TemporaryError error) {
-            error.setApi("create");
-            throw error;
-        } catch (final JsonSyntaxException | ConsumerError e) {
-            TemporaryError temporaryError = new TemporaryError("Error while parsing response: "
-                    + e.getClass().getCanonicalName() + " " + e.getMessage(), e, 0, null);
-            temporaryError.setApi("create");
-            throw temporaryError;
+            reset();
+
+            // Add consumerGroup value and config properties to request payload
+            ConsumerConfig consumerConfig = new ConsumerConfig(consumerGroup, configs);
+            Gson gson = new Gson();
+            byte[] body = gson.toJson(consumerConfig).getBytes();
+
+            try {
+
+                String responseEntityString = request.post(consumerPathPrefix + "/consumers", body, CREATE_ERROR_MAP);
+
+                if (responseEntityString != null) {
+                    ConsumerId consumer = (ConsumerId) gson.fromJson(responseEntityString, ConsumerId.class);
+                    consumerId = consumer.getConsumerInstanceId();
+                }
+
+            } catch (final TemporaryError error) {
+                error.setApi("create");
+                throw error;
+            } catch (final JsonSyntaxException | ConsumerError e) {
+                TemporaryError temporaryError = new TemporaryError("Error while parsing response: "
+                        + e.getClass().getCanonicalName() + " " + e.getMessage(), e, 0, null);
+                temporaryError.setApi("create");
+                throw temporaryError;
+            }
+        } finally {
+            release();
         }
 
     }
@@ -266,47 +290,52 @@ public class Channel implements AutoCloseable {
      */
     public void subscribe(final List<String> topics) throws ConsumerError, PermanentError, TemporaryError {
 
-        if (topics == null) {
-
-            throw new PermanentError("Non-empty value must be specified for topics");
-
-        }
-
-        // Remove any null or empty topic from list
-        topics.removeAll(Arrays.asList("", null));
-        if (topics.isEmpty()) {
-
-            throw new PermanentError("Non-empty value must be specified for topics");
-
-        }
-
-        if (consumerId == null || consumerId.isEmpty()) {
-            // Auto-create consumer group if none present
-            create();
-        }
-
-        Topics topicsToBeSubscribed = new Topics(topics);
-        Gson gson = new Gson();
-        byte[] body = gson.toJson(topicsToBeSubscribed).getBytes();
-
-        String api = new StringBuilder(consumerPathPrefix)
-                .append("/consumers/")
-                .append(consumerId)
-                .append("/subscription").toString();
-
+        acquireAndEnsureChannelIsActive();
         try {
+            if (topics == null) {
 
-            request.post(api, body, SUBSCRIBE_ERROR_MAP);
+                throw new PermanentError("Non-empty value must be specified for topics");
 
-            subscriptions.clear();
-            subscriptions.addAll(topics);
+            }
 
-        } catch (final TemporaryError error) {
-            error.setApi("subscribe");
-            throw error;
-        } catch (final ConsumerError error) {
-            error.setApi("subscribe");
-            throw error;
+            // Remove any null or empty topic from list
+            topics.removeAll(Arrays.asList("", null));
+            if (topics.isEmpty()) {
+
+                throw new PermanentError("Non-empty value must be specified for topics");
+
+            }
+
+            if (consumerId == null || consumerId.isEmpty()) {
+                // Auto-create consumer group if none present
+                create();
+            }
+
+            Topics topicsToBeSubscribed = new Topics(topics);
+            Gson gson = new Gson();
+            byte[] body = gson.toJson(topicsToBeSubscribed).getBytes();
+
+            String api = new StringBuilder(consumerPathPrefix)
+                    .append("/consumers/")
+                    .append(consumerId)
+                    .append("/subscription").toString();
+
+            try {
+
+                request.post(api, body, SUBSCRIBE_ERROR_MAP);
+
+                subscriptions.clear();
+                subscriptions.addAll(topics);
+
+            } catch (final TemporaryError error) {
+                error.setApi("subscribe");
+                throw error;
+            } catch (final ConsumerError error) {
+                error.setApi("subscribe");
+                throw error;
+            }
+        } finally {
+            release();
         }
 
     }
@@ -321,37 +350,42 @@ public class Channel implements AutoCloseable {
      */
     public List<String> subscriptions() throws ConsumerError, PermanentError, TemporaryError {
 
-        final Gson gson = new Gson();
-        final String api =  new StringBuilder(consumerPathPrefix)
-                .append("/consumers/")
-                .append(consumerId)
-                .append("/subscription").toString();
-
-        final List<String> list = new ArrayList<>();
-
+        acquireAndEnsureChannelIsActive();
         try {
+            final Gson gson = new Gson();
+            final String api =  new StringBuilder(consumerPathPrefix)
+                    .append("/consumers/")
+                    .append(consumerId)
+                    .append("/subscription").toString();
 
-            String responseEntity = request.get(api, GET_SUBSCRIPTIONS_ERROR_MAP);
+            final List<String> list = new ArrayList<>();
 
-            if (responseEntity != null) {
-                list.addAll(gson.fromJson(responseEntity, List.class));
+            try {
+
+                String responseEntity = request.get(api, GET_SUBSCRIPTIONS_ERROR_MAP);
+
+                if (responseEntity != null) {
+                    list.addAll(gson.fromJson(responseEntity, List.class));
+                }
+                return list;
+
+            } catch (final TemporaryError error) {
+                error.setApi("subscriptions");
+                throw error;
+            } catch (final ConsumerError error) {
+                error.setApi("subscriptions");
+                throw error;
+            } catch (final PermanentError error) {
+                error.setApi("subscriptions");
+                throw error;
+            } catch (final JsonSyntaxException e) {
+                TemporaryError temporaryError = new TemporaryError("Error while parsing response: "
+                        + e.getClass().getCanonicalName() + " " + e.getMessage(), e, 0, null);
+                temporaryError.setApi("subscriptions");
+                throw temporaryError;
             }
-            return list;
-
-        } catch (final TemporaryError error) {
-            error.setApi("subscriptions");
-            throw error;
-        } catch (final ConsumerError error) {
-            error.setApi("subscriptions");
-            throw error;
-        } catch (final PermanentError error) {
-            error.setApi("subscriptions");
-            throw error;
-        } catch (final JsonSyntaxException e) {
-            TemporaryError temporaryError = new TemporaryError("Error while parsing response: "
-                    + e.getClass().getCanonicalName() + " " + e.getMessage(), e, 0, null);
-            temporaryError.setApi("subscriptions");
-            throw temporaryError;
+        } finally {
+            release();
         }
 
     }
@@ -365,26 +399,31 @@ public class Channel implements AutoCloseable {
      */
     public void unsubscribe() throws ConsumerError, PermanentError, TemporaryError {
 
-        final String api =  new StringBuilder(consumerPathPrefix)
-                .append("/consumers/")
-                .append(consumerId)
-                .append("/subscription").toString();
-
+        acquireAndEnsureChannelIsActive();
         try {
+            final String api =  new StringBuilder(consumerPathPrefix)
+                    .append("/consumers/")
+                    .append(consumerId)
+                    .append("/subscription").toString();
 
-            request.delete(api, UNSUBSCRIBE_ERROR_MAP);
-            subscriptions.clear();
-            return;
+            try {
 
-        }  catch (final TemporaryError error) {
-            error.setApi("unsubscribe");
-            throw error;
-        } catch (final ConsumerError error) {
-            error.setApi("unsubscribe");
-            throw error;
-        } catch (final PermanentError error) {
-            error.setApi("unsubscribe");
-            throw error;
+                request.delete(api, UNSUBSCRIBE_ERROR_MAP);
+                subscriptions.clear();
+                return;
+
+            }  catch (final TemporaryError error) {
+                error.setApi("unsubscribe");
+                throw error;
+            } catch (final ConsumerError error) {
+                error.setApi("unsubscribe");
+                throw error;
+            } catch (final PermanentError error) {
+                error.setApi("unsubscribe");
+                throw error;
+            }
+        } finally {
+            release();
         }
 
     }
@@ -397,32 +436,37 @@ public class Channel implements AutoCloseable {
      */
     public void delete() throws TemporaryError, PermanentError {
 
-        if (consumerId == null) {
-            return;
-        }
-
-        String api = new StringBuilder(consumerPathPrefix)
-                .append("/consumers/")
-                .append(consumerId).toString();
-
+        acquireAndEnsureChannelIsActive();
         try {
+            if (consumerId == null) {
+                return;
+            }
 
-            request.delete(api, DELETE_ERROR_MAP);
+            String api = new StringBuilder(consumerPathPrefix)
+                    .append("/consumers/")
+                    .append(consumerId).toString();
 
-        } catch (final ConsumerError consumerError) {
+            try {
 
-            System.out.println("Consumer with ID " + consumerId + " not found. Resetting consumer anyways.");
+                request.delete(api, DELETE_ERROR_MAP);
 
-        } catch (final TemporaryError error) {
-            error.setApi("delete");
-            throw error;
-        } catch (final PermanentError error) {
-            error.setApi("delete");
-            throw error;
+            } catch (final ConsumerError consumerError) {
+
+                System.out.println("Consumer with ID " + consumerId + " not found. Resetting consumer anyways.");
+
+            } catch (final TemporaryError error) {
+                error.setApi("delete");
+                throw error;
+            } catch (final PermanentError error) {
+                error.setApi("delete");
+                throw error;
+            } finally {
+                // Delete session attribute values, cookies and authorization token
+                reset();
+                request.resetAuthorization();
+            }
         } finally {
-            // Delete session attribute values, cookies and authorization token
-            reset();
-            request.resetAuthorization();
+            release();
         }
 
     }
@@ -437,35 +481,40 @@ public class Channel implements AutoCloseable {
      */
     public ConsumerRecords consume() throws ConsumerError, PermanentError, TemporaryError {
 
-        if (subscriptions.isEmpty()) {
-            throw new PermanentError("Channel is not subscribed to any topic");
-        }
-
-        String api = new StringBuilder(consumerPathPrefix)
-                .append("/consumers/")
-                .append(consumerId)
-                .append("/records").toString();
-
+        acquireAndEnsureChannelIsActive();
         try {
+            if (subscriptions.isEmpty()) {
+                throw new PermanentError("Channel is not subscribed to any topic");
+            }
 
-            String responseEntity = request.get(api, CONSUME_RECORDS_ERROR_MAP);
+            String api = new StringBuilder(consumerPathPrefix)
+                    .append("/consumers/")
+                    .append(consumerId)
+                    .append("/records").toString();
 
-            final Gson gson = new Gson();
-            final ConsumerRecords consumerRecords = gson.fromJson(responseEntity, ConsumerRecords.class);
+            try {
 
-            return consumerRecords;
+                String responseEntity = request.get(api, CONSUME_RECORDS_ERROR_MAP);
 
-        } catch (final TemporaryError error) {
-            error.setApi("consume");
-            throw error;
-        } catch (final ConsumerError error) {
-            error.setApi("consume");
-            throw error;
-        } catch (final JsonSyntaxException e) {
-            TemporaryError temporaryError = new TemporaryError("Error while parsing response: "
-                    + e.getClass().getCanonicalName() + " " + e.getMessage(), e, 0, null);
-            temporaryError.setApi("consume");
-            throw temporaryError;
+                final Gson gson = new Gson();
+                final ConsumerRecords consumerRecords = gson.fromJson(responseEntity, ConsumerRecords.class);
+
+                return consumerRecords;
+
+            } catch (final TemporaryError error) {
+                error.setApi("consume");
+                throw error;
+            } catch (final ConsumerError error) {
+                error.setApi("consume");
+                throw error;
+            } catch (final JsonSyntaxException e) {
+                TemporaryError temporaryError = new TemporaryError("Error while parsing response: "
+                        + e.getClass().getCanonicalName() + " " + e.getMessage(), e, 0, null);
+                temporaryError.setApi("consume");
+                throw temporaryError;
+            }
+        } finally {
+            release();
         }
 
     }
@@ -481,28 +530,33 @@ public class Channel implements AutoCloseable {
      */
     public void commit() throws ConsumerError, TemporaryError, PermanentError {
 
-        if (isAutoCommitEnabled) {
-            return;
-        }
-
-        String api = new StringBuilder(consumerPathPrefix)
-                .append("/consumers/")
-                .append(consumerId)
-                .append("/offsets").toString();
-
+        acquireAndEnsureChannelIsActive();
         try {
+            if (isAutoCommitEnabled) {
+                return;
+            }
 
-            request.post(api, null, COMMIT_ALL_RECORDS_ERROR_MAP);
+            String api = new StringBuilder(consumerPathPrefix)
+                    .append("/consumers/")
+                    .append(consumerId)
+                    .append("/offsets").toString();
 
-        } catch (final TemporaryError error) {
-            error.setApi("commit");
-            throw error;
-        } catch (final ConsumerError error) {
-            error.setApi("commit");
-            throw error;
-        } catch (final PermanentError error) {
-            error.setApi("commit");
-            throw error;
+            try {
+
+                request.post(api, null, COMMIT_ALL_RECORDS_ERROR_MAP);
+
+            } catch (final TemporaryError error) {
+                error.setApi("commit");
+                throw error;
+            } catch (final ConsumerError error) {
+                error.setApi("commit");
+                throw error;
+            } catch (final PermanentError error) {
+                error.setApi("commit");
+                throw error;
+            }
+        } finally {
+            release();
         }
 
     }
@@ -521,7 +575,6 @@ public class Channel implements AutoCloseable {
      * <p>The {@link Channel#stop()} method can also be called to halt an execution of this method.</p>
      *
      * @param processCallback Callable which is invoked with a list of records which have been consumed.
-     * @param waitBetweenQueries Number of seconds to wait between calls to consume records.
      * @param topics If set to a non-empty value, the channel will be subscribed to the specified topics.
      *              If set to an empty value, the channel will use topics previously subscribed via a call to the
      *              subscribe method.
@@ -529,86 +582,86 @@ public class Channel implements AutoCloseable {
      *                         callback to deliver records was not specified
      * @throws TemporaryError consume or commit attempts failed with errors other than ConsumerError.
      */
-    public void run(final ConsumerRecordProcessor processCallback, final int waitBetweenQueries,
-                    final List<String> topics) throws PermanentError, TemporaryError {
+    public void run(final ConsumerRecordProcessor processCallback, final List<String> topics)
+            throws PermanentError, TemporaryError {
 
-        if (consumerGroup == null || consumerGroup.isEmpty()) {
-            throw new PermanentError("No value specified for 'consumerGroup' during channel init");
-        }
-
-        if (processCallback == null) {
-            throw new PermanentError("processCallback not provided");
-        }
-
-        int waitPeriod = waitBetweenQueries > 0 ? waitBetweenQueries : _DEFAULT_WAIT_BETWEEN_QUERIES;
-
-        List<String> topicsOfInterest = topics != null && !topics.isEmpty() ? topics : subscriptions;
-
-        continueRunning = true;
-        runLock.lock();
-        if (running) {
-            runLock.unlock();
-            throw new PermanentError("Previous run already in progress");
-        }
-
-        running = true;
-        continueRunning = !stopRequested;
-        runLock.unlock();
-
+        acquireAndEnsureChannelIsActive();
         try {
+            if (consumerGroup == null || consumerGroup.isEmpty()) {
+                throw new PermanentError("No value specified for 'consumerGroup' during channel init");
+            }
 
-            while (continueRunning) {
-                continueRunning = consumeLoop(processCallback, waitPeriod, topicsOfInterest);
+            if (processCallback == null) {
+                throw new PermanentError("processCallback not provided");
+            }
+
+            List<String> topicsOfInterest = topics != null && !topics.isEmpty() ? topics : subscriptions;
+
+            if (running.compareAndSet(false, true)) {
+
+                boolean continueRunning = !stopRequested.get();
+
+                while (continueRunning) {
+                    continueRunning = consumeLoop(processCallback, topicsOfInterest);
+                }
             }
 
         } finally {
-            runLock.lock();
-            running = false;
-            stopRequested = false;
-            stoppedCondition.signalAll();
-            runLock.unlock();
+            running.set(false);
+            release();
+            // notify stop requester that channel has been stopped
+            synchronized (stopDone) {
+                stopDone.set(true);
+                stopDone.notifyAll();
+            }
         }
 
     }
 
-    public void run(final ConsumerRecordProcessor processCallback, final int waitBetweenQueries,
-                    final String topic) throws PermanentError, TemporaryError {
+    public void run(final ConsumerRecordProcessor processCallback, final String topic) throws PermanentError,
+            TemporaryError {
 
-        run(processCallback, waitBetweenQueries,
-                topic != null && !topic.isEmpty() ? Arrays.asList(topic) : null);
+        acquireAndEnsureChannelIsActive();
+        try {
+            run(processCallback, topic != null && !topic.isEmpty() ? Arrays.asList(topic) : null);
+        } finally {
+            release();
+        }
 
     }
 
     /**
-     * <p>Stop an active execution of the {@link Channel#run(ConsumerRecordProcessor, int, List)} call.</p>
+     * <p>Stop an active execution of the {@link Channel#run(ConsumerRecordProcessor, List)} call.</p>
      *
-     * <p>If no {@link Channel#run(ConsumerRecordProcessor, int, List)} call is active, this function returns
-     * immediately. If a {@link Channel#run(ConsumerRecordProcessor, int, List)} call is active, this function blocks
+     * <p>If no {@link Channel#run(ConsumerRecordProcessor, List)} call is active, this function returns
+     * immediately. If a {@link Channel#run(ConsumerRecordProcessor, List)} call is active, this function blocks
      * until the run has been completed.</p>
      *
      * @throws StopError an error occurred while waiting for channel to be stopped
      */
     public void stop() throws StopError {
 
-        runLock.lock();
-
-        if (running) {
-
-            stopRequested = true;
-            stopRequestedCondition.signalAll();
-
-            while (running) {
-                try {
-
-                    stoppedCondition.await();
-
-                } catch (final Exception e) {
-                    throw new StopError("Failed to stop channel");
-                }
-            }
+        if (!running.get()) {
+            return;
         }
 
-        runLock.unlock();
+        if (stopRequested.compareAndSet(false, true)) {
+            stopDone.set(false);
+
+            try {
+                synchronized (stopDone) {
+                    while (running.get() || !stopDone.get()) {
+                        stopDone.wait();
+                        System.out.println("Channel was stopped");
+                    }
+                }
+            } catch (final Exception e) {
+                throw new StopError("Failed to stop channel");
+            } finally {
+                stopRequested.set(false);
+                stopDone.set(false);
+            }
+        }
 
     }
 
@@ -642,18 +695,22 @@ public class Channel implements AutoCloseable {
      */
     public void destroy() throws TemporaryError, StopError, PermanentError {
 
-        destroyLock.lock();
+        try {
+            if (destroying.compareAndSet(false, true)) {
+                if (active) {
 
-        if (active) {
+                    stop();
+                    delete();
+                    request.close();
 
-            stop();
-            delete();
-            request.close();
-
-            active = false;
+                    active = false;
+                }
+            } else {
+                throw new TemporaryError("Channel is not safe for multi-threaded access");
+            }
+        } finally {
+            destroying.set(false);
         }
-
-        destroyLock.unlock();
 
     }
 
@@ -680,15 +737,14 @@ public class Channel implements AutoCloseable {
      * </p>
      *
      * @param processCallback
-     * @param waitBetweenQueries
      * @param topics
      * @return <code>true</code> if callback has successfully processed records and stop has not been requested
      *         <code>false</code> otherwise.
      * @throws TemporaryError the consume or commit attempt failed with an error other than ConsumerError.
      * @throws PermanentError the callback asks to stop consuming records.
      */
-    private boolean consumeLoop(final ConsumerRecordProcessor processCallback, final long waitBetweenQueries,
-                                List<String> topics) throws PermanentError, TemporaryError {
+    private boolean consumeLoop(final ConsumerRecordProcessor processCallback, List<String> topics)
+            throws PermanentError, TemporaryError {
 
         boolean continueRunning = true;
         boolean subscribed = false;
@@ -736,22 +792,10 @@ public class Channel implements AutoCloseable {
                 throw error;
             } finally {
                 // Check if there is a request to stop consuming records
-                runLock.lock();
-                if (stopRequested) {
+                if (stopRequested.get()) {
                     // Exit consume loop immediately
                     continueRunning = false;
-                } else if (continueRunning) {
-                    // Wait for a while.
-                    // If stop API method is invoked, then stopRequestedCondition will be signalled and
-                    // the wait will end before waitBetweenQueries period has elapsed.
-                    try {
-                        stopRequestedCondition.await(waitBetweenQueries, TimeUnit.MILLISECONDS);
-                    } catch (final InterruptedException e) {
-                        // Ignore it.
-                    }
-                    continueRunning = !stopRequested;
                 }
-                runLock.unlock();
             }
         }
 
@@ -777,6 +821,39 @@ public class Channel implements AutoCloseable {
         request = new Request(base, auth, verifyCertBundle);
         create();
 
+    }
+
+    /**
+     * Acquire the light lock and ensure that the Channel is active.
+     * @throws IllegalStateException If the Channel is not active
+     */
+    private void acquireAndEnsureChannelIsActive() throws PermanentError, TemporaryError {
+        acquire();
+        if (!this.active) {
+            release();
+            throw new PermanentError("Channel has been destroyed.");
+        }
+    }
+
+    /**
+     * Acquire the light lock protecting this Channel from multi-threaded access. Instead of blocking
+     * when the lock is not available, however, we just throw an exception (since multi-threaded usage is not
+     * supported).
+     * @throws TemporaryError if another thread already has the lock
+     */
+    private void acquire() throws TemporaryError {
+        long threadId = Thread.currentThread().getId();
+        if (threadId != currentThread.get() && !currentThread.compareAndSet(NO_CURRENT_THREAD, threadId))
+            throw new TemporaryError("Channel is not safe for multi-threaded access");
+        refcount.incrementAndGet();
+    }
+
+    /**
+     * Release the light lock protecting the consumer from multi-threaded access.
+     */
+    private void release() {
+        if (refcount.decrementAndGet() == 0)
+            currentThread.set(NO_CURRENT_THREAD);
     }
 
     /**

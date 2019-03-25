@@ -12,7 +12,7 @@ import java.util.List;
 
 /**
  * ConsumerRecordProcessor is an interface that must be implemented by the process which receives the consumed records.
- * The {@link Channel#run(ConsumerRecordProcessor, int, List)} )} method invokes the
+ * The {@link Channel#run(ConsumerRecordProcessor, List)} )} method invokes the
  * {@link ConsumerRecordProcessor#processCallback(ConsumerRecords, String)} method to deliver the consumed records to
  * the user for further processing.
  */
