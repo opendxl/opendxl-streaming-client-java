@@ -4,7 +4,6 @@
 
 package com.opendxl.streaming.cli;
 
-import com.opendxl.streaming.Constants;
 import com.opendxl.streaming.cli.entity.StickinessCookie;
 import com.opendxl.streaming.cli.operation.CommandLineOperation;
 import com.opendxl.streaming.client.Channel;
@@ -34,6 +33,10 @@ import java.util.Properties;
  */
 public class CliUtils {
 
+    /**
+     * Stikiness cookie name
+     */
+    private static final String STIKINESS_COOKIE_NAME = "AWSALB";
 
     private CliUtils() {
 
@@ -177,7 +180,7 @@ public class CliUtils {
         final HttpClientContext clientContext = (HttpClientContext) PA.getValue(httpConnection, "httpClientContext");
         final List<Cookie> cookies = clientContext.getCookieStore().getCookies();
         for (Cookie cookie : cookies) {
-            if (cookie.getName().equals(Constants.STIKINESS_COOKIE_NAME)) {
+            if (STIKINESS_COOKIE_NAME.equals(cookie.getName())) {
                 return new StickinessCookie(cookie.getValue(), cookie.getDomain());
             }
         }
@@ -195,7 +198,7 @@ public class CliUtils {
         final HttpConnection httpConnection = (HttpConnection) PA.getValue(request, "httpConnection");
         final HttpClientContext clientContext =
                 (HttpClientContext) PA.getValue(httpConnection, "httpClientContext");
-        BasicClientCookie cookie = new BasicClientCookie(Constants.STIKINESS_COOKIE_NAME,
+        BasicClientCookie cookie = new BasicClientCookie(STIKINESS_COOKIE_NAME,
                 stickinessCookie.getValue());
         clientContext.getCookieStore().addCookie(cookie);
         cookie.setDomain(stickinessCookie.getDomain());

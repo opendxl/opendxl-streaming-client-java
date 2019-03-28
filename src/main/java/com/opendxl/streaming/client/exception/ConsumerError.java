@@ -59,6 +59,15 @@ public class ConsumerError extends Exception {
     }
 
     /**
+     * @param message error description
+     */
+    public ConsumerError(final String message) {
+
+        this(message, null, 0, null);
+
+    }
+
+    /**
      * Get the HTTP Status Code that caused the ConsumerError.
      *
      * @return HTTP Status Code

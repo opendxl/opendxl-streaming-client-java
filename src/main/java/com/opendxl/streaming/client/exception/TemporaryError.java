@@ -23,13 +23,15 @@ public class TemporaryError extends Exception {
      *                   or HTTP Server error, then it is set to the HTTP status code. If TemporaryError is not due to
      *                   an HTTP error, then it is set to zero.
      * @param httpRequest HttpRequest in which the TemporaryError occurred
+     * @param api the {@link com.opendxl.streaming.client.Channel} method name in which the TemporaryError occurred.
      */
     public TemporaryError(final String message, final Throwable cause, final int statusCode,
-                          final HttpRequest httpRequest) {
+                          final HttpRequest httpRequest, final String api) {
 
         super(message, cause);
         this.statusCode = statusCode;
         this.httpRequest = httpRequest;
+        this.api = api;
 
     }
 
@@ -42,7 +44,7 @@ public class TemporaryError extends Exception {
      */
     public TemporaryError(final String message, final int statusCode, final HttpRequest httpRequest) {
 
-        this(message, null, statusCode, httpRequest);
+        this(message, null, statusCode, httpRequest, null);
 
     }
 
@@ -53,7 +55,19 @@ public class TemporaryError extends Exception {
      */
     public TemporaryError(final String message, final Throwable cause) {
 
-        this(message, cause, 0, null);
+        this(message, cause, 0, null, null);
+
+    }
+
+    /**
+     * @param message error description
+     * @param cause if TemporaryError is thrown as consequence of another exception. If TemporaryError is not caused by
+     *              another exception, then it set to {@code null}.
+     * @param api the {@link com.opendxl.streaming.client.Channel} method name in which the TemporaryError occurred.
+     */
+    public TemporaryError(final String message, final Throwable cause, final String api) {
+
+        this(message, cause, 0, null, api);
 
     }
 
@@ -62,7 +76,7 @@ public class TemporaryError extends Exception {
      */
     public TemporaryError(final String message) {
 
-        this(message, null, 0, null);
+        this(message, null, 0, null, null);
 
     }
 

@@ -38,8 +38,6 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * The {@link HttpConnection} class provides an SSL communication layer for {@link Channel} requests.
@@ -48,7 +46,14 @@ import java.util.List;
  */
 public class HttpConnection implements AutoCloseable {
 
+    /**
+     * HttpClient instance that sends HTTP requests. It is setup in {@link HttpConnection#HttpConnection(String)}
+     * constructor. It is used to send HTTP requests in {@link HttpConnection#execute(HttpRequestBase)} method.
+     */
     private final CloseableHttpClient httpClient;
+    /**
+     * HttpClientContext instance which stores the Cookies got from HTTP responses.
+     */
     private final HttpClientContext httpClientContext;
 
     //
@@ -208,17 +213,13 @@ public class HttpConnection implements AutoCloseable {
         final KeyStore clientKeyStore = KeyStore.getInstance(KeyStore.getDefaultType());
         clientKeyStore.load(null, null);
 
-        final CertificateFactory certFactory = CertificateFactory.getInstance("X.509");
+        java.util.Collection<? extends Certificate> chain;
+        try (FileInputStream fis = new FileInputStream(caChainPems);
+             BufferedInputStream bis = new BufferedInputStream(fis)) {
 
-        FileInputStream fis = new FileInputStream(caChainPems);
-        BufferedInputStream bis = new BufferedInputStream(fis);
+            final CertificateFactory cf = CertificateFactory.getInstance("X.509");
 
-        CertificateFactory cf = CertificateFactory.getInstance("X.509");
-
-        List<Certificate> chain = new ArrayList<>();
-        while (bis.available() > 0) {
-            Certificate cert = cf.generateCertificate(bis);
-            chain.add(cert);
+            chain = cf.generateCertificates(bis);
         }
 
         int certNumber = 0;

@@ -67,17 +67,60 @@ public class Channel implements AutoCloseable {
     private final String base;
     private final String consumerPathPrefix;
     private final String consumerGroup;
+    /**
+     * Allowed values for auto.offset.reset consumer configuration property.
+     */
     private final List<String> offsetValues = Arrays.asList("latest", "earliest", "none");
+    /**
+     * Properties object which contains all consumer configuration properties. Its values are set in
+     * {@link Channel#Channel(String, ChannelAuth, String, String, String, String, Integer, Integer, boolean, String,
+     * Properties)}
+     * constructor and it is later used in {@link Channel#create()} when consumer is created.
+     */
     private final Properties configs = new Properties();
+    /**
+     * Filename of a Certificate Bundle file. Certificates are loaded and managed by {@link HttpConnection} class.
+     * Certificates are evaluated when creating SSL connections. If it is set to an empty string, then no certificate
+     * nor hostname validation is performed when setting up an SSL Connection.
+     */
     private final String verifyCertBundle;
 
+    /**
+     * String identifying the consumer instance which is obtained by {@link Channel#create()} API.
+     * It is set to a string value in {@link Channel#create()} API.
+     * It is reset to {@code null} in {@link Channel#reset()} method which is called when deleting a consumer using
+     * {@link Channel#delete()} API
+     */
     private String consumerId;
+    /**
+     * List of subscribed topics. Topic names are set by {@link Channel#subscribe(List)} upon a successful subscribe
+     * request. It is emptied by {@link Channel#reset} when deleting a consumer using {@link Channel#delete()} API.
+     */
     private List<String> subscriptions;
 
+    /**
+     * An implementation of Channel Authorization interface. It adds the http header with the Authorization token to
+     * http requests. Two implementations are available: {@link com.opendxl.streaming.client.auth.ChannelAuthToken} and
+     * {@link com.opendxl.streaming.client.auth.ChannelAuthUserPass}.
+     */
     private final ChannelAuth auth;
+    /**
+     * Helper class to send HTTP requests. If the received HTTP Response Status code is not successful, then an error
+     * with a description message will be thrown.
+     */
     private Request request;
 
+    /**
+     * Boolean value set by Channel constructor. It indicates whether records consumption must be continued in
+     * {@link Channel#run(ConsumerRecordProcessor, List)} when a ConsumerError occurs. If it is set to {@code true},
+     * then a new consumer will be created and records consumption will resume. If it set to {@code false}, then
+     * execution will exit {@link Channel#run(ConsumerRecordProcessor, List)} method.
+     */
     private final boolean retryOnFail;
+    /**
+     * Boolean value which indicates the Channel instance has been fully constructed. It is set to true by Channel
+     * constructor. It is set to false when {@link Channel#destroy()} is called.
+     */
     private boolean active;
     /**
      * Flag that is set when Channel object is executing the {@link Channel#run(ConsumerRecordProcessor,List)}.
@@ -104,8 +147,19 @@ public class Channel implements AutoCloseable {
      * It is set to true when entering {@link Channel#destroy()} and it is set back to false before leaving the method.
      */
     private AtomicBoolean destroying;
+    /**
+     * Determines whether an explicit commit request will take place when {@link Channel#commit()} is invoked.
+     * If it is set to true, then no commit request will be sent because Kafka will automatically commit records after
+     * they have been consumed. If it is set to false, then commit requests will be sent.
+     * Its value is set at Channel construction time:
+     * it is set to true when extraConfigs parameter of Channel constructor contains the "enable.auto.commit" property
+     * and it is set to true.
+     * it is set to false when extraConfigs parameter of Channel constructor contains the "enable.auto.commit" property
+     * and it is set to false or when extraConfigs does not contain "enable.auto.commit" property.
+     */
     private final boolean isAutoCommitEnabled;
 
+    // value used to indicate that no thread is currently accessing Channel methods
     private static final long NO_CURRENT_THREAD = -1L;
     // currentThread holds the threadId of the current thread accessing Channel
     // and is used to prevent multi-threaded access
@@ -224,12 +278,13 @@ public class Channel implements AutoCloseable {
     /**
      * Resets local consumer data stored for the channel.
      */
-    void reset() {
+    private void reset() {
 
         consumerId = null;
         subscriptions.clear();
 
         request.resetCookies();
+        request.resetAuthorization();
 
     }
 
@@ -261,7 +316,7 @@ public class Channel implements AutoCloseable {
                 String responseEntityString = request.post(consumerPathPrefix + "/consumers", body, CREATE_ERROR_MAP);
 
                 if (responseEntityString != null) {
-                    ConsumerId consumer = (ConsumerId) gson.fromJson(responseEntityString, ConsumerId.class);
+                    ConsumerId consumer = gson.fromJson(responseEntityString, ConsumerId.class);
                     consumerId = consumer.getConsumerInstanceId();
                 }
 
@@ -270,8 +325,7 @@ public class Channel implements AutoCloseable {
                 throw error;
             } catch (final JsonSyntaxException | ConsumerError e) {
                 TemporaryError temporaryError = new TemporaryError("Error while parsing response: "
-                        + e.getClass().getCanonicalName() + " " + e.getMessage(), e, 0, null);
-                temporaryError.setApi("create");
+                        + e.getClass().getCanonicalName() + " " + e.getMessage(), e, "create");
                 throw temporaryError;
             }
         } finally {
@@ -380,47 +434,8 @@ public class Channel implements AutoCloseable {
                 throw error;
             } catch (final JsonSyntaxException e) {
                 TemporaryError temporaryError = new TemporaryError("Error while parsing response: "
-                        + e.getClass().getCanonicalName() + " " + e.getMessage(), e, 0, null);
-                temporaryError.setApi("subscriptions");
+                        + e.getClass().getCanonicalName() + " " + e.getMessage(), e, "subscriptions");
                 throw temporaryError;
-            }
-        } finally {
-            release();
-        }
-
-    }
-
-    /**
-     * Unsubscribe the consumer from all topics
-     *
-     * @throws ConsumerError if the consumer associated with the channel does not exist on the server.
-     * @throws TemporaryError if the unsubscribe attempt fails.
-     * @throws PermanentError if request was malformed.
-     */
-    public void unsubscribe() throws ConsumerError, PermanentError, TemporaryError {
-
-        acquireAndEnsureChannelIsActive();
-        try {
-            final String api =  new StringBuilder(consumerPathPrefix)
-                    .append("/consumers/")
-                    .append(consumerId)
-                    .append("/subscription").toString();
-
-            try {
-
-                request.delete(api, UNSUBSCRIBE_ERROR_MAP);
-                subscriptions.clear();
-                return;
-
-            }  catch (final TemporaryError error) {
-                error.setApi("unsubscribe");
-                throw error;
-            } catch (final ConsumerError error) {
-                error.setApi("unsubscribe");
-                throw error;
-            } catch (final PermanentError error) {
-                error.setApi("unsubscribe");
-                throw error;
             }
         } finally {
             release();
@@ -463,7 +478,6 @@ public class Channel implements AutoCloseable {
             } finally {
                 // Delete session attribute values, cookies and authorization token
                 reset();
-                request.resetAuthorization();
             }
         } finally {
             release();
@@ -509,8 +523,7 @@ public class Channel implements AutoCloseable {
                 throw error;
             } catch (final JsonSyntaxException e) {
                 TemporaryError temporaryError = new TemporaryError("Error while parsing response: "
-                        + e.getClass().getCanonicalName() + " " + e.getMessage(), e, 0, null);
-                temporaryError.setApi("consume");
+                        + e.getClass().getCanonicalName() + " " + e.getMessage(), e, "consume");
                 throw temporaryError;
             }
         } finally {
@@ -599,10 +612,8 @@ public class Channel implements AutoCloseable {
 
             if (running.compareAndSet(false, true)) {
 
-                boolean continueRunning = !stopRequested.get();
-
-                while (continueRunning) {
-                    continueRunning = consumeLoop(processCallback, topicsOfInterest);
+                while (!stopRequested.get()) {
+                    consumeLoop(processCallback, topicsOfInterest);
                 }
             }
 
@@ -693,7 +704,7 @@ public class Channel implements AutoCloseable {
      * @throws StopError if the attempt to stop the channel fails.
      * @throws PermanentError if delete request was malformed.
      */
-    public void destroy() throws TemporaryError, StopError, PermanentError {
+    private void destroy() throws TemporaryError, StopError, PermanentError {
 
         try {
             if (destroying.compareAndSet(false, true)) {
@@ -738,12 +749,10 @@ public class Channel implements AutoCloseable {
      *
      * @param processCallback
      * @param topics
-     * @return <code>true</code> if callback has successfully processed records and stop has not been requested
-     *         <code>false</code> otherwise.
      * @throws TemporaryError the consume or commit attempt failed with an error other than ConsumerError.
      * @throws PermanentError the callback asks to stop consuming records.
      */
-    private boolean consumeLoop(final ConsumerRecordProcessor processCallback, List<String> topics)
+    private void consumeLoop(final ConsumerRecordProcessor processCallback, List<String> topics)
             throws PermanentError, TemporaryError {
 
         boolean continueRunning = true;
@@ -785,7 +794,6 @@ public class Channel implements AutoCloseable {
                     continueRunning = false;
                 }
 
-                continue;
             } catch (final PermanentError | TemporaryError error) {
                 // Delete consumer instance.
                 delete();
@@ -798,8 +806,6 @@ public class Channel implements AutoCloseable {
                 }
             }
         }
-
-        return continueRunning;
 
     }
 
@@ -904,18 +910,6 @@ public class Channel implements AutoCloseable {
     }};
 
     /**
-     * Mapping of HTTP Status Code errors to {@link ErrorType} for {@link Channel#unsubscribe()} API
-     */
-    private static final Map<Integer, ErrorType> UNSUBSCRIBE_ERROR_MAP = new HashMap() {{
-        put(400, ErrorType.PERMANENT_ERROR);
-        put(401, ErrorType.TEMPORARY_ERROR);
-        put(403, ErrorType.TEMPORARY_ERROR);
-        put(404, ErrorType.CONSUMER_ERROR);
-        put(409, ErrorType.TEMPORARY_ERROR);
-        put(500, ErrorType.TEMPORARY_ERROR);
-    }};
-
-    /**
      * Mapping of HTTP Status Code errors to {@link ErrorType} for {@link Channel#consume()} API
      */
     private static final Map<Integer, ErrorType> CONSUME_RECORDS_ERROR_MAP = new HashMap() {{
@@ -942,6 +936,10 @@ public class Channel implements AutoCloseable {
 }
 
 // Helper classes to serialize / deserialize JSON objects
+/**
+ * ConsumerId objects are returned by Databus Consumer Service when its createNewConsumerInstance() method is called.
+ * It contains the consumer identifier code in string format.
+ */
 class ConsumerId {
 
     private String consumerInstanceId;
@@ -956,6 +954,11 @@ class ConsumerId {
 
 }
 
+/**
+ * ConsumerConfig objects are sent to createNewConsumerInstance() of Databus Consumer Service when
+ * {@link Channel#create()} is called. ConsumerConfig objects carry all the required parameters to create a new
+ * consumer, e.g.: consumer group, session and request timeouts, whether auto commit is enabled, auto commit timeout.
+ */
 class ConsumerConfig {
 
     private String consumerGroup;
@@ -965,20 +968,4 @@ class ConsumerConfig {
         this.consumerGroup = consumerGroup;
         this.configs = configs;
     }
-}
-
-class CommitLog {
-
-    private String topic;
-    private int partition;
-    private long offset;
-
-    CommitLog(final String topic, final int partition, final long offset) {
-
-        this.topic = topic;
-        this.partition = partition;
-        this.offset = offset;
-
-    }
-
 }

@@ -10,9 +10,7 @@ import com.opendxl.streaming.client.exception.ErrorType;
 import com.opendxl.streaming.client.exception.PermanentError;
 import com.opendxl.streaming.client.exception.TemporaryError;
 
-import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
-import org.apache.http.ParseException;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
@@ -35,6 +33,10 @@ public class Request implements AutoCloseable {
     private final String base;
     private final ChannelAuth auth;
 
+    /**
+     * Helper object which provides SSL connections for sending HTTP requests. SSL connection use the certificates from
+     * the Certificate Bundle file passed to {@link Request#Request(String, ChannelAuth, String)} constructor.
+     */
     private final HttpConnection httpConnection;
 
     /**
@@ -163,9 +165,8 @@ public class Request implements AutoCloseable {
             }
 
         } catch (final Throwable e) {
-            TemporaryError temporaryError = new TemporaryError("Unexpected temporary error "
-                    + e.getClass().getCanonicalName() + ": " + e.getMessage(), e, 0, httpRequest);
-            throw temporaryError;
+            throw new TemporaryError("Unexpected temporary error "
+                    + e.getClass().getCanonicalName() + ": " + e.getMessage(), e, 0, httpRequest, null);
         }
 
         // Evaluate Response HTTP Status Code
@@ -242,22 +243,6 @@ public class Request implements AutoCloseable {
     }
 
     /**
-     * Get a string from an HttpEntity.
-     *
-     * @param httpEntity entity to get a string from
-     * @return String with HttpEntity contents
-     */
-    private static String getString(final HttpEntity httpEntity) throws TemporaryError {
-
-        try {
-            return EntityUtils.toString(httpEntity);
-        } catch (final IOException | ParseException e) {
-            return "'failure when when parsing HttpEntity'";
-        }
-
-    }
-
-    /**
      * Checks whether a status code is successful one
      *
      * @param statusCode an HTTP Response Status Code
@@ -279,7 +264,7 @@ public class Request implements AutoCloseable {
     private static String getConsumerServiceErrorMessage(final String responseEntityString) {
 
         Gson gson = new Gson();
-        ConsumerServiceError apiGatewayError = (ConsumerServiceError) gson.fromJson(responseEntityString,
+        ConsumerServiceError apiGatewayError = gson.fromJson(responseEntityString,
                 ConsumerServiceError.class);
 
         return apiGatewayError != null

@@ -43,9 +43,22 @@ public class ChannelAuthUserPass implements ChannelAuth {
      *    the certificate of the authentication server being connected to was
      *    signed by a valid authority. If set to an empty string, the server
      *    certificate is not validated.
+     * @throws PermanentError if base is null or empty or if username is null or empty or if password is null
      */
     public ChannelAuthUserPass(final String base, final String username, final String password, String pathFragment,
-                               final String verifyCertBundle) {
+                               final String verifyCertBundle) throws PermanentError {
+
+        if (base == null || base.isEmpty()) {
+            throw new PermanentError("Base URL may not be null or empty");
+        }
+
+        if (username == null || username.isEmpty()) {
+            throw new PermanentError("username may not be null or empty");
+        }
+
+        if (password == null) {
+            throw new PermanentError("password may not be null");
+        }
 
         this.base = base;
         this.username = username;
