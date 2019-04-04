@@ -5,8 +5,8 @@
 package com.opendxl.streaming.client;
 
 import com.opendxl.streaming.client.entity.ConsumerRecords;
+import com.opendxl.streaming.client.exception.ConsumerError;
 import com.opendxl.streaming.client.exception.PermanentError;
-import com.opendxl.streaming.client.exception.TemporaryError;
 
 import java.util.List;
 
@@ -25,14 +25,14 @@ public interface ConsumerRecordProcessor {
      * {@link Channel#consume()} method.
      * @param consumerId consumer identifier
      * @return {@code true} if receiver wants to continue consuming records; {@code false} otherwise
-     * @throws TemporaryError if receiver wants to retry consuming records since last committed offset. Receiver should
-     *                        raise this exception upon finding errors in consumer records that might be overcome by
-     *                        consuming such records again.
+     * @throws ConsumerError if receiver wants to retry consuming records since last committed offset. Receiver should
+     *                       raise this exception upon finding errors in consumer records that might be overcome by
+     *                       consuming such records again.
      * @throws PermanentError if receiver wants to stop consuming records without even committing the last consumed
      *                        ones. Receiver should raise this exception upon finding unrecoverable errors in consumer
      *                        records.
      */
     boolean processCallback(final ConsumerRecords consumerRecords, final String consumerId)
-            throws TemporaryError, PermanentError;
+            throws ConsumerError, PermanentError;
 
 }

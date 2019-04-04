@@ -10,6 +10,7 @@ import com.opendxl.streaming.client.entity.ConsumerRecords;
 import com.google.gson.Gson;
 
 import com.opendxl.streaming.client.entity.Topics;
+import com.opendxl.streaming.client.exception.ClientError;
 import com.opendxl.streaming.client.exception.ConsumerError;
 import com.opendxl.streaming.client.exception.ErrorType;
 import com.opendxl.streaming.client.exception.PermanentError;
@@ -33,6 +34,14 @@ import java.util.concurrent.atomic.AtomicLong;
  * consumer group:</p>
  *
  * <pre>
+ * // Setup consumer properties if non-default configuration values are necessary, e.g.:
+ * Properties extraConfigs = new Properties();
+ * extraConfigs.put("enable.auto.commit", false);
+ * extraConfigs.put("auto.commit.interval.ms", 0);
+ * extraConfigs.put("auto.offset.reset", "earliest");
+ * extraConfigs.put("request.timeout.ms", 16000);
+ * extraConfigs.put("session.timeout.ms", 15000);
+ *
  * // Create the channel
  * Channel channel = new Channel("http://channel-server",       // channelUrl
  *                               new ChannelAuth("http://channel-server",   // channelUrlLogin
@@ -42,9 +51,6 @@ import java.util.concurrent.atomic.AtomicLong;
  *                               "thegroup",                    // channelConsumerGroup
  *                               null,                          // pathPrefix
  *                               "/databus/consumer-service/v1",  // consumerPathPrefix
- *                               "earliest",                    // offset
- *                               301,                           // requestTimeout
- *                               300,                           // sessionTimeout
  *                               false,                         // retryOnFail
  *                               "",                            // verifyCertificateBundle
  *                               extraConfigs);
@@ -57,27 +63,45 @@ import java.util.concurrent.atomic.AtomicLong;
 public class Channel implements AutoCloseable {
 
     // Constants for consumer config settings
-    private static final String _AUTO_OFFSET_RESET_CONFIG_SETTING = "auto.offset.reset";
-    private static final String _ENABLE_AUTO_COMMIT_CONFIG_SETTING = "enable.auto.commit";
-    private static final String _REQUEST_TIMEOUT_CONFIG_SETTING = "request.timeout.ms";
-    private static final String _SESSION_TIMEOUT_CONFIG_SETTING = "session.timeout.ms";
+    private static final String ENABLE_AUTO_COMMIT_CONFIG_SETTING = "enable.auto.commit";
 
-    private static final String _DEFAULT_CONSUMER_PATH_PREFIX = "/databus/consumer-service/v1";
+    /**
+     * Default URL path for Consumer Service
+     */
+    private static final String DEFAULT_CONSUMER_PATH_PREFIX = "/databus/consumer-service/v1";
 
+    /**
+     * Time to wait between two consecutive checks while awaiting a running Channel to be stopped.
+     */
+    private static final int STOP_CHANNEL_WAIT_PERIOD_MS = 1000;
+
+    /**
+     * Base URL at which the streaming service resides.
+     */
     private final String base;
+
+    /**
+     * Path to append to base for consumer-related requests made to the streaming service.
+     */
     private final String consumerPathPrefix;
+
+    /**
+     * Consumer group to subscribe the channel consumer to.
+     */
     private final String consumerGroup;
+
     /**
      * Allowed values for auto.offset.reset consumer configuration property.
      */
     private final List<String> offsetValues = Arrays.asList("latest", "earliest", "none");
+
     /**
      * Properties object which contains all consumer configuration properties. Its values are set in
-     * {@link Channel#Channel(String, ChannelAuth, String, String, String, String, Integer, Integer, boolean, String,
-     * Properties)}
+     * {@link Channel#Channel(String, ChannelAuth, String, String, String, boolean, String, Properties)}
      * constructor and it is later used in {@link Channel#create()} when consumer is created.
      */
     private final Properties configs = new Properties();
+
     /**
      * Filename of a Certificate Bundle file. Certificates are loaded and managed by {@link HttpConnection} class.
      * Certificates are evaluated when creating SSL connections. If it is set to an empty string, then no certificate
@@ -92,6 +116,7 @@ public class Channel implements AutoCloseable {
      * {@link Channel#delete()} API
      */
     private String consumerId;
+
     /**
      * List of subscribed topics. Topic names are set by {@link Channel#subscribe(List)} upon a successful subscribe
      * request. It is emptied by {@link Channel#reset} when deleting a consumer using {@link Channel#delete()} API.
@@ -104,6 +129,7 @@ public class Channel implements AutoCloseable {
      * {@link com.opendxl.streaming.client.auth.ChannelAuthUserPass}.
      */
     private final ChannelAuth auth;
+
     /**
      * Helper class to send HTTP requests. If the received HTTP Response Status code is not successful, then an error
      * with a description message will be thrown.
@@ -117,36 +143,34 @@ public class Channel implements AutoCloseable {
      * execution will exit {@link Channel#run(ConsumerRecordProcessor, List)} method.
      */
     private final boolean retryOnFail;
+
     /**
      * Boolean value which indicates the Channel instance has been fully constructed. It is set to true by Channel
      * constructor. It is set to false when {@link Channel#destroy()} is called.
      */
     private boolean active;
+
     /**
      * Flag that is set when Channel object is executing the {@link Channel#run(ConsumerRecordProcessor,List)}.
      * It is set to true when entering {@link Channel#run(ConsumerRecordProcessor, List)}
      * It is set to false on exit of {@link Channel#run(ConsumerRecordProcessor, List)}
      */
-    private AtomicBoolean running;
+    private final AtomicBoolean running;
+
     /**
      * Flag used to indicate that {@link Channel#stop()} has been called to stop a running Channel.
      * It is set to true when entering {@link Channel#stop()}.
      * It is set to false on exit of {@link Channel#stop()} after the channel has been stopped and thus no thread is
      * executing {@link Channel#run(ConsumerRecordProcessor,List)}
      */
-    private AtomicBoolean stopRequested;
-    /**
-     * Flag used to indicate that a stop has been completed.
-     * It is set to true when entering {@link Channel#stop()}.
-     * It is set to false on exit of {@link Channel#stop()} after the channel has been stopped and thus no thread is
-     * executing {@link Channel#run(ConsumerRecordProcessor,List)}
-     */
-    private AtomicBoolean stopDone;
+    private final AtomicBoolean stopRequested;
+
     /**
      * Flag used to ensure {@link Channel#destroy()} is run by one thread at a time.
      * It is set to true when entering {@link Channel#destroy()} and it is set back to false before leaving the method.
      */
-    private AtomicBoolean destroying;
+    private final AtomicBoolean destroying;
+
     /**
      * Determines whether an explicit commit request will take place when {@link Channel#commit()} is invoked.
      * If it is set to true, then no commit request will be sent because Kafka will automatically commit records after
@@ -175,26 +199,6 @@ public class Channel implements AutoCloseable {
      * @param consumerPathPrefix Path to append to consumer-related requests made to the streaming service. Note that
      *                          if the pathPrefix parameter is set to a non-empty value, the pathPrefix value will be
      *                          appended to consumer-related requests instead of the consumerPathPrefix value.
-     * @param offset Offset for the next record to retrieve from the streaming service for the new
-     *               {@link Channel#consume()} call. Must be one of 'latest', 'earliest', or 'none'.
-     * @param requestTimeout The configuration controls the maximum amount of time the client (consumer) will wait for
-     *                      the broker response of a request. If the response is not received before the request timeout
-     *                      elapses the client may resend the request or fail the request if retries are exhausted. If
-     *                      set to {@code null}, the request timeout is determined automatically by the
-     *                      streaming service. Note that if a value is set for the request timeout, the value should
-     *                      exceed the sessionTimeout. Otherwise, the streaming service may fail to create new
-     *                      consumers properly. To ensure that the request timeout is greater than the sessionTimeout,
-     *                      values for either both (or neither) of the requestTimeout and sessionTimeout parameters
-     *                      should be specified.
-     * @param sessionTimeout The timeout (in seconds) used to detect channel consumer failures. The consumer sends
-     *                      periodic heartbeats to indicate its liveness to the broker. If no heartbeats are received by
-     *                      the broker before the expiration of this session timeout, then the broker may remove this
-     *                      consumer from the group. If set to {@code null}, the session timeout is determined
-     *                      automatically by the streaming service. Note that if a value is set for the session timeout,
-     *                      the value should be less than the requestTimeout. Otherwise, the streaming service may
-     *                      fail to create new consumers properly. To ensure that the session timeout is less than the
-     *                      requestTimeout, values for either both (or neither) of the requesTimeout and
-     *                      sessionTimeout parameters should be specified.
      * @param retryOnFail Whether or not the channel will automatically retry a call which failed due to a temporary
      *                   error.
      * @param verifyCertBundle Path to a CA bundle file containing certificates of trusted CAs. The CA bundle is used
@@ -202,15 +206,14 @@ public class Channel implements AutoCloseable {
      *                        signed by a valid authority. If set to an empty string, the server certificate is not
      *                        validated.
      * @param extraConfigs Dictionary of key/value pairs containing any custom configuration settings which should be
-     *                    sent to the streaming service when a consumer is created. Note that any values specified for
-     *                    the offset, requestTimeout, and/or sessionTimeout parameters will override the
-     *                    corresponding values, if specified, in the extraConfigs parameter.
+     *                     sent to the streaming service when a consumer is created. Examples of key/value pairs are:
+     *                     ("auto.offset.reset", "latest"); ("request.timeout.ms", 30000) and
+     *                     ("session.timeout.ms", 10000).
      * @throws PermanentError if offset value is not one of 'latest', 'earliest', 'none'.
      * @throws TemporaryError if http client request object failed to be created.
      */
     public Channel(final String base, final ChannelAuth auth, final String consumerGroup,
-            final String pathPrefix, final String consumerPathPrefix, final String offset,
-            final Integer requestTimeout, final Integer sessionTimeout, final boolean retryOnFail,
+            final String pathPrefix, final String consumerPathPrefix, final boolean retryOnFail,
             final String verifyCertBundle, final Properties extraConfigs) throws PermanentError,
             TemporaryError {
 
@@ -222,40 +225,23 @@ public class Channel implements AutoCloseable {
         } else if (consumerPathPrefix != null) {
             this.consumerPathPrefix = consumerPathPrefix;
         } else {
-            this.consumerPathPrefix = _DEFAULT_CONSUMER_PATH_PREFIX;
+            this.consumerPathPrefix = DEFAULT_CONSUMER_PATH_PREFIX;
         }
 
         this.consumerGroup = consumerGroup;
         this.verifyCertBundle = verifyCertBundle;
-
-        if (!this.offsetValues.contains(offset)) {
-
-            throw new PermanentError("Value for 'offset' must be one of: " + offsetValues);
-        }
 
         // Setup customer configs from supplied parameters
         if (extraConfigs != null) {
             this.configs.putAll(extraConfigs);
         }
 
-        if (!this.configs.containsKey(_ENABLE_AUTO_COMMIT_CONFIG_SETTING)) {
+        if (!this.configs.containsKey(ENABLE_AUTO_COMMIT_CONFIG_SETTING)) {
             // this has to be false for now
-            this.configs.put(_ENABLE_AUTO_COMMIT_CONFIG_SETTING, "false");
+            this.configs.put(ENABLE_AUTO_COMMIT_CONFIG_SETTING, "false");
         }
 
-        this.isAutoCommitEnabled = Boolean.valueOf(this.configs.get(_ENABLE_AUTO_COMMIT_CONFIG_SETTING).toString());
-
-        this.configs.put(_AUTO_OFFSET_RESET_CONFIG_SETTING, offset);
-
-        if (sessionTimeout != null) {
-            // Convert from seconds to milliseconds
-            this.configs.put(_SESSION_TIMEOUT_CONFIG_SETTING, sessionTimeout * 1000);
-        }
-
-        if (requestTimeout != null) {
-            // Convert from seconds to milliseconds
-            this.configs.put(_REQUEST_TIMEOUT_CONFIG_SETTING, requestTimeout * 1000);
-        }
+        this.isAutoCommitEnabled = Boolean.valueOf(this.configs.get(ENABLE_AUTO_COMMIT_CONFIG_SETTING).toString());
 
         // State variables
         this.consumerId = null;
@@ -271,7 +257,6 @@ public class Channel implements AutoCloseable {
 
         this.running = new AtomicBoolean(false);
         this.stopRequested = new AtomicBoolean(false);
-        this.stopDone = new AtomicBoolean(false);
 
     }
 
@@ -381,10 +366,7 @@ public class Channel implements AutoCloseable {
                 subscriptions.clear();
                 subscriptions.addAll(topics);
 
-            } catch (final TemporaryError error) {
-                error.setApi("subscribe");
-                throw error;
-            } catch (final ConsumerError error) {
+            } catch (final ClientError error) {
                 error.setApi("subscribe");
                 throw error;
             }
@@ -423,13 +405,7 @@ public class Channel implements AutoCloseable {
                 }
                 return list;
 
-            } catch (final TemporaryError error) {
-                error.setApi("subscriptions");
-                throw error;
-            } catch (final ConsumerError error) {
-                error.setApi("subscriptions");
-                throw error;
-            } catch (final PermanentError error) {
+            } catch (final ClientError error) {
                 error.setApi("subscriptions");
                 throw error;
             } catch (final JsonSyntaxException e) {
@@ -469,10 +445,7 @@ public class Channel implements AutoCloseable {
 
                 System.out.println("Consumer with ID " + consumerId + " not found. Resetting consumer anyways.");
 
-            } catch (final TemporaryError error) {
-                error.setApi("delete");
-                throw error;
-            } catch (final PermanentError error) {
+            } catch (final ClientError error) {
                 error.setApi("delete");
                 throw error;
             } finally {
@@ -515,10 +488,7 @@ public class Channel implements AutoCloseable {
 
                 return consumerRecords;
 
-            } catch (final TemporaryError error) {
-                error.setApi("consume");
-                throw error;
-            } catch (final ConsumerError error) {
+            } catch (final ClientError error) {
                 error.setApi("consume");
                 throw error;
             } catch (final JsonSyntaxException e) {
@@ -558,13 +528,7 @@ public class Channel implements AutoCloseable {
 
                 request.post(api, null, COMMIT_ALL_RECORDS_ERROR_MAP);
 
-            } catch (final TemporaryError error) {
-                error.setApi("commit");
-                throw error;
-            } catch (final ConsumerError error) {
-                error.setApi("commit");
-                throw error;
-            } catch (final PermanentError error) {
+            } catch (final ClientError error) {
                 error.setApi("commit");
                 throw error;
             }
@@ -620,11 +584,6 @@ public class Channel implements AutoCloseable {
         } finally {
             running.set(false);
             release();
-            // notify stop requester that channel has been stopped
-            synchronized (stopDone) {
-                stopDone.set(true);
-                stopDone.notifyAll();
-            }
         }
 
     }
@@ -657,20 +616,18 @@ public class Channel implements AutoCloseable {
         }
 
         if (stopRequested.compareAndSet(false, true)) {
-            stopDone.set(false);
 
             try {
-                synchronized (stopDone) {
-                    while (running.get() || !stopDone.get()) {
-                        stopDone.wait();
-                        System.out.println("Channel was stopped");
-                    }
+                // wait until Channel is no longer running
+                while (running.get()) {
+                    Thread.sleep(STOP_CHANNEL_WAIT_PERIOD_MS);
                 }
+                System.out.println("Channel was stopped");
+
             } catch (final Exception e) {
-                throw new StopError("Failed to stop channel");
+                throw new StopError("Failed to stop channel", e);
             } finally {
                 stopRequested.set(false);
-                stopDone.set(false);
             }
         }
 
@@ -706,8 +663,8 @@ public class Channel implements AutoCloseable {
      */
     private void destroy() throws TemporaryError, StopError, PermanentError {
 
-        try {
-            if (destroying.compareAndSet(false, true)) {
+        if (destroying.compareAndSet(false, true)) {
+            try {
                 if (active) {
 
                     stop();
@@ -716,11 +673,11 @@ public class Channel implements AutoCloseable {
 
                     active = false;
                 }
-            } else {
-                throw new TemporaryError("Channel is not safe for multi-threaded access");
+            } finally {
+                destroying.set(false);
             }
-        } finally {
-            destroying.set(false);
+        } else {
+            throw new TemporaryError("Channel is not safe for multi-threaded access");
         }
 
     }
@@ -771,13 +728,7 @@ public class Channel implements AutoCloseable {
                 ConsumerRecords records = consume();
 
                 // invoke callback
-                try {
-                    continueRunning = processCallback.processCallback(records, consumerId);
-                } catch (final TemporaryError error) {
-                    // Callback found errors in records and it wants to retry consuming them from the last commit.
-                    // Recovery procedure is the same as when a ConsumerError occurs.
-                    throw new ConsumerError("Consume records callback requested to read records again.", error);
-                }
+                continueRunning = processCallback.processCallback(records, consumerId);
 
                 // Commit offsets for just consumed records
                 commit();
@@ -866,71 +817,71 @@ public class Channel implements AutoCloseable {
      * Mapping of HTTP Status Code errors to {@link ErrorType} for {@link Channel#create()} API
      */
     private static final Map<Integer, ErrorType> CREATE_ERROR_MAP = new HashMap() {{
-        put(400, ErrorType.PERMANENT_ERROR);
-        put(401, ErrorType.TEMPORARY_ERROR);
-        put(403, ErrorType.TEMPORARY_ERROR);
-        put(404, ErrorType.PERMANENT_ERROR);
-        put(500, ErrorType.TEMPORARY_ERROR);
+        put(HttpStatusCodes.BAD_REQUEST, ErrorType.PERMANENT_ERROR);
+        put(HttpStatusCodes.UNAUTHORIZED, ErrorType.TEMPORARY_ERROR);
+        put(HttpStatusCodes.FORBIDDEN, ErrorType.TEMPORARY_ERROR);
+        put(HttpStatusCodes.NOT_FOUND, ErrorType.PERMANENT_ERROR);
+        put(HttpStatusCodes.INTERNAL_SERVER_ERROR, ErrorType.TEMPORARY_ERROR);
     }};
 
     /**
      * Mapping of HTTP Status Code errors to {@link ErrorType} for {@link Channel#delete()} API
      */
     private static final Map<Integer, ErrorType> DELETE_ERROR_MAP = new HashMap() {{
-        put(400, ErrorType.PERMANENT_ERROR);
-        put(401, ErrorType.TEMPORARY_ERROR);
-        put(403, ErrorType.TEMPORARY_ERROR);
-        put(404, ErrorType.CONSUMER_ERROR);
-        put(409, ErrorType.TEMPORARY_ERROR);
-        put(500, ErrorType.TEMPORARY_ERROR);
+        put(HttpStatusCodes.BAD_REQUEST, ErrorType.PERMANENT_ERROR);
+        put(HttpStatusCodes.UNAUTHORIZED, ErrorType.TEMPORARY_ERROR);
+        put(HttpStatusCodes.FORBIDDEN, ErrorType.TEMPORARY_ERROR);
+        put(HttpStatusCodes.NOT_FOUND, ErrorType.CONSUMER_ERROR);
+        put(HttpStatusCodes.CONFLICT, ErrorType.TEMPORARY_ERROR);
+        put(HttpStatusCodes.INTERNAL_SERVER_ERROR, ErrorType.TEMPORARY_ERROR);
     }};
 
     /**
      * Mapping of HTTP Status Code errors to {@link ErrorType} for {@link Channel#subscribe(List)} API
      */
     private static final Map<Integer, ErrorType> SUBSCRIBE_ERROR_MAP = new HashMap() {{
-        put(400, ErrorType.PERMANENT_ERROR);
-        put(401, ErrorType.TEMPORARY_ERROR);
-        put(403, ErrorType.TEMPORARY_ERROR);
-        put(404, ErrorType.CONSUMER_ERROR);
-        put(409, ErrorType.TEMPORARY_ERROR);
-        put(500, ErrorType.TEMPORARY_ERROR);
+        put(HttpStatusCodes.BAD_REQUEST, ErrorType.PERMANENT_ERROR);
+        put(HttpStatusCodes.UNAUTHORIZED, ErrorType.TEMPORARY_ERROR);
+        put(HttpStatusCodes.FORBIDDEN, ErrorType.TEMPORARY_ERROR);
+        put(HttpStatusCodes.NOT_FOUND, ErrorType.CONSUMER_ERROR);
+        put(HttpStatusCodes.CONFLICT, ErrorType.TEMPORARY_ERROR);
+        put(HttpStatusCodes.INTERNAL_SERVER_ERROR, ErrorType.TEMPORARY_ERROR);
     }};
 
     /**
      * Mapping of HTTP Status Code errors to {@link ErrorType} for {@link Channel#subscriptions()} API
      */
     private static final Map<Integer, ErrorType> GET_SUBSCRIPTIONS_ERROR_MAP = new  HashMap() {{
-        put(400, ErrorType.PERMANENT_ERROR);
-        put(401, ErrorType.TEMPORARY_ERROR);
-        put(403, ErrorType.TEMPORARY_ERROR);
-        put(404, ErrorType.CONSUMER_ERROR);
-        put(409, ErrorType.TEMPORARY_ERROR);
-        put(500, ErrorType.TEMPORARY_ERROR);
+        put(HttpStatusCodes.BAD_REQUEST, ErrorType.PERMANENT_ERROR);
+        put(HttpStatusCodes.UNAUTHORIZED, ErrorType.TEMPORARY_ERROR);
+        put(HttpStatusCodes.FORBIDDEN, ErrorType.TEMPORARY_ERROR);
+        put(HttpStatusCodes.NOT_FOUND, ErrorType.CONSUMER_ERROR);
+        put(HttpStatusCodes.CONFLICT, ErrorType.TEMPORARY_ERROR);
+        put(HttpStatusCodes.INTERNAL_SERVER_ERROR, ErrorType.TEMPORARY_ERROR);
     }};
 
     /**
      * Mapping of HTTP Status Code errors to {@link ErrorType} for {@link Channel#consume()} API
      */
     private static final Map<Integer, ErrorType> CONSUME_RECORDS_ERROR_MAP = new HashMap() {{
-        put(400, ErrorType.PERMANENT_ERROR);
-        put(401, ErrorType.TEMPORARY_ERROR);
-        put(403, ErrorType.TEMPORARY_ERROR);
-        put(404, ErrorType.CONSUMER_ERROR);
-        put(409, ErrorType.TEMPORARY_ERROR);
-        put(500, ErrorType.TEMPORARY_ERROR);
+        put(HttpStatusCodes.BAD_REQUEST, ErrorType.PERMANENT_ERROR);
+        put(HttpStatusCodes.UNAUTHORIZED, ErrorType.TEMPORARY_ERROR);
+        put(HttpStatusCodes.FORBIDDEN, ErrorType.TEMPORARY_ERROR);
+        put(HttpStatusCodes.NOT_FOUND, ErrorType.CONSUMER_ERROR);
+        put(HttpStatusCodes.CONFLICT, ErrorType.TEMPORARY_ERROR);
+        put(HttpStatusCodes.INTERNAL_SERVER_ERROR, ErrorType.TEMPORARY_ERROR);
     }};
 
     /**
      * Mapping of HTTP Status Code errors to {@link ErrorType} for {@link Channel#commit()} API
      */
     private static final Map<Integer, ErrorType> COMMIT_ALL_RECORDS_ERROR_MAP = new HashMap() {{
-        put(400, ErrorType.PERMANENT_ERROR);
-        put(401, ErrorType.TEMPORARY_ERROR);
-        put(403, ErrorType.TEMPORARY_ERROR);
-        put(404, ErrorType.CONSUMER_ERROR);
-        put(409, ErrorType.TEMPORARY_ERROR);
-        put(500, ErrorType.TEMPORARY_ERROR);
+        put(HttpStatusCodes.BAD_REQUEST, ErrorType.PERMANENT_ERROR);
+        put(HttpStatusCodes.UNAUTHORIZED, ErrorType.TEMPORARY_ERROR);
+        put(HttpStatusCodes.FORBIDDEN, ErrorType.TEMPORARY_ERROR);
+        put(HttpStatusCodes.NOT_FOUND, ErrorType.CONSUMER_ERROR);
+        put(HttpStatusCodes.CONFLICT, ErrorType.TEMPORARY_ERROR);
+        put(HttpStatusCodes.INTERNAL_SERVER_ERROR, ErrorType.TEMPORARY_ERROR);
     }};
 
 }

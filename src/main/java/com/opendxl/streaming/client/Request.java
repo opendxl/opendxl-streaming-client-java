@@ -170,19 +170,19 @@ public class Request implements AutoCloseable {
         }
 
         // Evaluate Response HTTP Status Code
-        if (isSuccess(statusCode)) {
+        if (HttpStatusCodes.isSuccess(statusCode)) {
 
             return returnValue;
 
-        } else if (httpStatusMapping.containsKey(statusCode)) {
+        } else if (httpStatusMapping.containsKey(HttpStatusCodes.getHttpStatus(statusCode))) {
 
             // http status code maps to an error. Then an exception must be thrown.
-            ErrorType errorType = httpStatusMapping.get(statusCode);
+            ErrorType errorType = httpStatusMapping.get(HttpStatusCodes.getHttpStatus(statusCode));
             // Create the error message
             Gson gson = new Gson();
             String message = "";
             if (returnValue != null) {
-                message = getConsumerServiceErrorMessage(returnValue);
+                message = getConsumerServiceErrorMessage(returnValue) + ": " + httpResponse.getStatusLine();
             }
 
             // throw suitable exception
@@ -195,7 +195,8 @@ public class Request implements AutoCloseable {
             }
 
         } else {
-            throw new TemporaryError("Unexpected temporary error", statusCode, httpRequest);
+            throw new TemporaryError("Unexpected temporary error" + ": " + httpResponse.getStatusLine(),
+                    statusCode, httpRequest);
         }
 
     }
@@ -239,19 +240,6 @@ public class Request implements AutoCloseable {
             throw new TemporaryError("Unexpected temporary error " + e.getClass().getCanonicalName() + ": "
                     + " " + e.getMessage(), e);
         }
-
-    }
-
-    /**
-     * Checks whether a status code is successful one
-     *
-     * @param statusCode an HTTP Response Status Code
-     * @return true if status code belongs to 2xx Success range
-     *         false otherwise
-     */
-    private static boolean isSuccess(final int statusCode) {
-
-        return statusCode >= 200 && statusCode < 300;
 
     }
 

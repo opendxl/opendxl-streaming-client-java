@@ -9,10 +9,9 @@ import org.apache.http.HttpRequest;
 /**
  * Exception raised for an operation which would not be expected to succeed even if the operation were retried.
  */
-public class PermanentError extends Exception {
+public class PermanentError extends ClientError {
 
     private int statusCode;
-    private String api;
     private HttpRequest httpRequest;
 
     /**
@@ -73,24 +72,6 @@ public class PermanentError extends Exception {
      */
     public int getStatusCode() {
         return statusCode;
-    }
-
-    /**
-     * Gets the {@link com.opendxl.streaming.client.Channel} method name in which the PermanentError occurred.
-     *
-     * @return Channel API name, e.g.: create, subscribe, consume, commit, run
-     */
-    public String getApi() {
-        return api;
-    }
-
-    /**
-     * Sets the {@link com.opendxl.streaming.client.Channel} method name in which the PermanentError occurred.
-     *
-     * @param api the Channel method name, e.g.: create, subscribe, consume, commit, run
-     */
-    public void setApi(final String api) {
-        this.api = api;
     }
 
     /**

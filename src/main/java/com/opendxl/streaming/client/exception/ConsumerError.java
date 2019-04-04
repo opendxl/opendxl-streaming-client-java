@@ -10,10 +10,9 @@ import org.apache.http.HttpRequest;
  * Error raised when a channel operation fails due to the associated consumer
  * not being recognized by the streaming service.
  */
-public class ConsumerError extends Exception {
+public class ConsumerError extends ClientError {
 
     private int statusCode;
-    private String api;
     private HttpRequest httpRequest;
 
     /**
@@ -74,24 +73,6 @@ public class ConsumerError extends Exception {
      */
     public int getStatusCode() {
         return statusCode;
-    }
-
-    /**
-     * Gets the {@link com.opendxl.streaming.client.Channel} method name in which the ConsumerError occurred.
-     *
-     * @return Channel API name, e.g.: create, subscribe, consume, commit, run
-     */
-    public String getApi() {
-        return api;
-    }
-
-    /**
-     * Sets the {@link com.opendxl.streaming.client.Channel} method name in which the ConsumerError occurred.
-     *
-     * @param api the Channel method name, e.g.: create, subscribe, consume, commit, run
-     */
-    public void setApi(final String api) {
-        this.api = api;
     }
 
     /**

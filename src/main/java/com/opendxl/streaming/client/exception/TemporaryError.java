@@ -9,10 +9,9 @@ import org.apache.http.HttpRequest;
 /**
  * Exception raised when an unexpected/unknown (but possibly recoverable) error occurs.
  */
-public class TemporaryError extends Exception {
+public class TemporaryError extends ClientError {
 
     private int statusCode;
-    private String api;
     private HttpRequest httpRequest;
 
     /**
@@ -31,7 +30,7 @@ public class TemporaryError extends Exception {
         super(message, cause);
         this.statusCode = statusCode;
         this.httpRequest = httpRequest;
-        this.api = api;
+        this.setApi(api);
 
     }
 
@@ -87,24 +86,6 @@ public class TemporaryError extends Exception {
      */
     public int getStatusCode() {
         return statusCode;
-    }
-
-    /**
-     * Gets the {@link com.opendxl.streaming.client.Channel} method name in which the TemporaryError occurred.
-     *
-     * @return Channel API name, e.g.: create, subscribe, consume, commit, run
-     */
-    public String getApi() {
-        return api;
-    }
-
-    /**
-     * Sets the {@link com.opendxl.streaming.client.Channel} method name in which the TemporaryError occurred.
-     *
-     * @param api the Channel method name, e.g.: create, subscribe, consume, commit, run
-     */
-    public void setApi(final String api) {
-        this.api = api;
     }
 
     /**
