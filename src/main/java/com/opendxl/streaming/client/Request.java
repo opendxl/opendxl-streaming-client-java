@@ -17,6 +17,7 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.util.EntityUtils;
+import org.apache.log4j.Logger;
 
 import com.google.gson.Gson;
 
@@ -40,6 +41,11 @@ public class Request implements AutoCloseable {
     private final HttpConnection httpConnection;
 
     /**
+     * The logger
+     */
+    private static Logger logger = Logger.getLogger(Request.class);
+
+    /**
      * @param base scheme (http or https) and host parts of target URLs. It will be prepended to uri parameter of
      *             {@link Request#post(String, byte[], Map)}, {@link Request#get(String, Map)} and
      *             {@link Request#delete(String, Map)} methods.
@@ -58,8 +64,10 @@ public class Request implements AutoCloseable {
             this.httpConnection = new HttpConnection(verifyCertBundle);
 
         } catch (final Throwable e) {
-            throw new TemporaryError("Unexpected temporary error when instantiating Request"
-                    + e.getClass() + ": " + e.getMessage(), e);
+            String error = "Unexpected temporary error when instantiating Request" + e.getClass() + ": "
+                    + e.getMessage();
+            logger.error(error);
+            throw new TemporaryError(error, e);
         }
 
     }
@@ -179,7 +187,6 @@ public class Request implements AutoCloseable {
             // http status code maps to an error. Then an exception must be thrown.
             ErrorType errorType = httpStatusMapping.get(HttpStatusCodes.getHttpStatus(statusCode));
             // Create the error message
-            Gson gson = new Gson();
             String message = "";
             if (returnValue != null) {
                 message = getConsumerServiceErrorMessage(returnValue) + ": " + httpResponse.getStatusLine();
@@ -237,8 +244,9 @@ public class Request implements AutoCloseable {
             resetAuthorization();
 
         } catch (final IOException e) {
-            throw new TemporaryError("Unexpected temporary error " + e.getClass().getCanonicalName() + ": "
-                    + " " + e.getMessage(), e);
+            String error = "Unexpected temporary error " + e.getClass().getCanonicalName() + ": " + e.getMessage();
+            logger.error(error);
+            throw new TemporaryError(error, e);
         }
 
     }

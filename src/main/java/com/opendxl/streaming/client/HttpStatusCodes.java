@@ -52,4 +52,13 @@ public enum HttpStatusCodes {
 
     }
 
+    /**
+     * Get the integer value corresponding to the HTTP Status Code
+     *
+     * @return HTTP code value
+     */
+    public int getCode() {
+        return code;
+    }
+
 }
