@@ -6,6 +6,7 @@ package com.opendxl.streaming.client.auth;
 
 import com.opendxl.streaming.client.ChannelAuth;
 import com.opendxl.streaming.client.HttpConnection;
+import com.opendxl.streaming.client.HttpStatusCodes;
 import com.opendxl.streaming.client.exception.PermanentError;
 import com.opendxl.streaming.client.exception.TemporaryError;
 
@@ -16,6 +17,7 @@ import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.util.EntityUtils;
+import org.apache.log4j.Logger;
 
 import java.nio.charset.Charset;
 import java.util.Base64;
@@ -25,6 +27,11 @@ import java.util.Base64;
  * later used in Authorization headers of channel requests.
  */
 public class ChannelAuthUserPass implements ChannelAuth {
+
+    /**
+     * The logger
+     */
+    private Logger logger = Logger.getLogger(ChannelAuthUserPass.class);
 
     private final String base;
     private final String username;
@@ -89,11 +96,17 @@ public class ChannelAuthUserPass implements ChannelAuth {
         if (token == null) {
             // Ask for the token
             token = login(base, username, password, pathFragment, verifyCertBundle);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Got token " + token);
+            }
         }
 
         if (token != null) {
             // Add authorization header with token to request
             httpRequest.addHeader("Authorization", "Bearer " + token);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Added Authorization header: Bearer " + token);
+            }
         }
 
     }
@@ -145,18 +158,23 @@ public class ChannelAuthUserPass implements ChannelAuth {
         }
 
         int statusCode = response.getStatusLine().getStatusCode();
-        if (statusCode >= 200 && statusCode < 300) {
+        if (HttpStatusCodes.isSuccess(statusCode)) {
 
             AuthorizationToken authorizationToken = new Gson().fromJson(entityString, AuthorizationToken.class);
             return authorizationToken.getAuthorizationToken();
 
-        } else if (statusCode == 401 || statusCode == 403) {
+        } else if (statusCode == HttpStatusCodes.UNAUTHORIZED.getCode()
+                || statusCode == HttpStatusCodes.FORBIDDEN.getCode()) {
 
-            throw new PermanentError("Unauthorized " + statusCode + ": " + response.getEntity().toString());
+            String error = "Unauthorized " + statusCode + ": " + response.getEntity().toString();
+            logger.error(error);
+            throw new PermanentError(error);
 
         } else {
 
-            throw new TemporaryError("Unexpected status code " + statusCode + ": " + response.getEntity().toString());
+            String error = "Unexpected status code " + statusCode + ": " + response.getEntity().toString();
+            logger.error(error);
+            throw new TemporaryError(error);
 
         }
 

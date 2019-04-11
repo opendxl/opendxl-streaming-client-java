@@ -4,10 +4,7 @@
 
 package com.opendxl.streaming.client;
 
-import com.google.gson.JsonSyntaxException;
 import com.opendxl.streaming.client.entity.ConsumerRecords;
-
-import com.google.gson.Gson;
 
 import com.opendxl.streaming.client.entity.Topics;
 import com.opendxl.streaming.client.exception.ClientError;
@@ -16,6 +13,10 @@ import com.opendxl.streaming.client.exception.ErrorType;
 import com.opendxl.streaming.client.exception.PermanentError;
 import com.opendxl.streaming.client.exception.StopError;
 import com.opendxl.streaming.client.exception.TemporaryError;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
+import org.apache.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -187,6 +188,11 @@ public class Channel implements AutoCloseable {
     private final AtomicInteger refcount = new AtomicInteger(0);
 
     /**
+     * The logger
+     */
+    private static Logger logger = Logger.getLogger(Channel.class);
+
+    /**
      * @param base Base URL at which the streaming service resides.
      * @param auth Authentication object to use for channel requests.
      * @param consumerGroup Consumer group to subscribe the channel consumer to.
@@ -280,7 +286,9 @@ public class Channel implements AutoCloseable {
         try {
             if (consumerGroup == null || consumerGroup.isEmpty()) {
 
-                throw new PermanentError("No value specified for 'consumerGroup' during channel init");
+                String error = "No value specified for 'consumerGroup' during channel init";
+                logger.error(error);
+                throw new PermanentError(error);
 
             }
 
@@ -298,14 +306,19 @@ public class Channel implements AutoCloseable {
                 if (responseEntityString != null) {
                     ConsumerId consumer = gson.fromJson(responseEntityString, ConsumerId.class);
                     consumerId = consumer.getConsumerInstanceId();
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Created " + logConsumerId());
+                    }
                 }
 
             } catch (final TemporaryError error) {
                 error.setApi("create");
+                logger.error("Failed to create consumer.", error);
                 throw error;
             } catch (final JsonSyntaxException | ConsumerError e) {
                 TemporaryError temporaryError = new TemporaryError("Error while parsing response: "
                         + e.getClass().getCanonicalName() + " " + e.getMessage(), e, "create");
+                logger.error("Failed to create consumer.", temporaryError);
                 throw temporaryError;
             }
         } finally {
@@ -328,7 +341,9 @@ public class Channel implements AutoCloseable {
         try {
             if (topics == null) {
 
-                throw new PermanentError("Non-empty value must be specified for topics");
+                String error = "Non-empty value must be specified for topics.";
+                logger.error(error);
+                throw new PermanentError(error);
 
             }
 
@@ -336,7 +351,9 @@ public class Channel implements AutoCloseable {
             topics.removeAll(Arrays.asList("", null));
             if (topics.isEmpty()) {
 
-                throw new PermanentError("Non-empty value must be specified for topics");
+                String error = "Non-empty value must be specified for topics";
+                logger.error(error);
+                throw new PermanentError(error);
 
             }
 
@@ -354,15 +371,21 @@ public class Channel implements AutoCloseable {
                     .append(consumerId)
                     .append("/subscription").toString();
 
+            final String logMessage = new StringBuilder(logConsumerId())
+                    .append(" to ").append(topics).append(" topics.").toString();
             try {
 
                 request.post(api, body, SUBSCRIBE_ERROR_MAP);
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Subscribed " + logMessage);
+                }
 
                 subscriptions.clear();
                 subscriptions.addAll(topics);
 
             } catch (final ClientError error) {
                 error.setApi("subscribe");
+                logger.error("Failed to subscribe " + logMessage, error);
                 throw error;
             }
         } finally {
@@ -398,14 +421,19 @@ public class Channel implements AutoCloseable {
                 if (responseEntity != null) {
                     list.addAll(gson.fromJson(responseEntity, List.class));
                 }
+                if (logger.isDebugEnabled()) {
+                    logger.debug(logConsumerId() + " is subscribed to " + list);
+                }
                 return list;
 
             } catch (final ClientError error) {
                 error.setApi("subscriptions");
+                logger.error("Failed to get subscriptions of " + logConsumerId(), error);
                 throw error;
             } catch (final JsonSyntaxException e) {
                 TemporaryError temporaryError = new TemporaryError("Error while parsing response: "
                         + e.getClass().getCanonicalName() + " " + e.getMessage(), e, "subscriptions");
+                logger.error("Failed to get subscriptions of " + logConsumerId(), e);
                 throw temporaryError;
             }
         } finally {
@@ -425,6 +453,7 @@ public class Channel implements AutoCloseable {
         acquireAndEnsureChannelIsActive();
         try {
             if (consumerId == null) {
+                logger.warn("Ignoring call to delete because consumerId is empty.");
                 return;
             }
 
@@ -435,13 +464,18 @@ public class Channel implements AutoCloseable {
             try {
 
                 request.delete(api, DELETE_ERROR_MAP);
+                if (logger.isDebugEnabled()) {
+                    logger.debug(logConsumerId() + " was deleted.");
+                }
 
             } catch (final ConsumerError consumerError) {
 
-                System.out.println("Consumer with ID " + consumerId + " not found. Resetting consumer anyways.");
+                logger.error(logConsumerId() + " not found. Resetting consumer anyways.",
+                        consumerError);
 
             } catch (final ClientError error) {
                 error.setApi("delete");
+                logger.error("Failed to delete " + logConsumerId(), error);
                 throw error;
             } finally {
                 // Delete session attribute values, cookies and authorization token
@@ -466,7 +500,9 @@ public class Channel implements AutoCloseable {
         acquireAndEnsureChannelIsActive();
         try {
             if (subscriptions.isEmpty()) {
-                throw new PermanentError("Channel is not subscribed to any topic");
+                String error = "Channel is not subscribed to any topic";
+                logger.error(error);
+                throw new PermanentError(error);
             }
 
             String api = new StringBuilder(consumerPathPrefix)
@@ -480,15 +516,21 @@ public class Channel implements AutoCloseable {
 
                 final Gson gson = new Gson();
                 final ConsumerRecords consumerRecords = gson.fromJson(responseEntity, ConsumerRecords.class);
-
+                if (logger.isDebugEnabled()) {
+                    int numberOfRecords = consumerRecords != null && consumerRecords.getRecords() != null
+                            ? consumerRecords.getRecords().size() : 0;
+                    logger.debug(logConsumerId() + " consumed " + numberOfRecords + " records.");
+                }
                 return consumerRecords;
 
             } catch (final ClientError error) {
                 error.setApi("consume");
+                logger.error("Failed to consume with " + logConsumerId(), error);
                 throw error;
             } catch (final JsonSyntaxException e) {
                 TemporaryError temporaryError = new TemporaryError("Error while parsing response: "
                         + e.getClass().getCanonicalName() + " " + e.getMessage(), e, "consume");
+                logger.error("Failed to consume with " + logConsumerId(), e);
                 throw temporaryError;
             }
         } finally {
@@ -511,6 +553,9 @@ public class Channel implements AutoCloseable {
         acquireAndEnsureChannelIsActive();
         try {
             if (isAutoCommitEnabled) {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Not sending commit request because enable.auto.commit is set to true.");
+                }
                 return;
             }
 
@@ -522,9 +567,13 @@ public class Channel implements AutoCloseable {
             try {
 
                 request.post(api, null, COMMIT_ALL_RECORDS_ERROR_MAP);
+                if (logger.isDebugEnabled()) {
+                    logger.debug(logConsumerId() + " committed records.");
+                }
 
             } catch (final ClientError error) {
                 error.setApi("commit");
+                logger.error("Failed to commit with " + logConsumerId(), error);
                 throw error;
             }
         } finally {
@@ -560,19 +609,29 @@ public class Channel implements AutoCloseable {
         acquireAndEnsureChannelIsActive();
         try {
             if (consumerGroup == null || consumerGroup.isEmpty()) {
-                throw new PermanentError("No value specified for 'consumerGroup' during channel init");
+                String error = "No value specified for 'consumerGroup' during channel init";
+                logger.error(error);
+                throw new PermanentError(error);
             }
 
             if (processCallback == null) {
-                throw new PermanentError("processCallback not provided");
+                String error = "processCallback not provided";
+                logger.error(error);
+                throw new PermanentError(error);
             }
 
             List<String> topicsOfInterest = topics != null && !topics.isEmpty() ? topics : subscriptions;
 
             if (running.compareAndSet(false, true)) {
 
+                logger.info("Channel is running");
+
                 while (!stopRequested.get()) {
                     consumeLoop(processCallback, topicsOfInterest);
+                }
+
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Exiting run method.");
                 }
             }
 
@@ -617,13 +676,17 @@ public class Channel implements AutoCloseable {
                 while (running.get()) {
                     Thread.sleep(STOP_CHANNEL_WAIT_PERIOD_MS);
                 }
-                System.out.println("Channel was stopped");
+                logger.info("Channel was stopped.");
 
             } catch (final Exception e) {
-                throw new StopError("Failed to stop channel", e);
+                String error = "Failed to stop channel.";
+                logger.error(error);
+                throw new StopError(error, e);
             } finally {
                 stopRequested.set(false);
             }
+        } else {
+            logger.warn("Ignoring call to stop because Channel is already being stopped.");
         }
 
     }
@@ -667,12 +730,19 @@ public class Channel implements AutoCloseable {
                     request.close();
 
                     active = false;
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Channel was destroyed.");
+                    }
+                } else {
+                    logger.warn("Ignoring call to destroy because Channel is not active.");
                 }
             } finally {
                 destroying.set(false);
             }
         } else {
-            throw new TemporaryError("Channel is not safe for multi-threaded access");
+            String error = "Channel is not safe for multi-threaded access.";
+            logger.error(error);
+            throw new TemporaryError(error);
         }
 
     }
@@ -717,6 +787,10 @@ public class Channel implements AutoCloseable {
                 if (!subscribed) {
                     subscribe(topics);
                     subscribed = true;
+                    if (logger.isDebugEnabled()) {
+                        // show topics consumer is subscribed to
+                        subscriptions();
+                    }
                 }
 
                 // consume records
@@ -724,6 +798,9 @@ public class Channel implements AutoCloseable {
 
                 // invoke callback
                 continueRunning = processCallback.processCallback(records, consumerId);
+                if (!continueRunning) {
+                    logger.info("Callback requested to stop consuming records.");
+                }
 
                 // Commit offsets for just consumed records
                 commit();
@@ -733,16 +810,23 @@ public class Channel implements AutoCloseable {
                 // in records and it wants them to be consumed again.
                 // Then, current consumer is deleted and a brand new one is created to resume consuming from
                 // last commit.
+                logger.info("Creating a new consumer to resume consuming.");
+                logger.error("Consumer error was: ", error);
                 subscribed = false;
                 recreateConsumer(topics, error);
 
                 if (!retryOnFail) {
                     continueRunning = false;
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Exiting run method because retryOnFail is " + retryOnFail);
+                    }
                 }
 
             } catch (final PermanentError | TemporaryError error) {
                 // Delete consumer instance.
                 delete();
+                error.setApi("run");
+                logger.error("Exiting run method due to error", error);
                 throw error;
             } finally {
                 // Check if there is a request to stop consuming records
@@ -767,7 +851,9 @@ public class Channel implements AutoCloseable {
     private void recreateConsumer(final List<String> topics, final Exception error) throws PermanentError,
             TemporaryError {
 
-        System.out.println("Resetting consumer loop: " + error.getMessage());
+        if (logger.isDebugEnabled()) {
+            logger.debug("Deleting current consumer and creating a brand new one.");
+        }
         delete();
         request.close();
         request = new Request(base, auth, verifyCertBundle);
@@ -807,6 +893,14 @@ public class Channel implements AutoCloseable {
         if (refcount.decrementAndGet() == 0)
             currentThread.set(NO_CURRENT_THREAD);
     }
+
+    /**
+     * Prepend "consumer " string to consumerId. It is used in logged messages.
+     */
+    private String logConsumerId() {
+        return "consumer " + consumerId;
+    }
+
 
     /**
      * Mapping of HTTP Status Code errors to {@link ErrorType} for {@link Channel#create()} API
