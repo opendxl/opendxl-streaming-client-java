@@ -136,7 +136,8 @@ public class CreateOperation implements CommandLineOperation {
                     options.valueOf(mandatoryOptions.get(Options.CONSUMER_PATH_PREFIX)),
                     Boolean.valueOf(options.valueOf(mandatoryOptions.get(Options.RETRY))),
                     options.valueOf(mandatoryOptions.get(Options.VERIFY_CERT_BUNDLE)),
-                    optionalConsumerConfig);
+                    optionalConsumerConfig,
+                    100);
 
             channel.create();
 

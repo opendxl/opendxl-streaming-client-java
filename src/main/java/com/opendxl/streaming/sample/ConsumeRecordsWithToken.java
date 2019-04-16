@@ -83,7 +83,8 @@ public class ConsumeRecordsWithToken {
                 null,
                 true,
                 verifyCertificateBundle,
-                extraConfigs)) {
+                extraConfigs,
+                100)) {
 
             // Setup shutdown hook to call stop when program is terminated
             Runtime.getRuntime().addShutdownHook(

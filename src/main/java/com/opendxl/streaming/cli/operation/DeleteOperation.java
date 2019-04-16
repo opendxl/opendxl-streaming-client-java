@@ -115,7 +115,8 @@ public class DeleteOperation implements CommandLineOperation {
                     options.valueOf(mandatoryOptions.get(Options.CONSUMER_PATH_PREFIX)),
                     false,
                     options.valueOf(mandatoryOptions.get(Options.VERIFY_CERT_BUNDLE)),
-                    null);
+                    null,
+                    100);
 
             // Inject consumerId to channel
             PA.setValue(channel, "consumerId", options.valueOf(mandatoryOptions.get(Options.CONSUMER_ID)));
