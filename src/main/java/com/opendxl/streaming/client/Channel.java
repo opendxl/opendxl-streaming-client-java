@@ -217,9 +217,9 @@ public class Channel implements AutoCloseable {
      *                     sent to the streaming service when a consumer is created. Examples of key/value pairs are:
      *                     ("auto.offset.reset", "latest"); ("request.timeout.ms", 30000) and
      *                     ("session.timeout.ms", 10000).
-     * @param maxPollTimeout The time, in milliseconds, spent waiting in consume if data is not available in the backend.
-     *                       If 0, returns immediately with any records that are available currently in the buffer,
-     *                       else returns empty. Must not be negative.
+     * @param maxPollTimeout The time, in milliseconds, spent waiting in consume if data is not available in the
+     *                       backend. If 0, returns immediately with any records that are available currently in the
+     *                       buffer, else returns empty. Must not be negative.
      * @throws PermanentError if offset value is not one of 'latest', 'earliest', 'none'.
      * @throws TemporaryError if http client request object failed to be created.
      */
