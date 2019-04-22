@@ -107,7 +107,8 @@ public class ConsumeRecordsWithUserPass {
                 true,
                 verifyCertificateBundle,
                 extraConfigs,
-                httpProxySettings)) {
+                httpProxySettings,
+                100)) {
 
             // Setup shutdown hook to call stop when program is terminated
             Runtime.getRuntime().addShutdownHook(
