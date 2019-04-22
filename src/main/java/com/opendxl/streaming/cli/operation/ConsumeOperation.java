@@ -134,6 +134,7 @@ public class ConsumeOperation implements CommandLineOperation {
                     options.valueOf(mandatoryOptions.get(Options.CONSUMER_PATH_PREFIX)),
                     false,
                     options.valueOf(mandatoryOptions.get(Options.VERIFY_CERT_BUNDLE)),
+                    null,
                     null);
 
             // Inject consumerId to channel

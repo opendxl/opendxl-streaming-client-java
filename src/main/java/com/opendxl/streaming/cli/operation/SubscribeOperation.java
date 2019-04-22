@@ -125,6 +125,7 @@ public class SubscribeOperation implements CommandLineOperation {
                     options.valueOf(mandatoryOptions.get(Options.CONSUMER_PATH_PREFIX)),
                     false,
                     options.valueOf(mandatoryOptions.get(Options.VERIFY_CERT_BUNDLE)),
+                    null,
                     null);
 
             PA.setValue(channel, "consumerId", options.valueOf(mandatoryOptions.get(Options.CONSUMER_ID)));

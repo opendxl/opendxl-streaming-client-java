@@ -43,18 +43,25 @@ import java.util.concurrent.atomic.AtomicLong;
  * extraConfigs.put("request.timeout.ms", 16000);
  * extraConfigs.put("session.timeout.ms", 15000);
  *
+ * // Setup Http Proxy if required, e.g.:
+ * HttpProxySettings httpProxySettings = new HttpProxySettings(true, "my-proxy.my-domain.net", 8080, "", "");
+ *
  * // Create the channel
  * Channel channel = new Channel("http://channel-server",       // channelUrl
- *                               new ChannelAuth("http://channel-server",   // channelUrlLogin
+ *                               new ChannelAuthUserPass(
+ *                                               "http://channel-server",   // channelUrlLogin
  *                                               "user",                    // channelUsername
  *                                               "password",                // channelPassword
- *                                               ""),                       // verifyCertificateBundle
+ *                                               null,                      // pathPrefix
+ *                                               "",                        // verifyCertificateBundle
+ *                                               httpProxySettings),        // http proxy settings
  *                               "thegroup",                    // channelConsumerGroup
  *                               null,                          // pathPrefix
  *                               "/databus/consumer-service/v1",  // consumerPathPrefix
  *                               false,                         // retryOnFail
  *                               "",                            // verifyCertificateBundle
- *                               extraConfigs);
+ *                               extraConfigs,                  // consumer additional properties
+ *                               httpProxySettings);            // http proxy settings
  *
  *
  * // Create a new consumer on the consumer group
@@ -93,7 +100,8 @@ public class Channel implements AutoCloseable {
 
     /**
      * Properties object which contains all consumer configuration properties. Its values are set in
-     * {@link Channel#Channel(String, ChannelAuth, String, String, String, boolean, String, Properties)}
+     * {@link Channel#Channel(String, ChannelAuth, String, String, String, boolean, String, Properties,
+     * HttpProxySettings)}
      * constructor and it is later used in {@link Channel#create()} when consumer is created.
      */
     private final Properties configs = new Properties();
@@ -188,6 +196,16 @@ public class Channel implements AutoCloseable {
     private final AtomicInteger refcount = new AtomicInteger(0);
 
     /**
+     * Flag that is set to true if the connection requires SSL, false otherwise.
+     * It is set to true if URL to connect to begins with "https"
+     */
+    private final boolean isHttps;
+    /**
+     * POJO containing http proxy hostname, port, username and password
+     */
+    private final HttpProxySettings httpProxySettings;
+
+    /**
      * The logger
      */
     private static Logger logger = Logger.getLogger(Channel.class);
@@ -202,21 +220,22 @@ public class Channel implements AutoCloseable {
      *                          appended to consumer-related requests instead of the consumerPathPrefix value.
      * @param retryOnFail Whether or not the channel will automatically retry a call which failed due to a temporary
      *                   error.
-     * @param verifyCertBundle Path to a CA bundle file containing certificates of trusted CAs. The CA bundle is used
-     *                        to validate that the certificate of the authentication server being connected to was
-     *                        signed by a valid authority. If set to an empty string, the server certificate is not
-     *                        validated.
+     * @param verifyCertBundle CA Bundle chain certificates. This string shall be either the certificates themselves or
+     *                         a path to a CA bundle file containing those certificates. The CA bundle is used to
+     *                         validate that the certificate of the authentication server being connected to was signed
+     *                         by a valid authority. If set to an empty string, the server certificate will not be
+     *                         validated.
      * @param extraConfigs Dictionary of key/value pairs containing any custom configuration settings which should be
      *                     sent to the streaming service when a consumer is created. Examples of key/value pairs are:
      *                     ("auto.offset.reset", "latest"); ("request.timeout.ms", 30000) and
      *                     ("session.timeout.ms", 10000).
-     * @throws PermanentError if offset value is not one of 'latest', 'earliest', 'none'.
+     * @param httpProxySettings contains http proxy hostname, port, username and password.
      * @throws TemporaryError if http client request object failed to be created.
      */
-    public Channel(final String base, final ChannelAuth auth, final String consumerGroup,
-            final String pathPrefix, final String consumerPathPrefix, final boolean retryOnFail,
-            final String verifyCertBundle, final Properties extraConfigs) throws PermanentError,
-            TemporaryError {
+    public Channel(final String base, final ChannelAuth auth, final String consumerGroup, final String pathPrefix,
+                   final String consumerPathPrefix, final boolean retryOnFail, final String verifyCertBundle,
+                   final Properties extraConfigs, final HttpProxySettings httpProxySettings)
+            throws TemporaryError {
 
         this.base = base;
         this.auth = auth;
@@ -249,7 +268,9 @@ public class Channel implements AutoCloseable {
         this.subscriptions = new ArrayList<>();
 
         // Create a custom Request object so that we can store cookies across requests
-        this.request = new Request(base, auth, this.verifyCertBundle);
+        this.isHttps = base.toLowerCase().startsWith("https");
+        this.httpProxySettings = httpProxySettings;
+        this.request = new Request(base, auth, this.verifyCertBundle, this.isHttps, this.httpProxySettings);
 
         this.retryOnFail = retryOnFail;
 
@@ -856,7 +877,7 @@ public class Channel implements AutoCloseable {
         }
         delete();
         request.close();
-        request = new Request(base, auth, verifyCertBundle);
+        request = new Request(base, auth, verifyCertBundle, isHttps, httpProxySettings);
         create();
 
     }
