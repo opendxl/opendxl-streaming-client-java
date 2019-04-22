@@ -121,7 +121,8 @@ public class LoginOperation implements CommandLineOperation {
                     options.valueOf(mandatoryOptions.get(Options.USER)),
                     options.valueOf(mandatoryOptions.get(Options.PASSWORD)),
                     "",
-                    options.valueOf(mandatoryOptions.get(Options.VERIFY_CERT_BUNDLE)));
+                    options.valueOf(mandatoryOptions.get(Options.VERIFY_CERT_BUNDLE)),
+                    null);
             channelAuth.authenticate(httpRequest);
             Header authorization = httpRequest.getFirstHeader(AUTHORIZATION_HEADER_KEY);
             String token = getAuthorizationTokenFromHttpHeader(authorization);

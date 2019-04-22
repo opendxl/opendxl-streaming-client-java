@@ -6,6 +6,7 @@ package com.opendxl.streaming.client.auth;
 
 import com.opendxl.streaming.client.ChannelAuth;
 import com.opendxl.streaming.client.HttpConnection;
+import com.opendxl.streaming.client.HttpProxySettings;
 import com.opendxl.streaming.client.HttpStatusCodes;
 import com.opendxl.streaming.client.exception.PermanentError;
 import com.opendxl.streaming.client.exception.TemporaryError;
@@ -38,6 +39,8 @@ public class ChannelAuthUserPass implements ChannelAuth {
     private final String password;
     private final String pathFragment;
     private final String verifyCertBundle;
+    private final HttpProxySettings httpProxySettings;
+    private final boolean isHttps;
     private String token;
 
     /**
@@ -45,15 +48,17 @@ public class ChannelAuthUserPass implements ChannelAuth {
      * @param username User name to supply for request authentication.
      * @param password Password to supply for request authentication.
      * @param pathFragment Path to append to the base URL for the request.
-     * @param verifyCertBundle Path to a CA bundle file containing
-     *    certificates of trusted CAs. The CA bundle is used to validate that
-     *    the certificate of the authentication server being connected to was
-     *    signed by a valid authority. If set to an empty string, the server
-     *    certificate is not validated.
+     * @param verifyCertBundle CA Bundle chain certificates. This string shall be either the certificates themselves or
+     *                         a path to a CA bundle file containing those certificates. The CA bundle is used to
+     *                         validate that the certificate of the authentication server being connected to was signed
+     *                         by a valid authority. If set to an empty string, the server certificate will not be
+     *                         validated.
+     * @param httpProxySettings http proxy url, port, username and password
      * @throws PermanentError if base is null or empty or if username is null or empty or if password is null
      */
     public ChannelAuthUserPass(final String base, final String username, final String password, String pathFragment,
-                               final String verifyCertBundle) throws PermanentError {
+                               final String verifyCertBundle, final HttpProxySettings httpProxySettings)
+            throws PermanentError {
 
         if (base == null || base.isEmpty()) {
             throw new PermanentError("Base URL may not be null or empty");
@@ -72,6 +77,8 @@ public class ChannelAuthUserPass implements ChannelAuth {
         this.password = password;
         this.pathFragment = pathFragment != null ? pathFragment : "/identity/v1/login";
         this.verifyCertBundle = verifyCertBundle == null ? "" : verifyCertBundle;
+        this.isHttps = base.toLowerCase().startsWith("https");
+        this.httpProxySettings = httpProxySettings;
         token = null;
 
     }
@@ -118,10 +125,11 @@ public class ChannelAuthUserPass implements ChannelAuth {
      * @param username User name to supply for request authentication.
      * @param password Password to supply for request authentication.
      * @param pathFragment Path to append to the base URL for the request.
-     * @param verifyCertBundle Path to a CA bundle file containing certificates of trusted CAs. The CA bundle is used
-     *                        to validate that the certificate of the authentication server being connected to was
-     *                        signed by a valid authority. If set to an empty string, the server certificate is not
-     *                        validated.
+     * @param verifyCertBundle CA Bundle chain certificates. This string shall be either the certificates themselves or
+     *                         a path to a CA bundle file containing those certificates. The CA bundle is used to
+     *                         validate that the certificate of the authentication server being connected to was signed
+     *                         by a valid authority. If set to an empty string, the server certificate will not be
+     *                         validated.
      * @return a String containing the Authorization token if login succeeded
      *
      * @throws TemporaryError if an unexpected (but possibly recoverable) authentication error occurs for the request.
@@ -141,8 +149,8 @@ public class ChannelAuthUserPass implements ChannelAuth {
 
         HttpConnection httpConnection;
         try {
-            // Create an http connection which client will use the given Certificate Bundle file
-            httpConnection = new HttpConnection(verifyCertBundle);
+            // Create an http connection which client will use the given Certificate Bundle data
+            httpConnection = new HttpConnection(verifyCertBundle, isHttps, httpProxySettings);
         } catch (final Throwable e) {
             throw new PermanentError("Unexpected error: " + e.getMessage(), e);
         }

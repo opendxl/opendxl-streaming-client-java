@@ -35,8 +35,9 @@ public class Request implements AutoCloseable {
     private final ChannelAuth auth;
 
     /**
-     * Helper object which provides SSL connections for sending HTTP requests. SSL connection use the certificates from
-     * the Certificate Bundle file passed to {@link Request#Request(String, ChannelAuth, String)} constructor.
+     * Helper object which provides SSL connections and Http Proxy support for sending HTTP requests. SSL connection
+     * uses the certificates from the Certificate Bundle data passed to
+     * {@link Request#Request(String, ChannelAuth, String, boolean, HttpProxySettings)} constructor.
      */
     private final HttpConnection httpConnection;
 
@@ -50,18 +51,24 @@ public class Request implements AutoCloseable {
      *             {@link Request#post(String, byte[], Map)}, {@link Request#get(String, Map)} and
      *             {@link Request#delete(String, Map)} methods.
      * @param auth provider of the Authorization token header to be included in the HttpRequest
-     * @param verifyCertBundle Certificate Bundle filename. This file contains allowed certificates, which are used for
-     *                         HTTPS certificate validation.
+     * @param verifyCertBundle CA Bundle chain certificates. This string shall be either the certificates themselves or
+     *                         a path to a CA bundle file containing those certificates. The CA bundle is used to
+     *                         validate that the certificate of the authentication server being connected to was signed
+     *                         by a valid authority. If set to an empty string, the server certificate will not be
+     *                         validated.
+     * @param isHttps set to true if the connection requires SSL, false otherwise
+     * @param httpProxySettings contains http proxy url, port, username and password
      * @throws TemporaryError if attempt to create and configure the HttpClient instance fails
      */
-    public Request(final String base, final ChannelAuth auth, final String verifyCertBundle) throws TemporaryError {
+    public Request(final String base, final ChannelAuth auth, final String verifyCertBundle, boolean isHttps,
+                   final HttpProxySettings httpProxySettings) throws TemporaryError {
 
         this.base = base;
         this.auth = auth;
 
         try {
 
-            this.httpConnection = new HttpConnection(verifyCertBundle);
+            this.httpConnection = new HttpConnection(verifyCertBundle, isHttps, httpProxySettings);
 
         } catch (final Throwable e) {
             String error = "Unexpected temporary error when instantiating Request" + e.getClass() + ": "
