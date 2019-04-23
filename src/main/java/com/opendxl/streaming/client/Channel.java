@@ -462,6 +462,19 @@ public class Channel implements AutoCloseable {
      * @throws TemporaryError if the consume attempt fails.
      */
     public ConsumerRecords consume() throws ConsumerError, PermanentError, TemporaryError {
+        return consume(0);
+    }
+
+    /**
+     * Consumes records from all the subscribed topics
+     *
+     * @param timeout Timeout in milliseconds to wait for records before returning
+     * @return {@link ConsumerRecords} a list of the consumer record objects from the records returned by the server.
+     * @throws ConsumerError if the consumer associated with the channel does not exist on the server.
+     * @throws PermanentError if the channel has not been subscribed to any topics.
+     * @throws TemporaryError if the consume attempt fails.
+     */
+    public ConsumerRecords consume(final int timeout) throws ConsumerError, PermanentError, TemporaryError {
 
         acquireAndEnsureChannelIsActive();
         try {
@@ -469,10 +482,16 @@ public class Channel implements AutoCloseable {
                 throw new PermanentError("Channel is not subscribed to any topic");
             }
 
-            String api = new StringBuilder(consumerPathPrefix)
+            final StringBuilder builder = new StringBuilder(consumerPathPrefix)
                     .append("/consumers/")
                     .append(consumerId)
-                    .append("/records").toString();
+                    .append("/records");
+            if (timeout > 0) {
+                builder.append("?timeout=");
+                builder.append(timeout);
+            }
+
+            final String api = builder.toString();
 
             try {
 
