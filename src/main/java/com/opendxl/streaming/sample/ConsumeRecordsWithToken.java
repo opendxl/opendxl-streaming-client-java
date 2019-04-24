@@ -107,8 +107,7 @@ public class ConsumeRecordsWithToken {
                         "10.20.30.40",
                         8080,
                         "me",
-                        "secret"),
-                100)) {
+                        "secret"))) {
 
             // Setup shutdown hook to call stop when program is terminated
             Runtime.getRuntime().addShutdownHook(

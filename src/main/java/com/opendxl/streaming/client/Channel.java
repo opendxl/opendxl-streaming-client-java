@@ -114,13 +114,6 @@ public class Channel implements AutoCloseable {
     private final String verifyCertBundle;
 
     /**
-     * The time, in milliseconds, spent waiting in poll if data is not available in the backend.
-     * If 0, returns immediately with any records that are available currently in the buffer,
-     * else returns empty.
-     */
-    private final long maxPollTimeout;
-
-    /**
      * String identifying the consumer instance which is obtained by {@link Channel#create()} API.
      * It is set to a string value in {@link Channel#create()} API.
      * It is reset to {@code null} in {@link Channel#reset()} method which is called when deleting a consumer using
@@ -237,15 +230,12 @@ public class Channel implements AutoCloseable {
      *                     ("auto.offset.reset", "latest"); ("request.timeout.ms", 30000) and
      *                     ("session.timeout.ms", 10000).
      * @param httpProxySettings contains http proxy hostname, port, username and password.
-     * @param maxPollTimeout The time, in milliseconds, spent waiting in consume if data is not available in the
-     *                       backend. If 0, returns immediately with any records that are available currently in the
-     *                       buffer, else returns empty. Must not be negative.
      * @throws PermanentError if offset value is not one of 'latest', 'earliest', 'none'.
      * @throws TemporaryError if http client request object failed to be created.
      */
     public Channel(final String base, final ChannelAuth auth, final String consumerGroup, final String pathPrefix,
                    final String consumerPathPrefix, final boolean retryOnFail, final String verifyCertBundle,
-                   final Properties extraConfigs, final HttpProxySettings httpProxySettings, final long maxPollTimeout)
+                   final Properties extraConfigs, final HttpProxySettings httpProxySettings)
             throws PermanentError, TemporaryError {
 
         this.base = base;
@@ -290,11 +280,6 @@ public class Channel implements AutoCloseable {
 
         this.running = new AtomicBoolean(false);
         this.stopRequested = new AtomicBoolean(false);
-
-        if (maxPollTimeout < 0) {
-            throw new PermanentError("maxPollTimeout cannot be negative");
-        }
-        this.maxPollTimeout = maxPollTimeout;
 
     }
 

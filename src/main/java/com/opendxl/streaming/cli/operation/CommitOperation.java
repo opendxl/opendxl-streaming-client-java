@@ -120,8 +120,7 @@ public class CommitOperation implements CommandLineOperation {
                     false,
                     options.valueOf(mandatoryOptions.get(Options.VERIFY_CERT_BUNDLE)),
                     null,
-                    null,
-                    100);
+                    null);
 
             // Inject consumerId to channel
             PA.setValue(channel, "consumerId", options.valueOf(mandatoryOptions.get(Options.CONSUMER_ID)));
