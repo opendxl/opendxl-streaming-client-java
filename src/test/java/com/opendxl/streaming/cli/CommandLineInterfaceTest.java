@@ -120,7 +120,40 @@ public class CommandLineInterfaceTest {
         final OptionSet options = (OptionSet) PA.getValue(cli, "options");
         assertTrue(options.valueOf("retry").equals("true"));
         assertTrue(options.valueOf("consumer-prefix").equals("/databus/consumer-service/v1"));
+        assertTrue(options.valueOf("http-proxy").equals(""));
 
+    }
+
+    @Test
+    public void shouldFailWhenCreateOperationHasInsufficientHttpProxyParameters() {
+        exit.expectSystemExit();
+        final String args = "--operation create "
+                + "--url http://127.0.0.1:50080/databus/consumer-service/v1 "
+                + "--token myToken "
+                + "--cg cg8 "
+                + "--retry true "
+                + "--consumer-prefix /databus/consumer-service/v1 "
+                + "--config auto.offset.reset=earliest,session.timeout.ms=30000,request.timeout.ms=31000 "
+                + "--verify-cert-bundle 1234 "
+                + "--http-proxy true";
+
+        CommandLineInterface.main(args.split(" "));
+    }
+
+    @Test
+    public void shouldFailWhenCreateOperationHasEmptyUrlInHttpProxyParameters() {
+        exit.expectSystemExit();
+        final String args = "--operation create "
+                + "--url http://127.0.0.1:50080/databus/consumer-service/v1 "
+                + "--token myToken "
+                + "--cg cg8 "
+                + "--retry true "
+                + "--consumer-prefix /databus/consumer-service/v1 "
+                + "--config auto.offset.reset=earliest,session.timeout.ms=30000,request.timeout.ms=31000 "
+                + "--verify-cert-bundle 1234 "
+                + "--http-proxy true,,8080";
+
+        CommandLineInterface.main(args.split(" "));
     }
 
     // --subscribe Operation
@@ -230,9 +263,41 @@ public class CommandLineInterfaceTest {
         final CommandLineInterface cli = new CommandLineInterface(args.split(" "));
         final OptionSet options = (OptionSet) PA.getValue(cli, "options");
         assertTrue(options.valueOf("consumer-prefix").equals("/databus/consumer-service/v1"));
+        assertTrue(options.valueOf("http-proxy").equals(""));
 
     }
 
+    @Test
+    public void shouldFailWhenSubscribeOperationHasInsufficientHttpProxyParameters() {
+        exit.expectSystemExit();
+
+        String args = "--operation subscribe "
+                + "--url http://127.0.0.1:50080/databus/consumer-service/v1 "
+                + "--token myToken "
+                + "--consumer-id 143134 "
+                + "--cookie 341234 "
+                + "--domain my-domain "
+                + "--verify-cert-bundle 1234 "
+                + "--topic topic3 "
+                + "--http-proxy true";
+        CommandLineInterface.main(args.split(" "));
+    }
+
+    @Test
+    public void shouldFailWhenSubscribeOperationHasInvalidPortInHttpProxyParameters() {
+        exit.expectSystemExit();
+
+        String args = "--operation subscribe "
+                + "--url http://127.0.0.1:50080/databus/consumer-service/v1 "
+                + "--token myToken "
+                + "--consumer-id 143134 "
+                + "--cookie 341234 "
+                + "--domain my-domain "
+                + "--verify-cert-bundle 1234 "
+                + "--topic topic3 "
+                + "--http-proxy true,localhost,-1";
+        CommandLineInterface.main(args.split(" "));
+    }
 
     // --login Operation
 
@@ -273,6 +338,33 @@ public class CommandLineInterfaceTest {
         CommandLineInterface.main(args.split(" "));
     }
 
+    @Test
+    public void shouldFailWhenLoginOperationHasInsufficientHttpProxyParameters() {
+        exit.expectSystemExit();
+
+        String args = "--operation login "
+                + "--auth-url https://localhost:8080/v1/login "
+                + "--user me "
+                + "--password secret "
+                + "--verify-cert-bundle 1234 "
+                + "--http-proxy false";
+
+        CommandLineInterface.main(args.split(" "));
+    }
+
+    @Test
+    public void shouldFailWhenLoginOperationHasEmptyUrlInHttpProxyParameters() {
+        exit.expectSystemExit();
+
+        String args = "--operation login "
+                + "--auth-url https://localhost:8080/v1/login "
+                + "--user me "
+                + "--password secret "
+                + "--verify-cert-bundle 1234 "
+                + "--http-proxy false,,8080";
+
+        CommandLineInterface.main(args.split(" "));
+    }
 
     // --consume Operation
 
@@ -362,7 +454,38 @@ public class CommandLineInterfaceTest {
         final CommandLineInterface cli = new CommandLineInterface(args.split(" "));
         final OptionSet options = (OptionSet) PA.getValue(cli, "options");
         assertTrue(options.valueOf("consumer-prefix").equals("/databus/consumer-service/v1"));
+        assertTrue(options.valueOf("http-proxy").equals(""));
 
+    }
+
+    @Test
+    public void shouldFailWhenConsumeOperationHasInsufficientHttpProxyParameters() {
+        exit.expectSystemExit();
+
+        String args = "--operation consume "
+                + "--url http://127.0.0.1:50080/databus/consumer-service/v1 "
+                + "--token myToken "
+                + "--consumer-id 132413 "
+                + "--cookie 12341234 "
+                + "--domain my-domain "
+                + "--verify-cert-bundle 1234 "
+                + "--http-proxy invalidLogicValue";
+        CommandLineInterface.main(args.split(" "));
+    }
+
+    @Test
+    public void shouldFailWhenConsumeOperationHasEmptyUrlInHttpProxyParameters() {
+        exit.expectSystemExit();
+
+        String args = "--operation consume "
+                + "--url http://127.0.0.1:50080/databus/consumer-service/v1 "
+                + "--token myToken "
+                + "--consumer-id 132413 "
+                + "--cookie 12341234 "
+                + "--domain my-domain "
+                + "--verify-cert-bundle 1234 "
+                + "--http-proxy true,,8080";
+        CommandLineInterface.main(args.split(" "));
     }
 
     // --commit Operation
@@ -453,9 +576,41 @@ public class CommandLineInterfaceTest {
         final CommandLineInterface cli = new CommandLineInterface(args.split(" "));
         final OptionSet options = (OptionSet) PA.getValue(cli, "options");
         assertTrue(options.valueOf("consumer-prefix").equals("/databus/consumer-service/v1"));
+        assertTrue(options.valueOf("http-proxy").equals(""));
 
     }
 
+    @Test
+    public void shouldFailWhenCommitOperationHasInsufficientHttpProxyParameters() {
+        exit.expectSystemExit();
+
+        String args = "--operation commit "
+                + "--url http://127.0.0.1:50080/databus/consumer-service/v1 "
+                + "--token myToken "
+                + "--consumer-id 132413 "
+                + "--cookie 12341234 "
+                + "--domain my-domain "
+                + "--verify-cert-bundle 1234 "
+                + "--http-proxy fAlSe";
+
+        CommandLineInterface.main(args.split(" "));
+    }
+
+    @Test
+    public void shouldFailWhenCommitOperationHasInvalidPortInHttpProxyParameters() {
+        exit.expectSystemExit();
+
+        String args = "--operation commit "
+                + "--url http://127.0.0.1:50080/databus/consumer-service/v1 "
+                + "--token myToken "
+                + "--consumer-id 132413 "
+                + "--cookie 12341234 "
+                + "--domain my-domain "
+                + "--verify-cert-bundle 1234 "
+                + "--http-proxy FaLsE,localhost,-1";
+
+        CommandLineInterface.main(args.split(" "));
+    }
 
     // --delete Operation
 
@@ -545,7 +700,39 @@ public class CommandLineInterfaceTest {
         final CommandLineInterface cli = new CommandLineInterface(args.split(" "));
         final OptionSet options = (OptionSet) PA.getValue(cli, "options");
         assertTrue(options.valueOf("consumer-prefix").equals("/databus/consumer-service/v1"));
+        assertTrue(options.valueOf("http-proxy").equals(""));
 
+    }
+
+    @Test
+    public void shouldFailWhenDeleteOperationHasInsufficientHttpProxyParameters() {
+        exit.expectSystemExit();
+
+        String args = "--operation delete "
+                + "--url http://127.0.0.1:50080/databus/consumer-service/v1 "
+                + "--token myToken "
+                + "--consumer-id 132413 "
+                + "--cookie 12341234 "
+                + "--domain my-domain "
+                + "--verify-cert-bundle 1234 "
+                + "--http-proxy alfa,bravo";
+
+        CommandLineInterface.main(args.split(" "));
+    }
+
+    @Test
+    public void shouldFailWhenDeleteOperationHasInvalidPortInHttpProxyParameters() {
+        exit.expectSystemExit();
+
+        String args = "--operation delete "
+                + "--url http://127.0.0.1:50080/databus/consumer-service/v1 "
+                + "--token myToken "
+                + "--consumer-id 132413 "
+                + "--cookie 12341234 "
+                + "--domain my-domain "
+                + "--verify-cert-bundle 1234 "
+                + "--http-proxy alfa,bravo,charlie";
+        CommandLineInterface.main(args.split(" "));
     }
 
     ///////

@@ -646,6 +646,33 @@ public class Channel implements AutoCloseable {
      */
     public void run(final ConsumerRecordProcessor processCallback, final List<String> topics)
             throws PermanentError, TemporaryError {
+        run(processCallback, topics, 0);
+    }
+
+    /**
+     * <p>Repeatedly consume records from the subscribed topics.</p>
+     *
+     * <p>The supplied
+     * {@link ConsumerRecordProcessor#processCallback(ConsumerRecords, String)} method is invoked with a list containing
+     * each consumer record.</p>
+     *
+     * <p>{@link ConsumerRecordProcessor#processCallback(ConsumerRecords, String)} should return a value of {@code true}
+     * in order for this function to continue consuming additional records. For a return value of {@code false}, no
+     * additional records will be consumed and this function will return.</p>
+     *
+     * <p>The {@link Channel#stop()} method can also be called to halt an execution of this method.</p>
+     *
+     * @param processCallback Callable which is invoked with a list of records which have been consumed.
+     * @param topics If set to a non-empty value, the channel will be subscribed to the specified topics.
+     *              If set to an empty value, the channel will use topics previously subscribed via a call to the
+     *              subscribe method.
+     * @param timeout Timeout in milliseconds to wait for records before returning
+     * @throws PermanentError if a prior run is already in progress or no consumer group value was specified or
+     *                         callback to deliver records was not specified
+     * @throws TemporaryError consume or commit attempts failed with errors other than ConsumerError.
+     */
+    public void run(final ConsumerRecordProcessor processCallback, final List<String> topics, final int timeout)
+            throws PermanentError, TemporaryError {
 
         acquireAndEnsureChannelIsActive();
         try {
@@ -668,7 +695,7 @@ public class Channel implements AutoCloseable {
                 logger.info("Channel is running");
 
                 while (!stopRequested.get()) {
-                    consumeLoop(processCallback, topicsOfInterest);
+                    consumeLoop(processCallback, topicsOfInterest, timeout);
                 }
 
                 if (logger.isDebugEnabled()) {
@@ -812,10 +839,11 @@ public class Channel implements AutoCloseable {
      *
      * @param processCallback
      * @param topics
+     * @param timeout Timeout in milliseconds to wait for records before returning
      * @throws TemporaryError the consume or commit attempt failed with an error other than ConsumerError.
      * @throws PermanentError the callback asks to stop consuming records.
      */
-    private void consumeLoop(final ConsumerRecordProcessor processCallback, List<String> topics)
+    private void consumeLoop(final ConsumerRecordProcessor processCallback, List<String> topics, final int timeout)
             throws PermanentError, TemporaryError {
 
         boolean continueRunning = true;
@@ -835,7 +863,7 @@ public class Channel implements AutoCloseable {
                 }
 
                 // consume records
-                ConsumerRecords records = consume();
+                ConsumerRecords records = consume(timeout);
 
                 // invoke callback
                 continueRunning = processCallback.processCallback(records, consumerId);

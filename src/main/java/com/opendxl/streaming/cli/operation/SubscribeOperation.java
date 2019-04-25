@@ -60,6 +60,7 @@ public class SubscribeOperation implements CommandLineOperation {
         mandatoryOptions.put(Options.TOPIC, optionSpecMap.get(Options.TOPIC));
         mandatoryOptions.put(Options.COOKIE, optionSpecMap.get(Options.COOKIE));
         mandatoryOptions.put(Options.DOMAIN, optionSpecMap.get(Options.DOMAIN));
+        mandatoryOptions.put(Options.HTTP_PROXY, optionSpecMap.get(Options.HTTP_PROXY));
 
     }
 
@@ -124,9 +125,9 @@ public class SubscribeOperation implements CommandLineOperation {
                     null,
                     options.valueOf(mandatoryOptions.get(Options.CONSUMER_PATH_PREFIX)),
                     false,
-                    options.valueOf(mandatoryOptions.get(Options.VERIFY_CERT_BUNDLE)),
+                    CliUtils.getCertificate(options.valueOf(mandatoryOptions.get(Options.VERIFY_CERT_BUNDLE))),
                     null,
-                    null);
+                    CliUtils.getHttpProxySettings(options.valueOf(mandatoryOptions.get(Options.HTTP_PROXY))));
 
             PA.setValue(channel, "consumerId", options.valueOf(mandatoryOptions.get(Options.CONSUMER_ID)));
 

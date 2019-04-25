@@ -57,6 +57,7 @@ public class ConsumeOperation implements CommandLineOperation {
         mandatoryOptions.put(Options.VERIFY_CERT_BUNDLE, optionSpecMap.get(Options.VERIFY_CERT_BUNDLE));
         mandatoryOptions.put(Options.COOKIE, optionSpecMap.get(Options.COOKIE));
         mandatoryOptions.put(Options.DOMAIN, optionSpecMap.get(Options.DOMAIN));
+        mandatoryOptions.put(Options.HTTP_PROXY, optionSpecMap.get(Options.HTTP_PROXY));
     }
 
     /**
@@ -133,9 +134,9 @@ public class ConsumeOperation implements CommandLineOperation {
                     null,
                     options.valueOf(mandatoryOptions.get(Options.CONSUMER_PATH_PREFIX)),
                     false,
-                    options.valueOf(mandatoryOptions.get(Options.VERIFY_CERT_BUNDLE)),
+                    CliUtils.getCertificate(options.valueOf(mandatoryOptions.get(Options.VERIFY_CERT_BUNDLE))),
                     null,
-                    null);
+                    CliUtils.getHttpProxySettings(options.valueOf(mandatoryOptions.get(Options.HTTP_PROXY))));
 
             // Inject consumerId to channel
             PA.setValue(channel, "consumerId", options.valueOf(mandatoryOptions.get(Options.CONSUMER_ID)));

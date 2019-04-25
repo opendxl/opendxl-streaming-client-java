@@ -8,6 +8,7 @@ import com.opendxl.streaming.cli.entity.StickinessCookie;
 import com.opendxl.streaming.cli.operation.CommandLineOperation;
 import com.opendxl.streaming.client.Channel;
 import com.opendxl.streaming.client.HttpConnection;
+import com.opendxl.streaming.client.HttpProxySettings;
 import com.opendxl.streaming.client.Request;
 import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.OptionParser;
@@ -20,6 +21,8 @@ import org.apache.http.impl.cookie.BasicClientCookie;
 
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -202,6 +205,86 @@ public class CliUtils {
                 stickinessCookie.getValue());
         clientContext.getCookieStore().addCookie(cookie);
         cookie.setDomain(stickinessCookie.getDomain());
+    }
+
+    private static final int HTTP_PROXY_ENABLED_INDEX = 0;
+    private static final int HTTP_PROXY_URL_INDEX = 1;
+    private static final int HTTP_PROXY_PORT_INDEX = 2;
+    private static final int HTTP_PROXY_USERNAME_INDEX = 3;
+    private static final int HTTP_PROXY_PASSWORD_INDEX = 4;
+    private static final int HTTP_PROXY_MANDATORY_PARAMETERS = 3;
+    /**
+     * Build an HttpProxySettings object from CLI arguments
+     *
+     * @param httpProxyArgument string with comma separated values for the Http Proxy attributes being:
+     *                          enabled (true/false), url, port, username, password. Enabled, url and port attributes
+     *                          are mandatory while username and password are optional.
+     * @return an HttpProxySettings object built from httpProxyArgument attributes.
+     */
+    public static HttpProxySettings getHttpProxySettings(final String httpProxyArgument) {
+        // Http Proxy is not a mandatory Channel constructor parameter.
+        HttpProxySettings httpProxySettings = null;
+
+        try {
+
+            if (httpProxyArgument != null && !httpProxyArgument.trim().isEmpty()) {
+                // if Http Proxy is specified, then enabled, url and port are mandatory parameters while username and
+                // password are not.
+                final List<String> httpProxyArguments = Arrays.asList(httpProxyArgument.split(","));
+                // Set optional parameter values.
+                if (httpProxyArguments.size() >= HTTP_PROXY_MANDATORY_PARAMETERS) {
+                    final String username = httpProxyArguments.size() > HTTP_PROXY_USERNAME_INDEX
+                            ? httpProxyArguments.get(HTTP_PROXY_USERNAME_INDEX)
+                            : null;
+                    final String password = httpProxyArguments.size() > HTTP_PROXY_PASSWORD_INDEX
+                            ? httpProxyArguments.get(HTTP_PROXY_PASSWORD_INDEX)
+                            : null;
+                    // username and optional are optional parameters. They can be null or empty
+                    httpProxySettings = new HttpProxySettings(
+                            Boolean.parseBoolean(httpProxyArguments.get(HTTP_PROXY_ENABLED_INDEX)),
+                            httpProxyArguments.get(HTTP_PROXY_URL_INDEX),
+                            Integer.parseInt(httpProxyArguments.get(HTTP_PROXY_PORT_INDEX)),
+                            username,
+                            password);
+                } else {
+                    CliUtils.printUsageAndFinish(CommandLineInterface.parser, "Failed to set Http Proxy: "
+                            + "insufficient number of parameters (" + httpProxyArguments.size() + "). "
+                            + "Enabled, http proxy url and http proxy port are mandatory parameters.");
+                }
+            }
+        } catch (final Exception e) {
+            CliUtils.printUsageAndFinish(CommandLineInterface.parser, "Failed to set Http Proxy: "
+                    + e.getMessage());
+        }
+
+        return httpProxySettings;
+    }
+
+    /**
+     * Checks whether the certificate parameter value is an existing filename. If it is, then the certificate parameter
+     * value is returned without any change. If it is not, then it is assumed the certificate parameter value is a
+     * certificate itself and the "-----BEGIN CERTIFICATE-----" and "-----END CERTIFICATE-----" strings will be
+     * prepended and appended respectively.
+     *
+     * @param certificateParameterValue the "--verify-cert-bundle" CLI input parameter value
+     * @return the received string value if such string is an existing filename.
+     *         the received string with prepended "BEGIN CERTIFICATE" and appended "END CERTIFICATE" strings otherwise.
+     */
+    public static String getCertificate(final String certificateParameterValue) {
+        final String returnValue;
+
+        if (Files.isRegularFile(Paths.get(certificateParameterValue))) {
+            // certificate is provided in a file. Keep it as it is.
+            returnValue = certificateParameterValue;
+        } else {
+            // certificate is provided in a string. Prepend "BEGIN CERTIFICATE" and append "END CERTIFICATE" strings.
+            returnValue = new StringBuilder("-----BEGIN CERTIFICATE-----\n")
+                    .append(certificateParameterValue)
+                    .append("-----END CERTIFICATE-----\n").toString();
+        }
+
+        return returnValue;
+
     }
 
 }

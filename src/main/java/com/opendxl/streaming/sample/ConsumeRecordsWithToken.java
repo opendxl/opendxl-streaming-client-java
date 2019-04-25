@@ -155,7 +155,8 @@ public class ConsumeRecordsWithToken {
             };
 
             // Consume records indefinitely
-            channel.run(consumerRecordCallback, channelTopicSubscriptions);
+            final int consumePollTimeoutMs = 500;
+            channel.run(consumerRecordCallback, channelTopicSubscriptions, consumePollTimeoutMs);
 
         } catch (final PermanentError | StopError | TemporaryError e) {
 

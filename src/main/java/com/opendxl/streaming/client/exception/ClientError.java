@@ -40,4 +40,10 @@ public abstract class ClientError extends Exception {
         this.api = api;
     }
 
+    /**
+     * Get the HTTP Status Code that caused the error.
+     *
+     * @return HTTP Status Code
+     */
+    public abstract int getStatusCode();
 }

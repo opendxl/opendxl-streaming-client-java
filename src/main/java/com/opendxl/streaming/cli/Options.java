@@ -22,7 +22,8 @@ public enum Options {
     CONSUMER_ID,
     COOKIE,
     DOMAIN,
-    VERIFY_CERT_BUNDLE
+    VERIFY_CERT_BUNDLE,
+    HTTP_PROXY
 };
 
 

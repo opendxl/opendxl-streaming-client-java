@@ -12,6 +12,7 @@ import com.opendxl.streaming.cli.entity.StickinessCookie;
 import com.opendxl.streaming.client.Channel;
 import com.opendxl.streaming.client.ChannelAuth;
 import com.opendxl.streaming.client.auth.ChannelAuthToken;
+import com.opendxl.streaming.client.exception.ClientError;
 import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.OptionSet;
 import junit.extensions.PA;
@@ -58,6 +59,7 @@ public class CreateOperation implements CommandLineOperation {
         mandatoryOptions.put(Options.RETRY, optionSpecMap.get(Options.RETRY));
         mandatoryOptions.put(Options.CONSUMER_PATH_PREFIX, optionSpecMap.get(Options.CONSUMER_PATH_PREFIX));
         mandatoryOptions.put(Options.VERIFY_CERT_BUNDLE, optionSpecMap.get(Options.VERIFY_CERT_BUNDLE));
+        mandatoryOptions.put(Options.HTTP_PROXY, optionSpecMap.get(Options.HTTP_PROXY));
 
     }
 
@@ -135,9 +137,9 @@ public class CreateOperation implements CommandLineOperation {
                     null,
                     options.valueOf(mandatoryOptions.get(Options.CONSUMER_PATH_PREFIX)),
                     Boolean.valueOf(options.valueOf(mandatoryOptions.get(Options.RETRY))),
-                    options.valueOf(mandatoryOptions.get(Options.VERIFY_CERT_BUNDLE)),
+                    CliUtils.getCertificate(options.valueOf(mandatoryOptions.get(Options.VERIFY_CERT_BUNDLE))),
                     optionalConsumerConfig,
-                    null);
+                    CliUtils.getHttpProxySettings(options.valueOf(mandatoryOptions.get(Options.HTTP_PROXY))));
 
             channel.create();
 
@@ -147,6 +149,9 @@ public class CreateOperation implements CommandLineOperation {
                     CliUtils.getCookie(channel)),
                     CliUtils.getCommandLine(options, mandatoryOptions));
 
+        } catch (ClientError e) {
+            CliUtils.printUsageAndFinish(CommandLineInterface.parser, "" + e.getStatusCode() + " - "
+                    + e.getMessage());
         } catch (Exception e) {
             CliUtils.printUsageAndFinish(CommandLineInterface.parser, e.getMessage());
         }

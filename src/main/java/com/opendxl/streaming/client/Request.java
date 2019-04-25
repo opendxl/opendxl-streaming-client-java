@@ -267,8 +267,13 @@ public class Request implements AutoCloseable {
     private static String getConsumerServiceErrorMessage(final String responseEntityString) {
 
         Gson gson = new Gson();
-        ConsumerServiceError apiGatewayError = gson.fromJson(responseEntityString,
-                ConsumerServiceError.class);
+        ConsumerServiceError apiGatewayError;
+        try {
+            apiGatewayError = gson.fromJson(responseEntityString,
+                    ConsumerServiceError.class);
+        } catch (final Exception e) {
+            apiGatewayError = null;
+        }
 
         return apiGatewayError != null
                 ? apiGatewayError.getMessage()

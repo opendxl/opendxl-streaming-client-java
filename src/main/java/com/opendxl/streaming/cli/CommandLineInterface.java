@@ -162,6 +162,14 @@ public class CommandLineInterface {
                         .describedAs("domain")
                         .ofType(String.class);
 
+        // Consumer config option spec represented as --http-proxy command line
+        final ArgumentAcceptingOptionSpec<String> httpProxyOpt =
+                parser.accepts("http-proxy", "Http Proxy settings.")
+                        .withRequiredArg()
+                        .describedAs("http-proxy")
+                        .ofType(String.class)
+                        .defaultsTo("");
+
         if (args.length == 0) {
             CliUtils.printUsageAndFinish(parser, "There are not options");
         }
@@ -185,6 +193,7 @@ public class CommandLineInterface {
         optionSpecMap.put(Options.CONSUMER_ID, consumerIdOpt);
         optionSpecMap.put(Options.COOKIE, cookieOpt);
         optionSpecMap.put(Options.DOMAIN, domainOpt);
+        optionSpecMap.put(Options.HTTP_PROXY, httpProxyOpt);
 
         this.operation = buildOperation(optionSpecMap);
         CliUtils.validateMandatoryOperationArgs(operation, parser, options);

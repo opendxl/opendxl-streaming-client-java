@@ -63,6 +63,7 @@ public class LoginOperation implements CommandLineOperation {
         mandatoryOptions.put(Options.USER, optionSpecMap.get(Options.USER));
         mandatoryOptions.put(Options.PASSWORD, optionSpecMap.get(Options.PASSWORD));
         mandatoryOptions.put(Options.VERIFY_CERT_BUNDLE, optionSpecMap.get(Options.VERIFY_CERT_BUNDLE));
+        mandatoryOptions.put(Options.HTTP_PROXY, optionSpecMap.get(Options.HTTP_PROXY));
     }
 
     /**
@@ -121,8 +122,8 @@ public class LoginOperation implements CommandLineOperation {
                     options.valueOf(mandatoryOptions.get(Options.USER)),
                     options.valueOf(mandatoryOptions.get(Options.PASSWORD)),
                     "",
-                    options.valueOf(mandatoryOptions.get(Options.VERIFY_CERT_BUNDLE)),
-                    null);
+                    CliUtils.getCertificate(options.valueOf(mandatoryOptions.get(Options.VERIFY_CERT_BUNDLE))),
+                    CliUtils.getHttpProxySettings(options.valueOf(mandatoryOptions.get(Options.HTTP_PROXY))));
             channelAuth.authenticate(httpRequest);
             Header authorization = httpRequest.getFirstHeader(AUTHORIZATION_HEADER_KEY);
             String token = getAuthorizationTokenFromHttpHeader(authorization);
