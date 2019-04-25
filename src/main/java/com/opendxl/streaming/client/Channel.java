@@ -101,7 +101,7 @@ public class Channel implements AutoCloseable {
     /**
      * Properties object which contains all consumer configuration properties. Its values are set in
      * {@link Channel#Channel(String, ChannelAuth, String, String, String, boolean, String, Properties,
-     * HttpProxySettings, long)}
+     * HttpProxySettings)}
      * constructor and it is later used in {@link Channel#create()} when consumer is created.
      */
     private final Properties configs = new Properties();
