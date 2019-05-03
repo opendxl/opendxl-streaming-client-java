@@ -333,15 +333,15 @@ public class Channel implements AutoCloseable {
                     }
                 }
 
-            } catch (final TemporaryError error) {
-                error.setApi("create");
-                logger.error("Failed to create consumer.", error);
-                throw error;
             } catch (final JsonSyntaxException | ConsumerError e) {
                 TemporaryError temporaryError = new TemporaryError("Error while parsing response: "
                         + e.getClass().getCanonicalName() + " " + e.getMessage(), e, "create");
                 logger.error("Failed to create consumer.", temporaryError);
                 throw temporaryError;
+            }  catch (final ClientError error) {
+                error.setApi("create");
+                logger.error("Failed to create consumer.", error);
+                throw error;
             }
         } finally {
             release();
@@ -370,7 +370,6 @@ public class Channel implements AutoCloseable {
             }
 
             // Remove any null or empty topic from list
-            topics.removeAll(Arrays.asList("", null));
             if (topics.isEmpty()) {
 
                 String error = "Non-empty value must be specified for topics";
@@ -492,7 +491,7 @@ public class Channel implements AutoCloseable {
 
             } catch (final ConsumerError consumerError) {
 
-                logger.error(logConsumerId() + " not found. Resetting consumer anyways.",
+                logger.error(logConsumerId() + " not found. Deleting consumer anyways.",
                         consumerError);
 
             } catch (final ClientError error) {
