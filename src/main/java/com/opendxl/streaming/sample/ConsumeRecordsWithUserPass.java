@@ -5,6 +5,7 @@
 package com.opendxl.streaming.sample;
 
 import com.opendxl.streaming.client.Channel;
+import com.opendxl.streaming.client.HttpProxySettings;
 import com.opendxl.streaming.client.auth.ChannelAuthUserPass;
 import com.opendxl.streaming.client.ConsumerRecordProcessor;
 import com.opendxl.streaming.client.entity.ConsumerRecords;
@@ -77,18 +78,36 @@ public class ConsumeRecordsWithUserPass {
          */
         extraConfigs.put("session.timeout.ms", 15000);
 
+        /**
+         * Http Proxy settings. If no proxy is required to connect to specified channelUrl, then set httpProxySettings
+         * to null
+         */
+        HttpProxySettings httpProxySettings;
+        try {
+            httpProxySettings = new HttpProxySettings(true,
+                    "10.20.30.40",
+                    8080,
+                    "me",
+                    "secret");
+        } catch (final PermanentError e) {
+            System.out.println("Error occurred: " + e.getMessage() + " No http proxy will be used.");
+            httpProxySettings = null;
+        }
+
         try (Channel channel = new Channel(channelUrl,
                 new ChannelAuthUserPass(channelUrl,
                         channelUsername,
                         channelPassword,
                         null,
-                        verifyCertificateBundle),
+                        verifyCertificateBundle,
+                        httpProxySettings),
                 channelConsumerGroup,
                 null,
                 null,
                 true,
                 verifyCertificateBundle,
-                extraConfigs)) {
+                extraConfigs,
+                httpProxySettings)) {
 
             // Setup shutdown hook to call stop when program is terminated
             Runtime.getRuntime().addShutdownHook(

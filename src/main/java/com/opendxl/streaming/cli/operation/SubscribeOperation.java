@@ -60,6 +60,7 @@ public class SubscribeOperation implements CommandLineOperation {
         mandatoryOptions.put(Options.TOPIC, optionSpecMap.get(Options.TOPIC));
         mandatoryOptions.put(Options.COOKIE, optionSpecMap.get(Options.COOKIE));
         mandatoryOptions.put(Options.DOMAIN, optionSpecMap.get(Options.DOMAIN));
+        mandatoryOptions.put(Options.HTTP_PROXY, optionSpecMap.get(Options.HTTP_PROXY));
 
     }
 
@@ -115,7 +116,7 @@ public class SubscribeOperation implements CommandLineOperation {
             try {
                 url = new URL(options.valueOf(mandatoryOptions.get(Options.URL)));
             } catch (MalformedURLException e) {
-                CliUtils.printUsageAndFinish(CommandLineInterface.parser, e.getMessage());
+                CliUtils.printUsageAndFinish(CommandLineInterface.parser, e.getMessage(), e);
             }
 
             Channel channel = new Channel(CliUtils.getBaseURL(url),
@@ -124,8 +125,9 @@ public class SubscribeOperation implements CommandLineOperation {
                     null,
                     options.valueOf(mandatoryOptions.get(Options.CONSUMER_PATH_PREFIX)),
                     false,
-                    options.valueOf(mandatoryOptions.get(Options.VERIFY_CERT_BUNDLE)),
-                    null);
+                    CliUtils.getCertificate(options.valueOf(mandatoryOptions.get(Options.VERIFY_CERT_BUNDLE))),
+                    null,
+                    CliUtils.getHttpProxySettings(options.valueOf(mandatoryOptions.get(Options.HTTP_PROXY))));
 
             PA.setValue(channel, "consumerId", options.valueOf(mandatoryOptions.get(Options.CONSUMER_ID)));
 
@@ -142,7 +144,7 @@ public class SubscribeOperation implements CommandLineOperation {
 
 
         } catch (Exception e) {
-            CliUtils.printUsageAndFinish(CommandLineInterface.parser, e.getMessage());
+            CliUtils.printUsageAndFinish(CommandLineInterface.parser, e.getMessage(), e);
         }
 
         return null;

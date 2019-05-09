@@ -63,6 +63,7 @@ public class LoginOperation implements CommandLineOperation {
         mandatoryOptions.put(Options.USER, optionSpecMap.get(Options.USER));
         mandatoryOptions.put(Options.PASSWORD, optionSpecMap.get(Options.PASSWORD));
         mandatoryOptions.put(Options.VERIFY_CERT_BUNDLE, optionSpecMap.get(Options.VERIFY_CERT_BUNDLE));
+        mandatoryOptions.put(Options.HTTP_PROXY, optionSpecMap.get(Options.HTTP_PROXY));
     }
 
     /**
@@ -111,7 +112,7 @@ public class LoginOperation implements CommandLineOperation {
             base = url.getProtocol() + "://" + url.getHost() + ":" + url.getPort();
             path = url.getPath();
         } catch (MalformedURLException e) {
-            CliUtils.printUsageAndFinish(CommandLineInterface.parser, e.getMessage());
+            CliUtils.printUsageAndFinish(CommandLineInterface.parser, e.getMessage(), e);
         }
 
         HttpGet httpRequest = new HttpGet(base + path);
@@ -121,14 +122,15 @@ public class LoginOperation implements CommandLineOperation {
                     options.valueOf(mandatoryOptions.get(Options.USER)),
                     options.valueOf(mandatoryOptions.get(Options.PASSWORD)),
                     "",
-                    options.valueOf(mandatoryOptions.get(Options.VERIFY_CERT_BUNDLE)));
+                    CliUtils.getCertificate(options.valueOf(mandatoryOptions.get(Options.VERIFY_CERT_BUNDLE))),
+                    CliUtils.getHttpProxySettings(options.valueOf(mandatoryOptions.get(Options.HTTP_PROXY))));
             channelAuth.authenticate(httpRequest);
             Header authorization = httpRequest.getFirstHeader(AUTHORIZATION_HEADER_KEY);
             String token = getAuthorizationTokenFromHttpHeader(authorization);
             return new ExecutionResult("200", token, CliUtils.getCommandLine(options, mandatoryOptions));
 
         } catch (PermanentError | TemporaryError e) {
-            CliUtils.printUsageAndFinish(CommandLineInterface.parser, e.getMessage());
+            CliUtils.printUsageAndFinish(CommandLineInterface.parser, e.getMessage(), e);
         }
 
         return new ExecutionResult("", "", new HashMap<>());

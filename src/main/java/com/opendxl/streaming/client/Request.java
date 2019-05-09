@@ -17,6 +17,7 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.util.EntityUtils;
+import org.apache.log4j.Logger;
 
 import com.google.gson.Gson;
 
@@ -34,32 +35,46 @@ public class Request implements AutoCloseable {
     private final ChannelAuth auth;
 
     /**
-     * Helper object which provides SSL connections for sending HTTP requests. SSL connection use the certificates from
-     * the Certificate Bundle file passed to {@link Request#Request(String, ChannelAuth, String)} constructor.
+     * Helper object which provides SSL connections and Http Proxy support for sending HTTP requests. SSL connection
+     * uses the certificates from the Certificate Bundle data passed to
+     * {@link Request#Request(String, ChannelAuth, String, boolean, HttpProxySettings)} constructor.
      */
     private final HttpConnection httpConnection;
+
+    /**
+     * The logger
+     */
+    private static Logger logger = Logger.getLogger(Request.class);
 
     /**
      * @param base scheme (http or https) and host parts of target URLs. It will be prepended to uri parameter of
      *             {@link Request#post(String, byte[], Map)}, {@link Request#get(String, Map)} and
      *             {@link Request#delete(String, Map)} methods.
      * @param auth provider of the Authorization token header to be included in the HttpRequest
-     * @param verifyCertBundle Certificate Bundle filename. This file contains allowed certificates, which are used for
-     *                         HTTPS certificate validation.
+     * @param verifyCertBundle CA Bundle chain certificates. This string shall be either the certificates themselves or
+     *                         a path to a CA bundle file containing those certificates. The CA bundle is used to
+     *                         validate that the certificate of the authentication server being connected to was signed
+     *                         by a valid authority. If set to an empty string, the server certificate will not be
+     *                         validated.
+     * @param isHttps set to true if the connection requires SSL, false otherwise
+     * @param httpProxySettings contains http proxy url, port, username and password
      * @throws TemporaryError if attempt to create and configure the HttpClient instance fails
      */
-    public Request(final String base, final ChannelAuth auth, final String verifyCertBundle) throws TemporaryError {
+    public Request(final String base, final ChannelAuth auth, final String verifyCertBundle, boolean isHttps,
+                   final HttpProxySettings httpProxySettings) throws TemporaryError {
 
         this.base = base;
         this.auth = auth;
 
         try {
 
-            this.httpConnection = new HttpConnection(verifyCertBundle);
+            this.httpConnection = new HttpConnection(verifyCertBundle, isHttps, httpProxySettings);
 
         } catch (final Throwable e) {
-            throw new TemporaryError("Unexpected temporary error when instantiating Request"
-                    + e.getClass() + ": " + e.getMessage(), e);
+            String error = "Unexpected temporary error when instantiating Request" + e.getClass() + ": "
+                    + e.getMessage();
+            logger.error(error);
+            throw new TemporaryError(error, e);
         }
 
     }
@@ -179,7 +194,6 @@ public class Request implements AutoCloseable {
             // http status code maps to an error. Then an exception must be thrown.
             ErrorType errorType = httpStatusMapping.get(HttpStatusCodes.getHttpStatus(statusCode));
             // Create the error message
-            Gson gson = new Gson();
             String message = "";
             if (returnValue != null) {
                 message = getConsumerServiceErrorMessage(returnValue) + ": " + httpResponse.getStatusLine();
@@ -237,8 +251,9 @@ public class Request implements AutoCloseable {
             resetAuthorization();
 
         } catch (final IOException e) {
-            throw new TemporaryError("Unexpected temporary error " + e.getClass().getCanonicalName() + ": "
-                    + " " + e.getMessage(), e);
+            String error = "Unexpected temporary error " + e.getClass().getCanonicalName() + ": " + e.getMessage();
+            logger.error(error);
+            throw new TemporaryError(error, e);
         }
 
     }
@@ -252,8 +267,13 @@ public class Request implements AutoCloseable {
     private static String getConsumerServiceErrorMessage(final String responseEntityString) {
 
         Gson gson = new Gson();
-        ConsumerServiceError apiGatewayError = gson.fromJson(responseEntityString,
-                ConsumerServiceError.class);
+        ConsumerServiceError apiGatewayError;
+        try {
+            apiGatewayError = gson.fromJson(responseEntityString,
+                    ConsumerServiceError.class);
+        } catch (final Exception e) {
+            apiGatewayError = null;
+        }
 
         return apiGatewayError != null
                 ? apiGatewayError.getMessage()

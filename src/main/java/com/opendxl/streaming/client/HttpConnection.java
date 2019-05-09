@@ -4,7 +4,11 @@
 
 package com.opendxl.streaming.client;
 
+import org.apache.http.HttpHost;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -13,13 +17,16 @@ import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.config.Registry;
 import org.apache.http.config.RegistryBuilder;
 import org.apache.http.conn.HttpClientConnectionManager;
+import org.apache.http.conn.routing.HttpRoutePlanner;
 import org.apache.http.conn.socket.ConnectionSocketFactory;
 import org.apache.http.conn.socket.PlainConnectionSocketFactory;
 import org.apache.http.conn.ssl.DefaultHostnameVerifier;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.impl.client.BasicCookieStore;
+import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.conn.DefaultProxyRoutePlanner;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.ssl.SSLContexts;
 
@@ -28,6 +35,8 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.KeyManagementException;
@@ -42,12 +51,13 @@ import java.security.cert.X509Certificate;
 /**
  * The {@link HttpConnection} class provides an SSL communication layer for {@link Channel} requests.
  * Allowed certificates, which are used for HTTPS certificate validation, are given in a file which name is set in the
- * constructor {@link HttpConnection#HttpConnection(String)}.
+ * constructor {@link HttpConnection#HttpConnection(String, boolean, HttpProxySettings)}.
  */
 public class HttpConnection implements AutoCloseable {
 
     /**
-     * HttpClient instance that sends HTTP requests. It is setup in {@link HttpConnection#HttpConnection(String)}
+     * HttpClient instance that sends HTTP requests. It is setup in
+     * {@link HttpConnection#HttpConnection(String, boolean, HttpProxySettings)}
      * constructor. It is used to send HTTP requests in {@link HttpConnection#execute(HttpRequestBase)} method.
      */
     private final CloseableHttpClient httpClient;
@@ -93,19 +103,27 @@ public class HttpConnection implements AutoCloseable {
     private static final String[] SUPPORTED_PROTOCOLS = new String[] {"TLSv1", "TLSv1.1", "TLSv1.2"};
 
     /**
-     * @param verifyCertBundle The location of the file containing certificates used to HTTPS certificate validation
+     * @param verifyCertBundle CA Bundle chain certificates. This string shall be either the certificates themselves or
+     *                         a path to a CA bundle file containing those certificates. The CA bundle is used to
+     *                         validate that the certificate of the authentication server being connected to was signed
+     *                         by a valid authority. If set to an empty string, the server certificate will not be
+     *                         validated.
+     * @param isHttps set to true if the connection requires SSL, false otherwise
+     * @param httpProxySettings contains http proxy url, port, username and password
      * @throws KeyManagementException   If initialization of SSL context fails
      *
      * @throws KeyStoreException        If there is an error creating a key store from the certificates in the
      *                                  trust store file
-     * @throws CertificateException     If there is an error creating a certificatefrom the certificates in the
+     * @throws CertificateException     If there is an error creating a certificate from the certificates in the
      *                                  trust store file
      * @throws NoSuchAlgorithmException If there is an error creating a certificate factory
      * @throws IOException              If there is an error creating a key store from the certificates in
      *                                  the trust store file
      */
-    public HttpConnection(final String verifyCertBundle) throws CertificateException, NoSuchAlgorithmException,
-            KeyStoreException, KeyManagementException, IOException {
+    public HttpConnection(final String verifyCertBundle, final boolean isHttps,
+                          final HttpProxySettings httpProxySettings)
+            throws CertificateException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException,
+            IOException {
 
         RequestConfig globalConfig = RequestConfig.custom()
                 .setCookieSpec(CookieSpecs.STANDARD)
@@ -116,29 +134,41 @@ public class HttpConnection implements AutoCloseable {
         this.httpClientContext.setCookieStore(new BasicCookieStore());
 
         // Create a session object so that we can store cookies across requests
+        final SSLConnectionSocketFactory socketFactory;
+        if (isHttps) {
+            socketFactory = createSSLConnectionSocketFactory(verifyCertBundle);
+        } else {
+            socketFactory = null;
+        }
+
         this.httpClient = HttpClients.custom()
                 .setDefaultRequestConfig(createRequestConfig())
-                .setConnectionManager(createConnectionManager(createSSLConnectionSocketFactory(verifyCertBundle)))
+                .setConnectionManager(createConnectionManager(socketFactory))
+                .setRoutePlanner(createRoutePlanner(httpProxySettings))
+                .setDefaultCredentialsProvider(createCredentialsProvider(httpProxySettings))
                 .build();
 
     }
 
     /**
-     * Create a socket factory based on the Certificate Bundle filename.
+     * Create a socket factory based on the Certificate Bundle data.
      *
-     * @param trustStoreFile
+     * @param trustStoreData CA Bundle chain certificates. This string shall be either the certificates themselves or
+     *                       a path to a CA bundle file containing those certificates. The CA bundle is used to validate
+     *                       that the certificate of the authentication server being connected to was signed by a
+     *                       valid authority. If set to an empty string, the server certificate will not be validated.
      * @return
      * @throws KeyManagementException   If initialization of SSL context fails
      *
      * @throws KeyStoreException        If there is an error creating a key store from the certificates in the
      *                                  trust store file
-     * @throws CertificateException     If there is an error creating a certificatefrom the certificates in the
+     * @throws CertificateException     If there is an error creating a certificate from the certificates in the
      *                                  trust store file
      * @throws NoSuchAlgorithmException If there is an error creating a certificate factory
      * @throws IOException              If there is an error creating a key store from the certificates in
      *                                  the trust store file
      */
-    private SSLConnectionSocketFactory createSSLConnectionSocketFactory(final String trustStoreFile)
+    private SSLConnectionSocketFactory createSSLConnectionSocketFactory(final String trustStoreData)
             throws CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException,
             KeyManagementException {
 
@@ -150,8 +180,8 @@ public class HttpConnection implements AutoCloseable {
         // By default host name validation is false
         boolean hostNameValidation = false;
 
-        if (trustStoreFile != null && !trustStoreFile.isEmpty()) {
-            tmf.init(createKeystore(trustStoreFile));
+        if (trustStoreData != null && !trustStoreData.isEmpty()) {
+            tmf.init(createKeystore(trustStoreData));
             tm = tmf.getTrustManagers();
             hostNameValidation = true;
         } else {
@@ -198,7 +228,10 @@ public class HttpConnection implements AutoCloseable {
     /**
      * Creates a KeyStore for use with the HttpClient
      *
-     * @param caChainPems the pems to be added in a single string format
+     * @param caChainPems the pems to be added in a single string format. If caChainPems string is the path to an
+     *                    existing file, then certificates contained in the file will be loaded into the keystore.
+     *                    If caChainPems string is not a path to an existing file, then caChainPems is expected to be
+     *                    the certificates themselves and they will be loaded into the keystore.
      * @return The KeyStore
      * @throws KeyStoreException        If there is an error creating a key store from the certificates in the
      *                                  trust store file
@@ -208,18 +241,34 @@ public class HttpConnection implements AutoCloseable {
      * @throws IOException              If there is an error creating a key store from the certificates in
      *                                  the trust store file
      */
-    private KeyStore createKeystore(String caChainPems) throws KeyStoreException, CertificateException,
+    private KeyStore createKeystore(final String caChainPems) throws KeyStoreException, CertificateException,
             NoSuchAlgorithmException, IOException {
         final KeyStore clientKeyStore = KeyStore.getInstance(KeyStore.getDefaultType());
         clientKeyStore.load(null, null);
 
+        final CertificateFactory certFactory = CertificateFactory.getInstance("X.509");
+
+        // Check whether certificateParameterValue is an existing filename
+        boolean isFile;
+        try {
+            isFile = (new File(caChainPems)).isFile();
+        } catch (final Exception e) {
+            // certificateParameterValue is not an existing filename
+            isFile = false;
+        }
+
         java.util.Collection<? extends Certificate> chain;
-        try (FileInputStream fis = new FileInputStream(caChainPems);
-             BufferedInputStream bis = new BufferedInputStream(fis)) {
+        if (isFile) {
+            try (FileInputStream fis = new FileInputStream(caChainPems);
+                 BufferedInputStream bis = new BufferedInputStream(fis)) {
 
-            final CertificateFactory cf = CertificateFactory.getInstance("X.509");
+                chain = certFactory.generateCertificates(bis);
 
-            chain = cf.generateCertificates(bis);
+            }
+        } else {
+
+            chain = certFactory.generateCertificates(new ByteArrayInputStream(caChainPems.getBytes()));
+
         }
 
         int certNumber = 0;
@@ -267,6 +316,46 @@ public class HttpConnection implements AutoCloseable {
         cm.setMaxTotal(DEFAULT_CONN_POOL_MAX_TOTAL);
         cm.setDefaultMaxPerRoute(DEFAULT_CONN_POOL_MAX_PER_ROUTE);
         return cm;
+    }
+
+    /**
+     * Creates and returns a {@link HttpRoutePlanner} based on the specified descriptor properties
+     *
+     * @param httpProxySettings the http proxy url, port, user and password
+     * @return A {@link HttpRoutePlanner} based on the specified http proxy settings; can be null if no http proxy is
+     *         specified
+     */
+    private HttpRoutePlanner createRoutePlanner(final HttpProxySettings httpProxySettings) {
+        DefaultProxyRoutePlanner routePlanner = null;
+
+        if (httpProxySettings != null && httpProxySettings.isEnabled()) {
+            HttpHost proxy = new HttpHost(httpProxySettings.getUrl(), httpProxySettings.getPort());
+            routePlanner = new DefaultProxyRoutePlanner(proxy);
+        }
+
+        return routePlanner;
+    }
+
+    /**
+     * Creates and returns a {@link CredentialsProvider} based on the specified descriptor properties
+     *
+     * @param httpProxySettings the http proxy url, port, user and password
+     * @return A {@link CredentialsProvider} based on the specified http proxy settings
+     */
+    private CredentialsProvider createCredentialsProvider(final HttpProxySettings httpProxySettings) {
+        CredentialsProvider credsProvider = new BasicCredentialsProvider();
+
+        if (httpProxySettings != null && httpProxySettings.isEnabled()) {
+            // if an HTTP proxy username has been provided add credentials for the HTTP proxy
+            String proxyUsername = httpProxySettings.getUsername();
+            if (proxyUsername != null && !proxyUsername.isEmpty()) {
+                credsProvider.setCredentials(
+                        new AuthScope(httpProxySettings.getUrl(), httpProxySettings.getPort()),
+                        new UsernamePasswordCredentials(proxyUsername, httpProxySettings.getPassword()));
+            }
+        }
+
+        return credsProvider;
     }
 
     /**

@@ -54,6 +54,7 @@ public class DeleteOperation implements CommandLineOperation {
         mandatoryOptions.put(Options.VERIFY_CERT_BUNDLE, optionSpecMap.get(Options.VERIFY_CERT_BUNDLE));
         mandatoryOptions.put(Options.COOKIE, optionSpecMap.get(Options.COOKIE));
         mandatoryOptions.put(Options.DOMAIN, optionSpecMap.get(Options.DOMAIN));
+        mandatoryOptions.put(Options.HTTP_PROXY, optionSpecMap.get(Options.HTTP_PROXY));
     }
 
     /**
@@ -106,7 +107,7 @@ public class DeleteOperation implements CommandLineOperation {
             try {
                 url = new URL(options.valueOf(mandatoryOptions.get(Options.URL)));
             } catch (MalformedURLException e) {
-                CliUtils.printUsageAndFinish(CommandLineInterface.parser, e.getMessage());
+                CliUtils.printUsageAndFinish(CommandLineInterface.parser, e.getMessage(), e);
             }
             Channel channel = new Channel(CliUtils.getBaseURL(url),
                     channelAuth,
@@ -114,8 +115,9 @@ public class DeleteOperation implements CommandLineOperation {
                     null,
                     options.valueOf(mandatoryOptions.get(Options.CONSUMER_PATH_PREFIX)),
                     false,
-                    options.valueOf(mandatoryOptions.get(Options.VERIFY_CERT_BUNDLE)),
-                    null);
+                    CliUtils.getCertificate(options.valueOf(mandatoryOptions.get(Options.VERIFY_CERT_BUNDLE))),
+                    null,
+                    CliUtils.getHttpProxySettings(options.valueOf(mandatoryOptions.get(Options.HTTP_PROXY))));
 
             // Inject consumerId to channel
             PA.setValue(channel, "consumerId", options.valueOf(mandatoryOptions.get(Options.CONSUMER_ID)));
@@ -133,7 +135,7 @@ public class DeleteOperation implements CommandLineOperation {
 
 
         } catch (Exception e) {
-            CliUtils.printUsageAndFinish(CommandLineInterface.parser, e.getMessage());
+            CliUtils.printUsageAndFinish(CommandLineInterface.parser, e.getMessage(), e);
         }
 
         return null;

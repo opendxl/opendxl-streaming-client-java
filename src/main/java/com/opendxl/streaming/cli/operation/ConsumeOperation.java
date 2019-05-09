@@ -57,6 +57,8 @@ public class ConsumeOperation implements CommandLineOperation {
         mandatoryOptions.put(Options.VERIFY_CERT_BUNDLE, optionSpecMap.get(Options.VERIFY_CERT_BUNDLE));
         mandatoryOptions.put(Options.COOKIE, optionSpecMap.get(Options.COOKIE));
         mandatoryOptions.put(Options.DOMAIN, optionSpecMap.get(Options.DOMAIN));
+        mandatoryOptions.put(Options.HTTP_PROXY, optionSpecMap.get(Options.HTTP_PROXY));
+        mandatoryOptions.put(Options.CONSUME_TIMEOUT, optionSpecMap.get(Options.CONSUME_TIMEOUT));
     }
 
     /**
@@ -125,7 +127,7 @@ public class ConsumeOperation implements CommandLineOperation {
             try {
                 url = new URL(options.valueOf(mandatoryOptions.get(Options.URL)));
             } catch (MalformedURLException e) {
-                CliUtils.printUsageAndFinish(CommandLineInterface.parser, e.getMessage());
+                CliUtils.printUsageAndFinish(CommandLineInterface.parser, e.getMessage(), e);
             }
             Channel channel = new Channel(CliUtils.getBaseURL(url),
                     channelAuth,
@@ -133,8 +135,9 @@ public class ConsumeOperation implements CommandLineOperation {
                     null,
                     options.valueOf(mandatoryOptions.get(Options.CONSUMER_PATH_PREFIX)),
                     false,
-                    options.valueOf(mandatoryOptions.get(Options.VERIFY_CERT_BUNDLE)),
-                    null);
+                    CliUtils.getCertificate(options.valueOf(mandatoryOptions.get(Options.VERIFY_CERT_BUNDLE))),
+                    null,
+                    CliUtils.getHttpProxySettings(options.valueOf(mandatoryOptions.get(Options.HTTP_PROXY))));
 
             // Inject consumerId to channel
             PA.setValue(channel, "consumerId", options.valueOf(mandatoryOptions.get(Options.CONSUMER_ID)));
@@ -148,12 +151,18 @@ public class ConsumeOperation implements CommandLineOperation {
             PA.setValue(channel, "subscriptions", channel.subscriptions());
 
             // Consume records and return execution result
-            return new ExecutionResult("200", channel.consume().getRecords(),
-                    CliUtils.getCommandLine(options, mandatoryOptions));
+            final String consumeTimeout = options.valueOf(mandatoryOptions.get(Options.CONSUME_TIMEOUT));
+            if (consumeTimeout.isEmpty()) {
+                return new ExecutionResult("200", channel.consume().getRecords(),
+                        CliUtils.getCommandLine(options, mandatoryOptions));
+            } else {
+                return new ExecutionResult("200", channel.consume(Integer.parseInt(consumeTimeout)).getRecords(),
+                        CliUtils.getCommandLine(options, mandatoryOptions));
+            }
 
 
         } catch (Exception e) {
-            CliUtils.printUsageAndFinish(CommandLineInterface.parser, e.getMessage());
+            CliUtils.printUsageAndFinish(CommandLineInterface.parser, e.getMessage(), e);
         }
 
         return null;
