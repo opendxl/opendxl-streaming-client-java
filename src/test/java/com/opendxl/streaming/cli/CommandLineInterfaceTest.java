@@ -455,6 +455,7 @@ public class CommandLineInterfaceTest {
         final OptionSet options = (OptionSet) PA.getValue(cli, "options");
         assertTrue(options.valueOf("consumer-prefix").equals("/databus/consumer-service/v1"));
         assertTrue(options.valueOf("http-proxy").equals(""));
+        assertTrue(options.valueOf("consume-timeout").equals(""));
 
     }
 
@@ -734,11 +735,5 @@ public class CommandLineInterfaceTest {
                 + "--http-proxy alfa,bravo,charlie";
         CommandLineInterface.main(args.split(" "));
     }
-
-    ///////
-
-
-
-
 
 }

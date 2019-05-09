@@ -36,10 +36,9 @@ import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -249,8 +248,17 @@ public class HttpConnection implements AutoCloseable {
 
         final CertificateFactory certFactory = CertificateFactory.getInstance("X.509");
 
+        // Check whether certificateParameterValue is an existing filename
+        boolean isFile;
+        try {
+            isFile = (new File(caChainPems)).isFile();
+        } catch (final Exception e) {
+            // certificateParameterValue is not an existing filename
+            isFile = false;
+        }
+
         java.util.Collection<? extends Certificate> chain;
-        if (Files.isRegularFile(Paths.get(caChainPems))) {
+        if (isFile) {
             try (FileInputStream fis = new FileInputStream(caChainPems);
                  BufferedInputStream bis = new BufferedInputStream(fis)) {
 

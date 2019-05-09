@@ -111,7 +111,7 @@ public class CommitOperation implements CommandLineOperation {
             try {
                 url = new URL(options.valueOf(mandatoryOptions.get(Options.URL)));
             } catch (MalformedURLException e) {
-                CliUtils.printUsageAndFinish(CommandLineInterface.parser, e.getMessage());
+                CliUtils.printUsageAndFinish(CommandLineInterface.parser, e.getMessage(), e);
             }
             Channel channel = new Channel(CliUtils.getBaseURL(url),
                     channelAuth,
@@ -139,7 +139,7 @@ public class CommitOperation implements CommandLineOperation {
 
 
         } catch (Exception e) {
-            CliUtils.printUsageAndFinish(CommandLineInterface.parser, e.getMessage());
+            CliUtils.printUsageAndFinish(CommandLineInterface.parser, e.getMessage(), e);
         }
 
         return null;

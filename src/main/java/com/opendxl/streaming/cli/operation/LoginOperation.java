@@ -112,7 +112,7 @@ public class LoginOperation implements CommandLineOperation {
             base = url.getProtocol() + "://" + url.getHost() + ":" + url.getPort();
             path = url.getPath();
         } catch (MalformedURLException e) {
-            CliUtils.printUsageAndFinish(CommandLineInterface.parser, e.getMessage());
+            CliUtils.printUsageAndFinish(CommandLineInterface.parser, e.getMessage(), e);
         }
 
         HttpGet httpRequest = new HttpGet(base + path);
@@ -130,7 +130,7 @@ public class LoginOperation implements CommandLineOperation {
             return new ExecutionResult("200", token, CliUtils.getCommandLine(options, mandatoryOptions));
 
         } catch (PermanentError | TemporaryError e) {
-            CliUtils.printUsageAndFinish(CommandLineInterface.parser, e.getMessage());
+            CliUtils.printUsageAndFinish(CommandLineInterface.parser, e.getMessage(), e);
         }
 
         return new ExecutionResult("", "", new HashMap<>());

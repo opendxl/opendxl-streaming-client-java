@@ -23,7 +23,8 @@ public enum Options {
     COOKIE,
     DOMAIN,
     VERIFY_CERT_BUNDLE,
-    HTTP_PROXY
+    HTTP_PROXY,
+    CONSUME_TIMEOUT
 };
 
 

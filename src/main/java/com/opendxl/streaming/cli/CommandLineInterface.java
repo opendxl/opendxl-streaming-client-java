@@ -52,7 +52,7 @@ public class CommandLineInterface {
 
         // operation option spec represented as --operation command line
         final ArgumentAcceptingOptionSpec<String> operationsOpt =
-                parser.accepts("operation", "Operations: login | create | subscribe | consume | commit | subscription")
+                parser.accepts("operation", "Operations: login | create | subscribe | consume | commit | subscriptions")
                         .withRequiredArg()
                         .describedAs("operation")
                         .ofType(String.class)
@@ -164,11 +164,23 @@ public class CommandLineInterface {
 
         // Consumer config option spec represented as --http-proxy command line
         final ArgumentAcceptingOptionSpec<String> httpProxyOpt =
-                parser.accepts("http-proxy", "Http Proxy settings.")
+                parser.accepts("http-proxy", "Http Proxy settings in comma-separated format: "
+                        + "enabled (true/false), host (URL format), port (integer), username (string), "
+                        + "password (string). Enabled, host and port are mandatory.")
                         .withRequiredArg()
                         .describedAs("http-proxy")
                         .ofType(String.class)
                         .defaultsTo("");
+
+        // Consumer config option spec represented as --timeout command line
+        final ArgumentAcceptingOptionSpec<String> consumeTimeoutOpt =
+                parser.accepts("consume-timeout", "Consume Poll Timeout. Time that the channel waits for "
+                        + "new records during a consume operation. Optional parameter, if absent, it defaults to zero.")
+                        .withRequiredArg()
+                        .describedAs("domain")
+                        .ofType(String.class)
+                        .defaultsTo("");
+
 
         if (args.length == 0) {
             CliUtils.printUsageAndFinish(parser, "There are not options");
@@ -194,6 +206,7 @@ public class CommandLineInterface {
         optionSpecMap.put(Options.COOKIE, cookieOpt);
         optionSpecMap.put(Options.DOMAIN, domainOpt);
         optionSpecMap.put(Options.HTTP_PROXY, httpProxyOpt);
+        optionSpecMap.put(Options.CONSUME_TIMEOUT, consumeTimeoutOpt);
 
         this.operation = buildOperation(optionSpecMap);
         CliUtils.validateMandatoryOperationArgs(operation, parser, options);
