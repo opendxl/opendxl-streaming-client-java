@@ -1163,7 +1163,7 @@ public class ChannelTest {
         }
         error = null;
         try {
-            channel.run(null, null, 0);
+            channel.run(null, "topic-2", 0);
         } catch (final TemporaryError e) {
             error = e;
         } finally {

@@ -1,17 +1,91 @@
+/*---------------------------------------------------------------------------*
+ * Copyright (c) 2019 McAfee, LLC - All Rights Reserved.                     *
+ *---------------------------------------------------------------------------*/
+
 package com.opendxl.streaming.cli;
+
+import com.opendxl.streaming.cli.entity.ExecutionResult;
+import com.opendxl.streaming.cli.entity.StickinessCookie;
+import com.opendxl.streaming.client.entity.ConsumerRecords;
+
+import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import joptsimple.OptionSet;
 import junit.extensions.PA;
+import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.contrib.java.lang.system.ExpectedSystemExit;
 
+import java.util.List;
+
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.delete;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static junit.framework.TestCase.assertTrue;
 
 
 public class CommandLineInterfaceTest {
     @Rule
     public final ExpectedSystemExit exit = ExpectedSystemExit.none();
+
+    @Rule
+    public WireMockRule wireMockRule = new WireMockRule(8080);
+
+    @Test
+    public void shouldLoginSuccessfully() throws Exception {
+        // Setup
+        // Setup a mock http response to login request
+        stubFor(get(urlEqualTo("/identity/v1/login"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"authorizationToken\":\"MY_AUTHORIZATION_TOKEN\"}")));
+        // Setup CLI parameters
+        String args = "--operation login "
+                + "--auth-url http://localhost:8080/identity/v1/login "
+                + "--user myUsername "
+                + "--password myPassword "
+                + "--verify-cert-bundle 1234";
+
+        // Test
+        CommandLineInterface cli = new CommandLineInterface(args.split(" "));
+        ExecutionResult executionResult = cli.execute();
+
+        // Evaluate
+        Assert.assertEquals("200", executionResult.getCode());
+        Assert.assertEquals("MY_AUTHORIZATION_TOKEN", executionResult.getResult());
+    }
+
+    @Test
+    public void shouldLoginFail() throws Exception {
+        // Setup
+        // Setup expected value when CommandLineInterface calls System.exit()
+        exit.expectSystemExitWithStatus(1);
+        // Setup a mock http response to login request
+        stubFor(get(urlEqualTo("/identity/v1/login"))
+                .willReturn(aResponse()
+                        .withStatus(401)
+                        .withBody("Dummy 401 error message")));
+        // Setup CLI parameters
+        String args = "--operation login "
+                + "--auth-url http://localhost:8080/identity/v1/login "
+                + "--user myUsername "
+                + "--password myPassword "
+                + "--verify-cert-bundle 1234";
+
+        // Test
+        CommandLineInterface cli = new CommandLineInterface(args.split(" "));
+        cli.execute();
+    }
+
 
     @Test
     public void shouldFailWhenThereisNoOptions() {
@@ -43,6 +117,65 @@ public class CommandLineInterfaceTest {
     }
 
     // --create Operation
+
+    @Test
+    public void shouldCreateAConsumer() throws Exception {
+        // Setup
+        // Setup a mock http response to create request
+        stubFor(post(urlEqualTo("/databus/consumer-service/v1/consumers"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withHeader("Set-Cookie", "AWSALB=my-cookie-value; Path=/my-path; HttpOnly")
+                        .withBody("{\"consumerInstanceId\":\"" + CONSUMER_ID + "\"}")));
+        // Setup CLI parameters
+        String args = "--operation create "
+                + "--url http://localhost:8080/databus/consumer-service/v1 "
+                + "--token MY_AUTHORIZATION_TOKEN "
+                + "--cg cg1 "
+                + "--config max.message.size=1000,min.message.size=200,auto.offset.reset=latest,"
+                + "session.timeout.ms=60000,request.timeout.ms=61000 "
+                + "--retry true "
+                + "--consumer-prefix /databus/consumer-service/v1 "
+                + "--verify-cert-bundle 1234";
+
+        // Test
+        CommandLineInterface cli = new CommandLineInterface(args.split(" "));
+        ExecutionResult executionResult = cli.execute();
+
+        // Evaluate
+        Assert.assertEquals("200", executionResult.getCode());
+        final Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+        final String executionResultString = gson.toJson(executionResult);
+        Assert.assertTrue(executionResultString.contains("\"consumerId\":\"" + CONSUMER_ID + "\""));
+        Assert.assertTrue(executionResultString.contains("\"cookie\":{\"value\":\"my-cookie-value\","
+                + "\"domain\":\"localhost\"}"));
+    }
+
+    @Test
+    public void shouldFailCreateAConsumer() {
+        // Setup
+        // Setup EVALUATION OF OUTPUT VALUES when CommandLineInterface calls System.exit()
+        exit.expectSystemExitWithStatus(1);
+        // Setup a mock http response to create request
+        stubFor(post(urlEqualTo("/databus/consumer-service/v1/consumers"))
+                .willReturn(aResponse()
+                        .withStatus(401)
+                        .withBody("Dummy 401 error message")));
+        // Setup CLI parameters
+        String args = "--operation create "
+                + "--url http://localhost:8080/databus/consumer-service/v1 "
+                + "--token MY_AUTHORIZATION_TOKEN "
+                + "--cg cg1 "
+                + "--config max.message.size=1000,min.message.size=200,auto.offset.reset=anything,"
+                + "session.timeout.ms=60000,request.timeout.ms=61000 "
+                + "--retry true "
+                + "--consumer-prefix /databus/consumer-service/v1 "
+                + "--verify-cert-bundle 1234";
+
+        // Test
+        CommandLineInterface.main(args.split(" "));
+    }
 
     @Test
     public void shouldFailWhenCreateOperationOptionHasNotAdditionalOptions() {
@@ -734,6 +867,192 @@ public class CommandLineInterfaceTest {
                 + "--verify-cert-bundle 1234 "
                 + "--http-proxy alfa,bravo,charlie";
         CommandLineInterface.main(args.split(" "));
+    }
+
+    // combined test to successfully call create, subscribe, consume, commit and delete
+    @Test
+    public void shouldSuccessfullySubscribeConsumeCommitAndDelete() {
+        // Setup
+        // Setup http stubs
+        final String myCookieValue = "my-cookie-value";
+        final String topic = "topic3";
+        // Setup gson parser to deserialize ExecutionResult objects
+        final Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+        setUpWireMockStubs(CONSUMER_ID, myCookieValue, topic, JSON_CONSUMER_RECORD, 100);
+
+        // Setup create
+        final String argsForCreate = "--operation create "
+                + "--url http://localhost:8080/databus/consumer-service/v1 "
+                + "--token myToken "
+                + "--cg cg16 "
+                + "--retry true "
+                + "--consumer-prefix /databus/consumer-service/v1 "
+                + "--config auto.offset.reset=earliest,session.timeout.ms=30000,request.timeout.ms=31000 "
+                + "--verify-cert-bundle 1234";
+
+        // Test create
+        CommandLineInterface cli = new CommandLineInterface(argsForCreate.split(" "));
+        ExecutionResult executionResult = cli.execute();
+
+        // Evaluate create
+        Object result = executionResult.getResult();
+        final String consumerId = (String) PA.getValue(result, "consumerId");
+        Assert.assertEquals(CONSUMER_ID, consumerId);
+        final StickinessCookie stickinessCookie = (StickinessCookie) PA.getValue(result, "cookie");
+        Assert.assertEquals(myCookieValue, stickinessCookie.getValue());
+        Assert.assertEquals("localhost", stickinessCookie.getDomain());
+
+        // Setup subscribe
+        String argsForSubscribe = "--operation subscribe "
+                + "--url http://localhost:8080/databus/consumer-service/v1 "
+                + "--token myToken "
+                + "--consumer-id " + CONSUMER_ID + " "
+                + "--cookie " + stickinessCookie.getValue() + " "
+                + "--domain " + stickinessCookie.getDomain() + " "
+                + "--consumer-prefix /databus/consumer-service/v1 "
+                + "--topic " + topic + " "
+                + "--verify-cert-bundle 1234";
+
+        // Test subscribe
+        cli = new CommandLineInterface(argsForSubscribe.split(" "));
+        executionResult = cli.execute();
+
+        // Evaluate subscribe
+        Assert.assertEquals("204", executionResult.getCode());
+
+        // Setup consume and commit
+        String argsForConsume = "--operation consume "
+                + "--url http://localhost:8080/databus/consumer-service/v1 "
+                + "--token myToken "
+                + "--consumer-id " + consumerId + " "
+                + "--cookie " + stickinessCookie.getValue() + " "
+                + "--domain " + stickinessCookie.getDomain() + " "
+                + "--consumer-prefix /databus/consumer-service/v1 "
+                + "--verify-cert-bundle 1234 "
+                + "--consume-timeout 100";
+        CommandLineInterface cliForConsume = new CommandLineInterface(argsForConsume.split(" "));
+
+        String argsForCommit = "--operation commit "
+                + "--url http://localhost:8080/databus/consumer-service/v1 "
+                + "--token myToken "
+                + "--consumer-id " + consumerId + " "
+                + "--cookie " + stickinessCookie.getValue() + " "
+                + "--domain " + stickinessCookie.getDomain() + " "
+                + "--consumer-prefix /databus/consumer-service/v1 "
+                + "--verify-cert-bundle 1234";
+        CommandLineInterface cliForCommit = new CommandLineInterface(argsForCommit.split(" "));
+
+        // Test consume and commit three times
+        for (int i = 0; i < 3; ++i) {
+            executionResult = cliForConsume.execute();
+            Assert.assertEquals("200", executionResult.getCode());
+            List<ConsumerRecords.ConsumerRecord> consumerRecords =
+                    (List<ConsumerRecords.ConsumerRecord>) executionResult.getResult();
+            Assert.assertEquals(1, consumerRecords.size());
+            Assert.assertEquals("UGF5bG9hZCAjMQ==", consumerRecords.get(0).getPayload());
+            Assert.assertEquals("topic-0", consumerRecords.get(0).getTopic());
+            Assert.assertEquals("shardingKey-0", consumerRecords.get(0).getShardingKey());
+            Assert.assertEquals(4, consumerRecords.get(0).getHeaders().size());
+            Assert.assertEquals("sourceId-0", consumerRecords.get(0).getHeaders().get("sourceId"));
+            Assert.assertEquals("scope-0", consumerRecords.get(0).getHeaders().get("scope"));
+            Assert.assertEquals("tenantId-0", consumerRecords.get(0).getHeaders().get("tenantId"));
+            Assert.assertEquals("zoneId-0", consumerRecords.get(0).getHeaders().get("zoneId"));
+            Assert.assertEquals(0, consumerRecords.get(0).getPartition());
+            Assert.assertEquals(1, consumerRecords.get(0).getOffset());
+
+            executionResult = cliForCommit.execute();
+            Assert.assertEquals("204", executionResult.getCode());
+        }
+
+        // Setup delete
+        String argsForDelete = "--operation delete "
+                + "--url http://localhost:8080/databus/consumer-service/v1 "
+                + "--token myToken "
+                + "--consumer-id " + consumerId + " "
+                + "--cookie " + stickinessCookie.getValue() + " "
+                + "--domain " + stickinessCookie.getDomain() + " "
+                + "--consumer-prefix /databus/consumer-service/v1 "
+                + "--verify-cert-bundle 1234";
+        CommandLineInterface cliForDelete = new CommandLineInterface(argsForDelete.split(" "));
+
+        // Test delete
+        executionResult = cliForDelete.execute();
+
+        // Evaluate delete
+        Assert.assertEquals("204", executionResult.getCode());
+
+    }
+
+    // ------------------------------------------------------------
+
+    private static final String CONSUMER_ID =
+            "c4b60c6e-931e-496c-97c6-86c2935a353196fa80a1-f911-47ee-9a35-fc40a8c5137e";
+
+    private static final String JSON_CONSUMER_RECORD = "{"
+            + "\"routingData\":{\"topic\":\"topic-0\",\"shardingKey\":\"shardingKey-0\"},"
+            + "\"message\":"
+            + "{"
+            + "\"headers\":"
+            + "{\"sourceId\":\"sourceId-0\",\"scope\":\"scope-0\",\"tenantId\":\"tenantId-0\",\"zoneId\":\"zoneId-0\"},"
+            + "\"payload\":\"UGF5bG9hZCAjMQ==\""
+            + "},"
+            + "\"partition\":0,\"offset\":1"
+            + "}";
+
+    private void setUpWireMockStubs(final String consumerId, final String cookieValue, final String topic,
+                            final String jsonConsumerRecord, final int timeoutMs) {
+        // set up response to create
+        stubFor(post(urlEqualTo("/databus/consumer-service/v1/consumers"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withHeader("Set-Cookie", "AWSALB=" + cookieValue + "; Path=/my-path; HttpOnly")
+                        .withBody("{\"consumerInstanceId\":\"" + consumerId + "\"}")));
+
+        // set up response to subscription
+        stubFor(post(urlEqualTo("/databus/consumer-service/v1/consumers/" + consumerId + "/subscription"))
+                .withCookie("AWSALB", equalTo(cookieValue))
+                .withRequestBody(equalToJson("{\"topics\":[\"" + topic + "\"]}"))
+                .willReturn(aResponse()
+                        .withStatus(204)));
+
+        // set up response to get subscriptions
+        stubFor(get(urlEqualTo("/databus/consumer-service/v1/consumers/" + consumerId + "/subscription"))
+                .withCookie("AWSALB", equalTo(cookieValue))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("[\"" + topic + "\"]")));
+
+        // set up response to consume records
+        if (timeoutMs > 0) {
+            stubFor(get(urlEqualTo("/databus/consumer-service/v1/consumers/" + consumerId + "/records?timeout="
+                    + Integer.toString(timeoutMs)))
+                    .withCookie("AWSALB", equalTo(cookieValue))
+                    .willReturn(aResponse()
+                            .withStatus(200)
+                            .withHeader("Content-Type", "application/json")
+                            .withBody("{\"records\":[" + jsonConsumerRecord + "]}")));
+        } else {
+            stubFor(get(urlEqualTo("/databus/consumer-service/v1/consumers/" + consumerId + "/records"))
+                    .withCookie("AWSALB", equalTo(cookieValue))
+                    .willReturn(aResponse()
+                            .withStatus(200)
+                            .withHeader("Content-Type", "application/json")
+                            .withBody("{\"records\":[" + jsonConsumerRecord + "]}")));
+        }
+
+        // set up response to commit offsets
+        stubFor(post(urlEqualTo("/databus/consumer-service/v1/consumers/" + consumerId + "/offsets"))
+                .withCookie("AWSALB", equalTo(cookieValue))
+                .willReturn(aResponse()
+                        .withStatus(204)));
+
+        // set up response to delete channel
+        stubFor(delete(urlEqualTo("/databus/consumer-service/v1/consumers/" + consumerId))
+                .withCookie("AWSALB", equalTo(cookieValue))
+                .willReturn(aResponse()
+                        .withStatus(204)));
     }
 
 }
