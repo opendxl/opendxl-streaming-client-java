@@ -174,13 +174,13 @@ public class ChannelAuthUserPass implements ChannelAuth {
         } else if (statusCode == HttpStatusCodes.UNAUTHORIZED.getCode()
                 || statusCode == HttpStatusCodes.FORBIDDEN.getCode()) {
 
-            String error = "Unauthorized " + statusCode + ": " + response.getEntity().toString();
+            String error = "Unauthorized " + statusCode + ": " + entityString;
             logger.error(error);
             throw new PermanentError(error);
 
         } else {
 
-            String error = "Unexpected status code " + statusCode + ": " + response.getEntity().toString();
+            String error = "Unexpected status code " + statusCode + ": " + entityString;
             logger.error(error);
             throw new TemporaryError(error);
 
