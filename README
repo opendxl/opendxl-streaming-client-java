@@ -5,7 +5,7 @@ Overview
 --------
 
 The OpenDXL Streaming Java client library is used to consume records
-from and produce records to a
+from a
 `Data Exchange Layer <http://www.mcafee.com/us/solutions/data-exchange-layer.aspx>`_
 (DXL) Streaming Service.
 
@@ -21,12 +21,20 @@ One concrete example of a DXL Streaming Service is the
 Documentation
 -------------
 
-TBC 
+See the
+`GitHub Wiki <https://github.com/opendxl/opendxl-streaming-client-java/wiki>`_
+for an overview of the OpenDXL Streaming Java client library and
+examples.
+
+See the
+`OpenDXL Streaming Java Client Library Documentation <https://opendxl.github.io/opendxl-streaming-client-java/docs/javadoc/index.html>`_
+for API documentation and examples.
 
 Bugs and Feedback
 -----------------
 
-TBC
+For bugs, questions and discussions please use the
+`GitHub Issues <https://github.com/opendxl/opendxl-streaming-client-java/issues>`_.
 
 LICENSE
 -------

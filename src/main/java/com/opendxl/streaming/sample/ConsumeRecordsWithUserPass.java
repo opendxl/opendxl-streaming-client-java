@@ -127,9 +127,9 @@ public class ConsumeRecordsWithUserPass {
 
                 @Override
                 public boolean processCallback(ConsumerRecords consumerRecords, String consumerId) {
-                    // Print the payloads which were received. 'payloads' is a list of
-                    // dictionary objects extracted from the records received from the
-                    // channel.
+                    // Print the received payloads. 'payloads' is a list of
+                    // dictionary objects extracted from the records received
+                    // from the channel.
                     System.out.println(new StringBuilder("Received ")
                             .append(consumerRecords.getRecords().size())
                             .append(" records")
