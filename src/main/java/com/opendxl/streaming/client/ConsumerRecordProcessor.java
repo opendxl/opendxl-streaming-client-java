@@ -24,7 +24,8 @@ public interface ConsumerRecordProcessor {
      * @param consumerRecords instance of {@link ConsumerRecords}. It contains the consumed records returned by
      * {@link Channel#consume()} method.
      * @param consumerId consumer identifier
-     * @return {@code true} if receiver wants to continue consuming records; {@code false} otherwise
+     * @return <b>Reserved for future use:</b> the {@link Channel#run(ConsumerRecordProcessor, List)} )} method
+     * currently ignores this return value.
      * @throws ConsumerError if receiver wants to retry consuming records since last committed offset. Receiver should
      *                       raise this exception upon finding errors in consumer records that might be overcome by
      *                       consuming such records again.
