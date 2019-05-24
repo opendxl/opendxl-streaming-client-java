@@ -3,7 +3,7 @@
 ## Overview
 
 The OpenDXL Streaming Java client library is used to consume records
-from and produce records to a
+from a
 [Data Exchange Layer](http://www.mcafee.com/us/solutions/data-exchange-layer.aspx)
 (DXL) Streaming Service.
 
@@ -12,19 +12,35 @@ back-end streaming platform (Kafka, Kinesis, etc.). The streaming service
 performs authentication and authorization and exposes methods to retrieve
 and produce records.
 
-One concrete example of a DXL Streaming Service is the TBD
+One concrete example of a DXL Streaming Service is the
+[McAfee Investigator](https://www.mcafee.com/enterprise/en-us/products/investigator.html)
+"Events feed".
 
 ## Documentation
 
-TBD
+See the
+[Wiki](https://github.com/opendxl/opendxl-streaming-client-java/wiki)
+for an overview of the OpenDXL Streaming Java client library and
+examples.
+
+See the
+[OpenDXL Streaming Java Client Library Documentation](https://opendxl.github.io/opendxl-streaming-client-java/docs/javadoc/index.html)
+for API documentation and examples.
 
 ## Installation
 
-TBD
+To start using the OpenDXL Streaming Java Client Library:
+
+* Download the [Latest Release](https://github.com/opendxl/opendxl-streaming-client-java/releases/latest)
+* Extract the release .zip file
+* View the `README.html` file located at the root of the extracted files.
+  * The `README` links to the documentation which includes installation instructions, API details, and samples.
+  * The SDK documentation is also available on-line [here](https://opendxl.github.io/opendxl-streaming-client-java/docs).
 
 ## Bugs and Feedback
 
-TBD
+For bugs, questions and discussions please use the
+[GitHub Issues](https://github.com/opendxl/opendxl-streaming-client-java/issues).
 
 ## LICENSE
 

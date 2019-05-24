@@ -628,9 +628,8 @@ public class Channel implements AutoCloseable {
      * {@link ConsumerRecordProcessor#processCallback(ConsumerRecords, String)} method is invoked with a list containing
      * each consumer record.</p>
      *
-     * <p>{@link ConsumerRecordProcessor#processCallback(ConsumerRecords, String)} should return a value of {@code true}
-     * in order for this function to continue consuming additional records. For a return value of {@code false}, no
-     * additional records will be consumed and this function will return.</p>
+     * <p>{@link ConsumerRecordProcessor#processCallback(ConsumerRecords, String)} return value is <b>currently
+     * ignored</b>. It is <b>reserved for future use</b>.</p>
      *
      * <p>The {@link Channel#stop()} method can also be called to halt an execution of this method.</p>
      *
@@ -654,9 +653,8 @@ public class Channel implements AutoCloseable {
      * {@link ConsumerRecordProcessor#processCallback(ConsumerRecords, String)} method is invoked with a list containing
      * each consumer record.</p>
      *
-     * <p>{@link ConsumerRecordProcessor#processCallback(ConsumerRecords, String)} should return a value of {@code true}
-     * in order for this function to continue consuming additional records. For a return value of {@code false}, no
-     * additional records will be consumed and this function will return.</p>
+     * <p>{@link ConsumerRecordProcessor#processCallback(ConsumerRecords, String)} return value is <b>currently
+     * ignored</b>. It is <b>reserved for future use</b>.</p>
      *
      * <p>The {@link Channel#stop()} method can also be called to halt an execution of this method.</p>
      *
@@ -715,9 +713,8 @@ public class Channel implements AutoCloseable {
      * {@link ConsumerRecordProcessor#processCallback(ConsumerRecords, String)} method is invoked with a list containing
      * each consumer record.</p>
      *
-     * <p>{@link ConsumerRecordProcessor#processCallback(ConsumerRecords, String)} should return a value of {@code true}
-     * in order for this function to continue consuming additional records. For a return value of {@code false}, no
-     * additional records will be consumed and this function will return.</p>
+     * <p>{@link ConsumerRecordProcessor#processCallback(ConsumerRecords, String)} return value is <b>currently
+     * ignored</b>. It is <b>reserved for future use</b>.</p>
      *
      * <p>The {@link Channel#stop()} method can also be called to halt an execution of this method.</p>
      *
@@ -741,9 +738,8 @@ public class Channel implements AutoCloseable {
      * {@link ConsumerRecordProcessor#processCallback(ConsumerRecords, String)} method is invoked with a list containing
      * each consumer record.</p>
      *
-     * <p>{@link ConsumerRecordProcessor#processCallback(ConsumerRecords, String)} should return a value of {@code true}
-     * in order for this function to continue consuming additional records. For a return value of {@code false}, no
-     * additional records will be consumed and this function will return.</p>
+     * <p>{@link ConsumerRecordProcessor#processCallback(ConsumerRecords, String)} return value is <b>currently
+     * ignored</b>. It is <b>reserved for future use</b>.</p>
      *
      * <p>The {@link Channel#stop()} method can also be called to halt an execution of this method.</p>
      *
