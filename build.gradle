@@ -1,6 +1,8 @@
 plugins {
     id 'checkstyle'
     id 'java-library'
+    id 'distribution'
+    id 'maven-publish'
 }
 
 apply plugin: 'java'
@@ -66,7 +68,86 @@ artifacts {
     archives javadocJar
 }
 
+// Set up the distribution zip
+distributions {
+    main {
+        baseName = 'opendxlstreamingclient-java-sdk'
+        contents {
+            from(jar) {
+                into('lib')
+            }
+            from(javadoc) {
+                into('doc/javadoc')
+            }
+            from('distribution')
+        }
+
+    }
+}
+
+
 
 
 // Make check style run before creating a jar
 jar.dependsOn(checkstyleMain)
+
+// Force distZip to be dependent on javadocJar and sourceJar
+distZip.dependsOn javadocJar
+distZip.dependsOn sourceJar
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            groupId = group
+            pom {
+                name = 'OpenDXL Streaming Java Client'
+                description = 'An OpenDXL streaming client library for Java'
+                url = 'https://github.com/opendxl/opendxl-streaming-client-java'
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        email = 'support@opendxl.com'
+                    }
+                }
+                scm {
+                    connection = 'scm:git:git://github.com/opendxl/opendxl-streaming-client-java.git'
+                    developerConnection = 'scm:git:ssh://github.com/opendxl/opendxl-streaming-client-java.git'
+                    url = 'https://github.com/opendxl/opendxl-streaming-client-java'
+                }
+            }
+
+            from components.java
+
+            artifact(sourceJar) {
+                classifier = 'sources'
+            }
+            artifact(javadocJar) {
+                classifier = 'javadoc'
+            }
+
+        }
+    }
+
+    repositories {
+        maven {
+            url = "$buildDir/repo"
+
+//            def releasesRepoUrl = "https://oss.sonatype.org/service/local/staging/deploy/maven2"
+//            def snapshotsRepoUrl = "https://oss.sonatype.org/content/repositories/snapshots"
+//            url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+//            credentials {
+//                username sonatypeUsername
+//                password sonatypePassword
+//            }
+        }
+    }
+
+}
+
+distZip.dependsOn javadocJar
+distZip.dependsOn sourceJar
