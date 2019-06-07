@@ -57,6 +57,49 @@ task javadocJar(type: Jar, dependsOn: javadoc) {
     baseName = rootProject.name
 }
 
+// Property with the source file list used by sourceZip and sourceTarGz tasks to respectively create a zip file and
+// a tar.gz file containing all source files required to build the project
+ext {
+    sourceTree = fileTree(dir: projectDir)
+    sourceTree.include 'src/**/*'
+    sourceTree.include 'config/**/*'
+    sourceTree.include 'gradle/**/*'
+    sourceTree.include 'gradle*'
+    sourceTree.include '.gitignore'
+    sourceTree.include '.travis.yml'
+    sourceTree.include 'LICENSE'
+    sourceTree.include 'README*'
+    sourceTree.include 'build.gradle'
+    sourceTree.include 'settings.gradle'
+    blank = ''
+}
+
+// Task for creating a zip compressed file containing all necessary source files to build the project
+task sourceZip(type: Zip) {
+    classifier = project.ext.blank
+    baseName = project.ext.blank
+    appendix = project.ext.blank
+    from project.ext.sourceTree
+
+    doLast {
+        println "Path to zip: $archivePath.path"
+    }
+}
+
+// Task for creating a tar.gz compressed file containing all necessary source files to build the project
+task sourceTarGz(type: Tar) {
+    compression = Compression.GZIP
+    extension = 'tar.gz'
+    classifier = project.ext.blank
+    baseName = project.ext.blank
+    appendix = project.ext.blank
+    from project.ext.sourceTree
+
+    doLast {
+        println "Path to tar.gz: $archivePath.path"
+    }
+}
+
 javadoc {
     source = sourceSets.main.allJava
     options.memberLevel = JavadocMemberLevel.PUBLIC
@@ -66,6 +109,8 @@ artifacts {
     archives jar
     archives sourceJar
     archives javadocJar
+    archives sourceZip
+    archives sourceTarGz
 }
 
 // Set up the distribution zip
