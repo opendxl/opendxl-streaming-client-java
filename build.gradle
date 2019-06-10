@@ -1,6 +1,8 @@
 plugins {
     id 'checkstyle'
     id 'java-library'
+    id 'distribution'
+    id 'maven-publish'
 }
 
 apply plugin: 'java'
@@ -55,6 +57,49 @@ task javadocJar(type: Jar, dependsOn: javadoc) {
     baseName = rootProject.name
 }
 
+// Property with the source file list used by sourceZip and sourceTarGz tasks to respectively create a zip file and
+// a tar.gz file containing all source files required to build the project
+ext {
+    sourceTree = fileTree(dir: projectDir)
+    sourceTree.include 'src/**/*'
+    sourceTree.include 'config/**/*'
+    sourceTree.include 'gradle/**/*'
+    sourceTree.include 'gradle*'
+    sourceTree.include '.gitignore'
+    sourceTree.include '.travis.yml'
+    sourceTree.include 'LICENSE'
+    sourceTree.include 'README*'
+    sourceTree.include 'build.gradle'
+    sourceTree.include 'settings.gradle'
+    blank = ''
+}
+
+// Task for creating a zip compressed file containing all necessary source files to build the project
+task sourceZip(type: Zip) {
+    classifier = project.ext.blank
+    baseName = project.ext.blank
+    appendix = project.ext.blank
+    from project.ext.sourceTree
+
+    doLast {
+        println "Path to zip: $archivePath.path"
+    }
+}
+
+// Task for creating a tar.gz compressed file containing all necessary source files to build the project
+task sourceTarGz(type: Tar) {
+    compression = Compression.GZIP
+    extension = 'tar.gz'
+    classifier = project.ext.blank
+    baseName = project.ext.blank
+    appendix = project.ext.blank
+    from project.ext.sourceTree
+
+    doLast {
+        println "Path to tar.gz: $archivePath.path"
+    }
+}
+
 javadoc {
     source = sourceSets.main.allJava
     options.memberLevel = JavadocMemberLevel.PUBLIC
@@ -64,9 +109,90 @@ artifacts {
     archives jar
     archives sourceJar
     archives javadocJar
+    archives sourceZip
+    archives sourceTarGz
 }
+
+// Set up the distribution zip
+distributions {
+    main {
+        baseName = 'opendxlstreamingclient-java-sdk'
+        contents {
+            from(jar) {
+                into('lib')
+            }
+            from(javadoc) {
+                into('doc/javadoc')
+            }
+            from('distribution')
+        }
+
+    }
+}
+
 
 
 
 // Make check style run before creating a jar
 jar.dependsOn(checkstyleMain)
+
+// Force distZip to be dependent on javadocJar and sourceJar
+distZip.dependsOn javadocJar
+distZip.dependsOn sourceJar
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            groupId = group
+            pom {
+                name = 'OpenDXL Streaming Java Client'
+                description = 'An OpenDXL streaming client library for Java'
+                url = 'https://github.com/opendxl/opendxl-streaming-client-java'
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        email = 'support@opendxl.com'
+                    }
+                }
+                scm {
+                    connection = 'scm:git:git://github.com/opendxl/opendxl-streaming-client-java.git'
+                    developerConnection = 'scm:git:ssh://github.com/opendxl/opendxl-streaming-client-java.git'
+                    url = 'https://github.com/opendxl/opendxl-streaming-client-java'
+                }
+            }
+
+            from components.java
+
+            artifact(sourceJar) {
+                classifier = 'sources'
+            }
+            artifact(javadocJar) {
+                classifier = 'javadoc'
+            }
+
+        }
+    }
+
+    repositories {
+        maven {
+            url = "$buildDir/repo"
+
+//            def releasesRepoUrl = "https://oss.sonatype.org/service/local/staging/deploy/maven2"
+//            def snapshotsRepoUrl = "https://oss.sonatype.org/content/repositories/snapshots"
+//            url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+//            credentials {
+//                username sonatypeUsername
+//                password sonatypePassword
+//            }
+        }
+    }
+
+}
+
+distZip.dependsOn javadocJar
+distZip.dependsOn sourceJar
