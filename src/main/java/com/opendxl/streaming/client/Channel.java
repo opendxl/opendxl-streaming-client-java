@@ -115,6 +115,11 @@ public class Channel implements AutoCloseable {
     private final String verifyCertBundle;
 
     /**
+     * Http headers
+     */
+    private final Map<String, String> httpHeaders;
+
+    /**
      * String that define the value of multi_tenant query string for subscription API
      */
     private String multiTenantQueryString;
@@ -273,10 +278,13 @@ public class Channel implements AutoCloseable {
         this.consumerId = null;
         this.subscriptions = new ArrayList<>();
 
+        // Get http headers
+        this.httpHeaders = getHttpHeadersFromConfig(configs);
+
         // Create a custom Request object so that we can store cookies across requests
         this.isHttps = base.toLowerCase().startsWith("https");
         this.httpProxySettings = httpProxySettings;
-        this.request = new Request(base, auth, this.verifyCertBundle, this.isHttps, this.httpProxySettings);
+        this.request = new Request(base, auth, this.verifyCertBundle, this.isHttps, this.httpProxySettings, httpHeaders);
 
         this.retryOnFail = retryOnFail;
 
@@ -985,7 +993,7 @@ public class Channel implements AutoCloseable {
         }
         delete();
         request.close();
-        request = new Request(base, auth, verifyCertBundle, isHttps, httpProxySettings);
+        request = new Request(base, auth, verifyCertBundle, isHttps, httpProxySettings, httpHeaders);
         create();
 
     }
@@ -1013,6 +1021,23 @@ public class Channel implements AutoCloseable {
         if (threadId != currentThread.get() && !currentThread.compareAndSet(NO_CURRENT_THREAD, threadId))
             throw new TemporaryError("Channel is not safe for multi-threaded access");
         refcount.incrementAndGet();
+    }
+
+
+    private Map<String, String> getHttpHeadersFromConfig(final Properties configs) {
+        Map<String, String> headers = new HashMap<>();
+        for(Map.Entry<Object, Object> config : configs.entrySet()) {
+            final String key =  (String)config.getKey();
+            if(key.toLowerCase().startsWith("header_"))  {
+                final String headerKey = key.substring(key.indexOf("_") + 1);
+                if(!headerKey.isEmpty()) {
+                    final String value =  (String)config.getValue();
+                    headers.put(headerKey, value);
+                }
+            }
+
+        }
+        return headers;
     }
 
     /**

@@ -47,6 +47,11 @@ public class Request implements AutoCloseable {
     private static Logger logger = Logger.getLogger(Request.class);
 
     /**
+     * Http headers
+     */
+    private final Map<String, String> httpHeaders;
+
+    /**
      * @param base scheme (http or https) and host parts of target URLs. It will be prepended to uri parameter of
      *             {@link Request#post(String, byte[], Map)}, {@link Request#get(String, Map)} and
      *             {@link Request#delete(String, Map)} methods.
@@ -58,13 +63,16 @@ public class Request implements AutoCloseable {
      *                         validated.
      * @param isHttps set to true if the connection requires SSL, false otherwise
      * @param httpProxySettings contains http proxy url, port, username and password
+     * @param httpHeaders http headers
      * @throws TemporaryError if attempt to create and configure the HttpClient instance fails
      */
     public Request(final String base, final ChannelAuth auth, final String verifyCertBundle, boolean isHttps,
-                   final HttpProxySettings httpProxySettings) throws TemporaryError {
+                   final HttpProxySettings httpProxySettings,
+                   final Map<String, String> httpHeaders) throws TemporaryError {
 
         this.base = base;
         this.auth = auth;
+        this.httpHeaders = httpHeaders;
 
         try {
 
@@ -97,6 +105,7 @@ public class Request implements AutoCloseable {
             throws ConsumerError, TemporaryError, PermanentError {
 
         HttpPost httpRequest = new HttpPost(base + uri);
+        httpHeaders.forEach( (k,v) -> httpRequest.addHeader(k,v) );
         if (body != null) {
             httpRequest.setEntity(new ByteArrayEntity(body));
         }
@@ -121,8 +130,8 @@ public class Request implements AutoCloseable {
             TemporaryError, PermanentError {
 
         HttpGet httpRequest = new HttpGet(base + uri);
-
-        return request(httpRequest, httpStatusMapping);
+        httpHeaders.forEach( (k,v) -> httpRequest.addHeader(k,v) );
+            return request(httpRequest, httpStatusMapping);
 
     }
 
