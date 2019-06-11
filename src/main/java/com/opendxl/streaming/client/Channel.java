@@ -72,6 +72,7 @@ public class Channel implements AutoCloseable {
 
     // Constants for consumer config settings
     private static final String ENABLE_AUTO_COMMIT_CONFIG_SETTING = "enable.auto.commit";
+    private static final String MULTI_TENANT_CONFIG_SETTING = "enable.multitenant";
 
     /**
      * Default URL path for Consumer Service
@@ -112,6 +113,11 @@ public class Channel implements AutoCloseable {
      * nor hostname validation is performed when setting up an SSL Connection.
      */
     private final String verifyCertBundle;
+
+    /**
+     * String that define the value of multi_tenant query string for subscription API
+     */
+    private String multiTenantQueryString;
 
     /**
      * String identifying the consumer instance which is obtained by {@link Channel#create()} API.
@@ -280,6 +286,15 @@ public class Channel implements AutoCloseable {
         this.running = new AtomicBoolean(false);
         this.stopRequested = new AtomicBoolean(false);
 
+        this.multiTenantQueryString = "";
+        if (this.configs.containsKey(MULTI_TENANT_CONFIG_SETTING)) {
+            final Boolean isMultiTenant = Boolean.valueOf(this.configs.get(MULTI_TENANT_CONFIG_SETTING).toString());
+            if(isMultiTenant) {
+                this.multiTenantQueryString = "?multi_tenant=true";
+            } else {
+                this.multiTenantQueryString = "?multi_tenant=false";
+            }
+        }
     }
 
     /**
@@ -389,7 +404,9 @@ public class Channel implements AutoCloseable {
             String api = new StringBuilder(consumerPathPrefix)
                     .append("/consumers/")
                     .append(consumerId)
-                    .append("/subscription").toString();
+                    .append("/subscription")
+                    .append(multiTenantQueryString)
+                    .toString();
 
             final String logMessage = new StringBuilder(logConsumerId())
                     .append(" to ").append(topics).append(" topics.").toString();
