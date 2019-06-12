@@ -105,7 +105,7 @@ public class Request implements AutoCloseable {
             throws ConsumerError, TemporaryError, PermanentError {
 
         HttpPost httpRequest = new HttpPost(base + uri);
-        httpHeaders.forEach( (k,v) -> httpRequest.addHeader(k,v) );
+        httpHeaders.forEach((k, v) -> httpRequest.addHeader(k, v));
         if (body != null) {
             httpRequest.setEntity(new ByteArrayEntity(body));
         }
@@ -130,7 +130,7 @@ public class Request implements AutoCloseable {
             TemporaryError, PermanentError {
 
         HttpGet httpRequest = new HttpGet(base + uri);
-        httpHeaders.forEach( (k,v) -> httpRequest.addHeader(k,v) );
+        httpHeaders.forEach((k, v) -> httpRequest.addHeader(k, v));
             return request(httpRequest, httpStatusMapping);
 
     }

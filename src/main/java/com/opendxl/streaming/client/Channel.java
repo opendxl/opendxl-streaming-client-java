@@ -284,7 +284,8 @@ public class Channel implements AutoCloseable {
         // Create a custom Request object so that we can store cookies across requests
         this.isHttps = base.toLowerCase().startsWith("https");
         this.httpProxySettings = httpProxySettings;
-        this.request = new Request(base, auth, this.verifyCertBundle, this.isHttps, this.httpProxySettings, httpHeaders);
+        this.request = new Request(base, auth,
+                this.verifyCertBundle, this.isHttps, this.httpProxySettings, httpHeaders);
 
         this.retryOnFail = retryOnFail;
 
@@ -297,7 +298,7 @@ public class Channel implements AutoCloseable {
         this.multiTenantQueryString = "";
         if (this.configs.containsKey(MULTI_TENANT_CONFIG_SETTING)) {
             final Boolean isMultiTenant = Boolean.valueOf(this.configs.get(MULTI_TENANT_CONFIG_SETTING).toString());
-            if(isMultiTenant) {
+            if (isMultiTenant) {
                 this.multiTenantQueryString = "?multi_tenant=true";
             } else {
                 this.multiTenantQueryString = "?multi_tenant=false";
@@ -1026,12 +1027,12 @@ public class Channel implements AutoCloseable {
 
     private Map<String, String> getHttpHeadersFromConfig(final Properties configs) {
         Map<String, String> headers = new HashMap<>();
-        for(Map.Entry<Object, Object> config : configs.entrySet()) {
-            final String key =  (String)config.getKey();
-            if(key.toLowerCase().startsWith("header_"))  {
+        for (Map.Entry<Object, Object> config : configs.entrySet()) {
+            final String key =  (String) config.getKey();
+            if (key.toLowerCase().startsWith("header_"))  {
                 final String headerKey = key.substring(key.indexOf("_") + 1);
-                if(!headerKey.isEmpty()) {
-                    final String value =  (String)config.getValue();
+                if (!headerKey.isEmpty()) {
+                    final String value = (String) config.getValue();
                     headers.put(headerKey, value);
                 }
             }
