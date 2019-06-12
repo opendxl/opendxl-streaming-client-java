@@ -85,6 +85,11 @@ public class Channel implements AutoCloseable {
     private static final int STOP_CHANNEL_WAIT_PERIOD_MS = 1000;
 
     /**
+     * String that identify headers in configs properties
+     */
+    private static final String HEADER_PREFIX = "header_";
+
+    /**
      * Base URL at which the streaming service resides.
      */
     private final String base;
@@ -1025,12 +1030,18 @@ public class Channel implements AutoCloseable {
     }
 
 
+    /**
+     * Create a map with http headers which were defined in configs properties
+     *
+     * @param configs config properties
+     * @return a map with http headers
+     */
     private Map<String, String> getHttpHeadersFromConfig(final Properties configs) {
         Map<String, String> headers = new HashMap<>();
         for (Map.Entry<Object, Object> config : configs.entrySet()) {
             final String key =  (String) config.getKey();
-            if (key.toLowerCase().startsWith("header_"))  {
-                final String headerKey = key.substring(key.indexOf("_") + 1);
+            if (key.toLowerCase().startsWith(HEADER_PREFIX))  {
+                final String headerKey = key.substring(HEADER_PREFIX.length());
                 if (!headerKey.isEmpty()) {
                     final String value = (String) config.getValue();
                     headers.put(headerKey, value);
