@@ -351,7 +351,8 @@ public class Channel implements AutoCloseable {
 
             try {
 
-                String responseEntityString = request.post(consumerPathPrefix + "/consumers", body, CREATE_ERROR_MAP);
+                String responseEntityString = request.post(consumerPathPrefix + "/consumers"
+                        + multiTenantQueryString, body, CREATE_ERROR_MAP);
 
                 if (responseEntityString != null) {
                     ConsumerId consumer = gson.fromJson(responseEntityString, ConsumerId.class);

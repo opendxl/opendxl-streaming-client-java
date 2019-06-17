@@ -5,7 +5,7 @@
 package com.opendxl.streaming.sample;
 
 import com.opendxl.streaming.client.Channel;
-import com.opendxl.streaming.client.HttpProxySettings;
+//import com.opendxl.streaming.client.HttpProxySettings;
 import com.opendxl.streaming.client.auth.ChannelAuthToken;
 import com.opendxl.streaming.client.ConsumerRecordProcessor;
 import com.opendxl.streaming.client.entity.ConsumerRecords;
@@ -30,13 +30,11 @@ public class ConsumeRecordsWithToken {
 
     public static void main(String[] args) {
 
-        String channelUrl = "http://127.0.0.1:50080";
+        String channelUrl = "http://localhost:8080";
         String token = "secret";
-        String channelConsumerGroup = "sample_consumer_group";
-        List<String> channelTopicSubscriptions = Arrays.asList("case-mgmt-events",
-                "my-topic",
-                "topic-abc123",
-                "topic1");
+        String channelConsumerGroup = "cg10";
+        List<String> channelTopicSubscriptions = Arrays.asList(
+                "on_new_");
 
         // CA bundle certificate chain of trusted CAs provided as a string. The CA
         // bundle is used to validate that the certificate of the server being connected
@@ -65,6 +63,13 @@ public class ConsumeRecordsWithToken {
         Properties extraConfigs = new Properties();
         extraConfigs.put("enable.auto.commit", false);
         extraConfigs.put("auto.commit.interval.ms", 0);
+        extraConfigs.put("enable.multitenant", "true");
+        extraConfigs.put("header_X-Tenant-Id", "tenant1");
+        extraConfigs.put("header_X-CloudLink-scope", "soc.skr.pr");
+
+
+
+
         /**
          * Offset for the next record to retrieve from the streaming service for the new {@link Channel#consume()} call.
          * Must be one of 'latest', 'earliest', or 'none'.
@@ -99,15 +104,11 @@ public class ConsumeRecordsWithToken {
                 new ChannelAuthToken(token),
                 channelConsumerGroup,
                 null,
-                null,
+                "/v1",
                 true,
                 verifyCertificateBundle,
                 extraConfigs,
-                new HttpProxySettings(true,
-                        "10.20.30.40",
-                        8080,
-                        "me",
-                        "secret"))) {
+                null)) {
 
             // Setup shutdown hook to call stop when program is terminated
             Runtime.getRuntime().addShutdownHook(
