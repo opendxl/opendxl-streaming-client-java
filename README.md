@@ -9,11 +9,10 @@ from a
 
 The DXL Streaming Service exposes a REST-based API that communicates with a
 back-end streaming platform (Kafka, Kinesis, etc.). The streaming service
-performs authentication and authorization and exposes methods to retrieve
-and produce records.
+performs authentication and authorization and exposes methods to retrieve records.
 
 One concrete example of a DXL Streaming Service is the
-[McAfee Investigator](https://www.mcafee.com/enterprise/en-us/products/investigator.html)
+[McAfee MVISION EDR](https://www.mcafee.com/enterprise/en-us/products/investigator.html)
 "Events feed".
 
 ## Documentation
@@ -24,7 +23,7 @@ for an overview of the OpenDXL Streaming Java client library and
 examples.
 
 See the
-[OpenDXL Streaming Java Client Library Documentation](https://opendxl.github.io/opendxl-streaming-client-java/docs/javadoc/index.html)
+[OpenDXL Streaming Java Client Library Documentation](https://opendxl.github.io/opendxl-streaming-client-java/docs/index.html)
 for API documentation and examples.
 
 ## Installation
@@ -35,7 +34,7 @@ To start using the OpenDXL Streaming Java Client Library:
 * Extract the release .zip file
 * View the `README.html` file located at the root of the extracted files.
   * The `README` links to the documentation which includes installation instructions, API details, and samples.
-  * The SDK documentation is also available on-line [here](https://opendxl.github.io/opendxl-streaming-client-java/docs).
+  * The SDK documentation is also available on-line [here](https://opendxl.github.io/opendxl-streaming-client-java/docs/javadoc/index.html).
 
 ## Bugs and Feedback
 

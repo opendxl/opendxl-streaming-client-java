@@ -3,8 +3,10 @@ plugins {
     id 'java-library'
     id 'distribution'
     id 'maven-publish'
+    id "kr.motd.sphinx" version "2.3.1"
 }
 
+apply plugin: 'base'
 apply plugin: 'java'
 group 'com.opendxl.streaming'
 
@@ -121,6 +123,9 @@ distributions {
             from(jar) {
                 into('lib')
             }
+            from(sphinx) {
+                into('doc')
+            }
             from(javadoc) {
                 into('doc/javadoc')
             }
@@ -139,6 +144,19 @@ jar.dependsOn(checkstyleMain)
 // Force distZip to be dependent on javadocJar and sourceJar
 distZip.dependsOn javadocJar
 distZip.dependsOn sourceJar
+
+sphinx {
+    // Change the source directory.
+    sourceDirectory = "${projectDir}/docs"
+    // Change the output directory.
+    outputDirectory = "${project.buildDir}/docs"
+}
+
+task versionFile()  {
+    doLast {
+        new File("${projectDir}/VERSION").text = """$version"""
+    }
+}
 
 publishing {
     publications {
@@ -196,3 +214,4 @@ publishing {
 
 distZip.dependsOn javadocJar
 distZip.dependsOn sourceJar
+sphinx.dependsOn(versionFile)
