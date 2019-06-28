@@ -123,6 +123,12 @@ distributions {
             from(jar) {
                 into('lib')
             }
+            from('sample') {
+                into 'sample'
+            }
+            from(jar) {
+                into('sample/lib')
+            }
             from(sphinx) {
                 into('doc')
             }
