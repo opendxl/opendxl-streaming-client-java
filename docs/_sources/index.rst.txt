@@ -37,19 +37,19 @@ Table of content
 .. toctree::
 	:maxdepth: 1
 
-	Prerequisites
+	Prerequisites.rst
 
 .. toctree::
 	:maxdepth: 1
 
-	Basic-Consume-(Token-based-authentication).md
+	Basic-Consume-(Token-based-authentication).rst
 
 .. toctree::
 	:maxdepth: 1
 
-	Basic-Consume-(user-and-pass-authentication).md
+	Basic-Consume-(user-and-pass-authentication).rst
 
 .. toctree::
 	:maxdepth: 1
 
-	Basic-Consume-(command-line-interface).md
+	Basic-Consume-(command-line-interface).rst

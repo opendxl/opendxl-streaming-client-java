@@ -160,87 +160,96 @@
            <div itemprop="articleBody">
             
   <div class="section" id="basic-consume-token-based-authentication-example">
-<span id="basic-consume-token-based-authentication-example"></span><h1>Basic Consume token based-authentication example<a class="headerlink" href="#basic-consume-token-based-authentication-example" title="Permalink to this headline">¶</a></h1>
-<p>This sample demonstrates how to establish a channel connection to the DXL streaming service by using an identity token authentication mechanism. Once the connection is established, the sample repeatedly consumes and displays available records for the consumer group.</p>
+<h1>Basic Consume token based-authentication example<a class="headerlink" href="#basic-consume-token-based-authentication-example" title="Permalink to this headline">¶</a></h1>
+<p>This sample demonstrates how to establish a channel connection to the
+DXL streaming service by using an identity token authentication
+mechanism. Once the connection is established, the sample repeatedly
+consumes and displays available records for the consumer group.</p>
 <p>Code highlights are shown below:</p>
-<p><em>Note:</em> <code class="docutils literal notranslate"><span class="pre">&lt;0.0.0.0&gt;</span></code> and <code class="docutils literal notranslate"><span class="pre">&lt;PORT&gt;</span></code> are placeholders which you should respectively replace with the Http Proxy IP address or hostname and TCP port number.</p>
+<p><em>Note:</em> <code class="docutils literal notranslate"><span class="pre">&lt;0.0.0.0&gt;</span></code> and <code class="docutils literal notranslate"><span class="pre">&lt;PORT&gt;</span></code> are placeholders which you should
+respectively replace with the Http Proxy IP address or hostname and TCP
+port number.</p>
 <div class="section" id="sample-code">
-<span id="sample-code"></span><h2>Sample Code<a class="headerlink" href="#sample-code" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="c1">// Create a new Channel object</span>
-<span class="n">Channel</span> <span class="n">channel</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Channel</span><span class="o">(</span><span class="n">channelUrl</span><span class="o">,</span>
-                <span class="k">new</span> <span class="n">ChannelAuthToken</span><span class="o">(</span><span class="n">token</span><span class="o">),</span>
-                <span class="n">channelConsumerGroup</span><span class="o">,</span>
-                <span class="n">pathPrefix</span><span class="o">,</span>
-                <span class="n">consumerPathPrefix</span><span class="o">,</span>
-                <span class="kc">true</span><span class="o">,</span>
-                <span class="n">verifyCertificateBundle</span><span class="o">,</span>
-                <span class="n">extraConfigs</span><span class="o">,</span>
-                <span class="k">new</span> <span class="n">HttpProxySettings</span><span class="o">(</span><span class="kc">true</span><span class="o">,</span>
-                        <span class="o">&lt;</span><span class="mf">0.0.0.0</span><span class="o">&gt;,</span>
-                        <span class="o">&lt;</span><span class="n">PORT</span><span class="o">&gt;,</span>
-                        <span class="s">&quot;me&quot;</span><span class="o">,</span>
-                        <span class="s">&quot;secret&quot;</span><span class="o">))</span>
+<h2>Sample Code<a class="headerlink" href="#sample-code" title="Permalink to this headline">¶</a></h2>
+<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">//</span> <span class="n">Create</span> <span class="n">a</span> <span class="n">new</span> <span class="n">Channel</span> <span class="nb">object</span>
+<span class="n">Channel</span> <span class="n">channel</span> <span class="o">=</span> <span class="n">new</span> <span class="n">Channel</span><span class="p">(</span><span class="n">channelUrl</span><span class="p">,</span>
+                <span class="n">new</span> <span class="n">ChannelAuthToken</span><span class="p">(</span><span class="n">token</span><span class="p">),</span>
+                <span class="n">channelConsumerGroup</span><span class="p">,</span>
+                <span class="n">pathPrefix</span><span class="p">,</span>
+                <span class="n">consumerPathPrefix</span><span class="p">,</span>
+                <span class="n">true</span><span class="p">,</span>
+                <span class="n">verifyCertificateBundle</span><span class="p">,</span>
+                <span class="n">extraConfigs</span><span class="p">,</span>
+                <span class="n">new</span> <span class="n">HttpProxySettings</span><span class="p">(</span><span class="n">true</span><span class="p">,</span>
+                        <span class="o">&lt;</span><span class="mf">0.0</span><span class="o">.</span><span class="mf">0.0</span><span class="o">&gt;</span><span class="p">,</span>
+                        <span class="o">&lt;</span><span class="n">PORT</span><span class="o">&gt;</span><span class="p">,</span>
+                        <span class="s2">&quot;me&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;secret&quot;</span><span class="p">))</span>
 
-<span class="c1">// Create object which processCallback() method will be called back upon by the run method (see below)</span>
-<span class="c1">// when records are received from the channel</span>
-<span class="n">ConsumerRecordProcessor</span> <span class="n">consumerRecordCallback</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ConsumerRecordProcessor</span><span class="o">()</span> <span class="o">{</span>
+<span class="o">//</span> <span class="n">Create</span> <span class="nb">object</span> <span class="n">which</span> <span class="n">processCallback</span><span class="p">()</span> <span class="n">method</span> <span class="n">will</span> <span class="n">be</span> <span class="n">called</span> <span class="n">back</span> <span class="n">upon</span> <span class="n">by</span> <span class="n">the</span> <span class="n">run</span> <span class="n">method</span> <span class="p">(</span><span class="n">see</span> <span class="n">below</span><span class="p">)</span>
+<span class="o">//</span> <span class="n">when</span> <span class="n">records</span> <span class="n">are</span> <span class="n">received</span> <span class="kn">from</span> <span class="nn">the</span> <span class="n">channel</span>
+<span class="n">ConsumerRecordProcessor</span> <span class="n">consumerRecordCallback</span> <span class="o">=</span> <span class="n">new</span> <span class="n">ConsumerRecordProcessor</span><span class="p">()</span> <span class="p">{</span>
 
     <span class="nd">@Override</span>
-    <span class="kd">public</span> <span class="kt">boolean</span> <span class="nf">processCallback</span><span class="o">(</span><span class="n">ConsumerRecords</span> <span class="n">consumerRecords</span><span class="o">,</span> <span class="n">String</span> <span class="n">consumerId</span><span class="o">)</span> <span class="o">{</span>
-        <span class="c1">// Print the received payloads. &#39;payloads&#39; is a list of</span>
-        <span class="c1">// dictionary objects extracted from the records received</span>
-        <span class="c1">// from the channel.</span>
-        <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="k">new</span> <span class="n">StringBuilder</span><span class="o">(</span><span class="s">&quot;Received &quot;</span><span class="o">)</span>
-                <span class="o">.</span><span class="na">append</span><span class="o">(</span><span class="n">consumerRecords</span><span class="o">.</span><span class="na">getRecords</span><span class="o">().</span><span class="na">size</span><span class="o">())</span>
-                <span class="o">.</span><span class="na">append</span><span class="o">(</span><span class="s">&quot; records&quot;</span><span class="o">)</span>
-                <span class="o">.</span><span class="na">toString</span><span class="o">());</span>
+    <span class="n">public</span> <span class="n">boolean</span> <span class="n">processCallback</span><span class="p">(</span><span class="n">ConsumerRecords</span> <span class="n">consumerRecords</span><span class="p">,</span> <span class="n">String</span> <span class="n">consumerId</span><span class="p">)</span> <span class="p">{</span>
+        <span class="o">//</span> <span class="n">Print</span> <span class="n">the</span> <span class="n">received</span> <span class="n">payloads</span><span class="o">.</span> <span class="s1">&#39;payloads&#39;</span> <span class="ow">is</span> <span class="n">a</span> <span class="nb">list</span> <span class="n">of</span>
+        <span class="o">//</span> <span class="n">dictionary</span> <span class="n">objects</span> <span class="n">extracted</span> <span class="kn">from</span> <span class="nn">the</span> <span class="n">records</span> <span class="n">received</span>
+        <span class="o">//</span> <span class="kn">from</span> <span class="nn">the</span> <span class="n">channel</span><span class="o">.</span>
+        <span class="n">System</span><span class="o">.</span><span class="n">out</span><span class="o">.</span><span class="n">println</span><span class="p">(</span><span class="n">new</span> <span class="n">StringBuilder</span><span class="p">(</span><span class="s2">&quot;Received &quot;</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">consumerRecords</span><span class="o">.</span><span class="n">getRecords</span><span class="p">()</span><span class="o">.</span><span class="n">size</span><span class="p">())</span>
+                <span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot; records&quot;</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">toString</span><span class="p">());</span>
 
-        <span class="k">for</span> <span class="o">(</span><span class="n">ConsumerRecords</span><span class="o">.</span><span class="na">ConsumerRecord</span> <span class="n">record</span> <span class="o">:</span> <span class="n">consumerRecords</span><span class="o">.</span><span class="na">getRecords</span><span class="o">())</span> <span class="o">{</span>
+        <span class="k">for</span> <span class="p">(</span><span class="n">ConsumerRecords</span><span class="o">.</span><span class="n">ConsumerRecord</span> <span class="n">record</span> <span class="p">:</span> <span class="n">consumerRecords</span><span class="o">.</span><span class="n">getRecords</span><span class="p">())</span> <span class="p">{</span>
 
-            <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&quot;topic = &quot;</span> <span class="o">+</span> <span class="n">record</span><span class="o">.</span><span class="na">getTopic</span><span class="o">());</span>
-            <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&quot;partition = &quot;</span> <span class="o">+</span> <span class="n">record</span><span class="o">.</span><span class="na">getPartition</span><span class="o">());</span>
-            <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&quot;offset = &quot;</span> <span class="o">+</span> <span class="n">record</span><span class="o">.</span><span class="na">getOffset</span><span class="o">());</span>
-            <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&quot;sharding key = &quot;</span> <span class="o">+</span> <span class="n">record</span><span class="o">.</span><span class="na">getShardingKey</span><span class="o">());</span>
-            <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&quot;headers = &quot;</span> <span class="o">+</span> <span class="n">record</span><span class="o">.</span><span class="na">getHeaders</span><span class="o">());</span>
-            <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&quot;payload = &quot;</span> <span class="o">+</span> <span class="n">record</span><span class="o">.</span><span class="na">getPayload</span><span class="o">());</span>
-            <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&quot;decoded payload = &quot;</span> <span class="o">+</span> <span class="k">new</span> <span class="n">String</span><span class="o">(</span><span class="n">record</span><span class="o">.</span><span class="na">getDecodedPayload</span><span class="o">()));</span>
-            <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&quot;&quot;</span><span class="o">);</span>
+            <span class="n">System</span><span class="o">.</span><span class="n">out</span><span class="o">.</span><span class="n">println</span><span class="p">(</span><span class="s2">&quot;topic = &quot;</span> <span class="o">+</span> <span class="n">record</span><span class="o">.</span><span class="n">getTopic</span><span class="p">());</span>
+            <span class="n">System</span><span class="o">.</span><span class="n">out</span><span class="o">.</span><span class="n">println</span><span class="p">(</span><span class="s2">&quot;partition = &quot;</span> <span class="o">+</span> <span class="n">record</span><span class="o">.</span><span class="n">getPartition</span><span class="p">());</span>
+            <span class="n">System</span><span class="o">.</span><span class="n">out</span><span class="o">.</span><span class="n">println</span><span class="p">(</span><span class="s2">&quot;offset = &quot;</span> <span class="o">+</span> <span class="n">record</span><span class="o">.</span><span class="n">getOffset</span><span class="p">());</span>
+            <span class="n">System</span><span class="o">.</span><span class="n">out</span><span class="o">.</span><span class="n">println</span><span class="p">(</span><span class="s2">&quot;sharding key = &quot;</span> <span class="o">+</span> <span class="n">record</span><span class="o">.</span><span class="n">getShardingKey</span><span class="p">());</span>
+            <span class="n">System</span><span class="o">.</span><span class="n">out</span><span class="o">.</span><span class="n">println</span><span class="p">(</span><span class="s2">&quot;headers = &quot;</span> <span class="o">+</span> <span class="n">record</span><span class="o">.</span><span class="n">getHeaders</span><span class="p">());</span>
+            <span class="n">System</span><span class="o">.</span><span class="n">out</span><span class="o">.</span><span class="n">println</span><span class="p">(</span><span class="s2">&quot;payload = &quot;</span> <span class="o">+</span> <span class="n">record</span><span class="o">.</span><span class="n">getPayload</span><span class="p">());</span>
+            <span class="n">System</span><span class="o">.</span><span class="n">out</span><span class="o">.</span><span class="n">println</span><span class="p">(</span><span class="s2">&quot;decoded payload = &quot;</span> <span class="o">+</span> <span class="n">new</span> <span class="n">String</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">getDecodedPayload</span><span class="p">()));</span>
+            <span class="n">System</span><span class="o">.</span><span class="n">out</span><span class="o">.</span><span class="n">println</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">);</span>
 
-        <span class="o">}</span>
+        <span class="p">}</span>
 
-        <span class="c1">// Return &#39;True&#39; in order for the &#39;run&#39; call to continue attempting to consume records.</span>
-        <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&quot;let commit records&quot;</span><span class="o">);</span>
-        <span class="k">return</span> <span class="kc">true</span><span class="o">;</span>
-    <span class="o">}</span>
-<span class="o">};</span>
+        <span class="o">//</span> <span class="n">Return</span> <span class="s1">&#39;True&#39;</span> <span class="ow">in</span> <span class="n">order</span> <span class="k">for</span> <span class="n">the</span> <span class="s1">&#39;run&#39;</span> <span class="n">call</span> <span class="n">to</span> <span class="k">continue</span> <span class="n">attempting</span> <span class="n">to</span> <span class="n">consume</span> <span class="n">records</span><span class="o">.</span>
+        <span class="n">System</span><span class="o">.</span><span class="n">out</span><span class="o">.</span><span class="n">println</span><span class="p">(</span><span class="s2">&quot;let commit records&quot;</span><span class="p">);</span>
+        <span class="k">return</span> <span class="n">true</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">};</span>
 
-<span class="c1">// Consume records indefinitely</span>
-<span class="kd">final</span> <span class="kt">int</span> <span class="n">consumePollTimeoutMs</span> <span class="o">=</span> <span class="mi">500</span><span class="o">;</span>
-<span class="n">channel</span><span class="o">.</span><span class="na">run</span><span class="o">(</span><span class="n">consumerRecordCallback</span><span class="o">,</span> <span class="n">channelTopicSubscriptions</span><span class="o">,</span> <span class="n">consumePollTimeoutMs</span><span class="o">);</span>
+<span class="o">//</span> <span class="n">Consume</span> <span class="n">records</span> <span class="n">indefinitely</span>
+<span class="n">final</span> <span class="nb">int</span> <span class="n">consumePollTimeoutMs</span> <span class="o">=</span> <span class="mi">500</span><span class="p">;</span>
+<span class="n">channel</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">consumerRecordCallback</span><span class="p">,</span> <span class="n">channelTopicSubscriptions</span><span class="p">,</span> <span class="n">consumePollTimeoutMs</span><span class="p">);</span>
 </pre></div>
 </div>
-<p>The first step is to create a <code class="docutils literal notranslate"><span class="pre">Channel</span></code> instance, which establishes a channel
-to the streaming service. The channel includes the URL to the streaming
-service, <code class="docutils literal notranslate"><span class="pre">channelUrl</span></code>, and TOKEN that the client uses to authenticate
-itself to the service, <code class="docutils literal notranslate"><span class="pre">new</span> <span class="pre">ChannelAuthToken(token)</span></code>. It also includes a certificate, <code class="docutils literal notranslate"><span class="pre">verifyCertificateBundle</span></code> , and HTTP proxy settings <code class="docutils literal notranslate"><span class="pre">new</span> <span class="pre">HttpProxySettings(...)</span></code></p>
-<p>The example defines a <code class="docutils literal notranslate"><span class="pre">consumerRecordCallback</span></code> instance which is invoked with the
-<code class="docutils literal notranslate"><span class="pre">consumerRecords</span></code> extracted from records consumed from the
-channel. The <code class="docutils literal notranslate"><span class="pre">consumerRecordCallback</span></code> function outputs the contents of the
-each record, its metadata  and returns <code class="docutils literal notranslate"><span class="pre">true</span></code> to indicate that the channel should
-continue consuming records. Note that if the <code class="docutils literal notranslate"><span class="pre">consumerRecordCallback</span></code> function were
-to instead return <code class="docutils literal notranslate"><span class="pre">false</span></code>, the <code class="docutils literal notranslate"><span class="pre">run()</span></code> method would stop polling the service
-for new records and it would return.</p>
-<p>The final step is to call the <code class="docutils literal notranslate"><span class="pre">run()</span></code> method. The <code class="docutils literal notranslate"><span class="pre">run()</span></code> method establishes a
-consumer instance with the service, subscribes the consumer instance for records
-delivered to the <code class="docutils literal notranslate"><span class="pre">topics</span></code> included in the <code class="docutils literal notranslate"><span class="pre">channelTopicSubscriptions</span></code>
-variable, and continuously polls the streaming service for available records. The
-records from any records which are received from the streaming service are
-passed in a call to the <code class="docutils literal notranslate"><span class="pre">consumerRecordCallback</span></code> instance. Note that if no records
-are received from a poll attempt, an empty list of records is passed into the
-<code class="docutils literal notranslate"><span class="pre">consumerRecordCallback</span></code> function.</p>
+<p>The first step is to create a <code class="docutils literal notranslate"><span class="pre">Channel</span></code> instance, which establishes a
+channel to the streaming service. The channel includes the URL to the
+streaming service, <code class="docutils literal notranslate"><span class="pre">channelUrl</span></code>, and TOKEN that the client uses to
+authenticate itself to the service, <code class="docutils literal notranslate"><span class="pre">new</span> <span class="pre">ChannelAuthToken(token)</span></code>. It
+also includes a certificate, <code class="docutils literal notranslate"><span class="pre">verifyCertificateBundle</span></code> , and HTTP
+proxy settings <code class="docutils literal notranslate"><span class="pre">new</span> <span class="pre">HttpProxySettings(...)</span></code></p>
+<p>The example defines a <code class="docutils literal notranslate"><span class="pre">consumerRecordCallback</span></code> instance which is
+invoked with the <code class="docutils literal notranslate"><span class="pre">consumerRecords</span></code> extracted from records consumed
+from the channel. The <code class="docutils literal notranslate"><span class="pre">consumerRecordCallback</span></code> function outputs the
+contents of the each record, its metadata and returns <code class="docutils literal notranslate"><span class="pre">true</span></code> to
+indicate that the channel should continue consuming records. Note that
+if the <code class="docutils literal notranslate"><span class="pre">consumerRecordCallback</span></code> function were to instead return
+<code class="docutils literal notranslate"><span class="pre">false</span></code>, the <code class="docutils literal notranslate"><span class="pre">run()</span></code> method would stop polling the service for new
+records and it would return.</p>
+<p>The final step is to call the <code class="docutils literal notranslate"><span class="pre">run()</span></code> method. The <code class="docutils literal notranslate"><span class="pre">run()</span></code> method
+establishes a consumer instance with the service, subscribes the
+consumer instance for records delivered to the <code class="docutils literal notranslate"><span class="pre">topics</span></code> included in
+the <code class="docutils literal notranslate"><span class="pre">channelTopicSubscriptions</span></code> variable, and continuously polls the
+streaming service for available records. The records from any records
+which are received from the streaming service are passed in a call to
+the <code class="docutils literal notranslate"><span class="pre">consumerRecordCallback</span></code> instance. Note that if no records are
+received from a poll attempt, an empty list of records is passed into
+the <code class="docutils literal notranslate"><span class="pre">consumerRecordCallback</span></code> function.</p>
 <p>As records are received by the sample, the contents of the messages
-should be displayed to the output window. The output should appear similar to
-the following:</p>
+should be displayed to the output window. The output should appear
+similar to the following:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">topic</span> <span class="o">=</span> <span class="n">topic1</span><span class="o">-</span><span class="mi">5</span><span class="n">ca969eb</span><span class="o">-</span><span class="mi">2757</span><span class="o">-</span><span class="mi">46</span><span class="n">ed</span><span class="o">-</span><span class="n">bc3f</span><span class="o">-</span><span class="n">f9266ccccea7</span>
 <span class="n">partition</span> <span class="o">=</span> <span class="mi">0</span>
 <span class="n">offset</span> <span class="o">=</span> <span class="mi">4</span>

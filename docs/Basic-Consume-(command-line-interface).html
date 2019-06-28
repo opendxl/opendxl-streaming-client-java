@@ -100,27 +100,27 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#create">create</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#example">example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id1">example</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#subscribe">subscribe</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#example">example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id2">example</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#subscriptions">subscriptions</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#example">example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id3">example</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#consume">consume</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#example">example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id4">example</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#commit">commit</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#example">example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id5">example</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#delete">delete</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#example">example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id6">example</a></li>
 </ul>
 </li>
 </ul>
@@ -190,24 +190,26 @@
            <div itemprop="articleBody">
             
   <div class="section" id="consume-cli-command-line-interface">
-<span id="consume-cli-command-line-interface"></span><h1>Consume CLI (Command Line Interface)<a class="headerlink" href="#consume-cli-command-line-interface" title="Permalink to this headline">¶</a></h1>
-<p>OpenDXL streaming client can be invoked from command line for testing or checking purposes. Executing CLI like a standard Java library with no arguments, will output the help:</p>
+<h1>Consume CLI (Command Line Interface)<a class="headerlink" href="#consume-cli-command-line-interface" title="Permalink to this headline">¶</a></h1>
+<p>OpenDXL streaming client can be invoked from command line for testing or
+checking purposes. Executing CLI like a standard Java library with no
+arguments, will output the help:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ java -jar opendxlstreamingclient-java-sdk-&lt;VERSION&gt;.jar
 
 ERROR: There are no options
-Option (* = required)                  Description                           
----------------------                  -----------                           
---auth-url &lt;String: auth-url&gt;          The URL to authorization service.     
---cg &lt;String: cg&gt;                      The consumer group name.              
+Option (* = required)                  Description
+---------------------                  -----------
+--auth-url &lt;String: auth-url&gt;          The URL to authorization service.
+--cg &lt;String: cg&gt;                      The consumer group name.
 --config &lt;String: config&gt;              The consumer configuration.
 --consume-timeout &lt;String: domain&gt;     Consume Poll Timeout. Time that the channel waits for
                                        new records during a consume operation. Optional
                                        parameter. (default: 0)
---consumer-id &lt;String: consumer-id&gt;    Consumer Id                           
---consumer-prefix &lt;String: consumer-   Consumer path prefix. (default:       
-  prefix&gt;                                /databus/consumer-service/v1)       
---cookie &lt;String: cookie&gt;              Cookie value                          
---domain &lt;String: domain&gt;              Cookie domain value                   
+--consumer-id &lt;String: consumer-id&gt;    Consumer Id
+--consumer-prefix &lt;String: consumer-   Consumer path prefix. (default:
+  prefix&gt;                                /databus/consumer-service/v1)
+--cookie &lt;String: cookie&gt;              Cookie value
+--domain &lt;String: domain&gt;              Cookie domain value
 --http-proxy &lt;String: http-proxy&gt;      Http Proxy settings in comma-separated format:
                                        enabled (true/false), host (URL format),
                                        port (integer), username (string),
@@ -217,94 +219,198 @@ Option (* = required)                  Description
                                        where &lt;0.0.0.0&gt; must be replaced by the HttpProxy
                                        IP Address or hostname
 * --operation &lt;String: operation&gt;      Operations: login | create | subscribe
-                                         | consume | commit | subscription   
---password &lt;String: password&gt;          The password to send to authorization 
-                                         service.                            
---retry &lt;String: retry&gt;                Retry on fail. (default: true)        
---token &lt;String: token&gt;                The authorized token.                 
---topic &lt;String: topic&gt;                Comma-separated topic list to         
-                                         subscribe to: topic1,topic2,...,    
-                                         topicN.                             
---url &lt;String: url&gt;                    The URL to hit consumer service.      
+                                         | consume | commit | subscription
+--password &lt;String: password&gt;          The password to send to authorization
+                                         service.
+--retry &lt;String: retry&gt;                Retry on fail. (default: true)
+--token &lt;String: token&gt;                The authorized token.
+--topic &lt;String: topic&gt;                Comma-separated topic list to
+                                         subscribe to: topic1,topic2,...,
+                                         topicN.
+--url &lt;String: url&gt;                    The URL to hit consumer service.
 --user &lt;String: user&gt;                  The user name to send to authorization
-                                         service.                            
+                                         service.
 --verify-cert-bundle &lt;String: verify-  The ca certificate. (default: &quot;&quot;, e.g.: empty string)
-  cert-bundle&gt;                
+  cert-bundle&gt;
 </pre></div>
 </div>
-<p><em>Note:</em> <code class="docutils literal notranslate"><span class="pre">&lt;0.0.0.0&gt;</span></code> and <code class="docutils literal notranslate"><span class="pre">&lt;PORT&gt;</span></code> are throughout this page placeholders which you should respectively replace with the correct IP address or hostname and TCP port number of the service you are attempting to invoke. Similarly, <code class="docutils literal notranslate"><span class="pre">&lt;TOKEN&gt;</span></code> is a placeholder for the token value received after executing the <code class="docutils literal notranslate"><span class="pre">login</span></code> operation.</p>
+<p><em>Note:</em> <code class="docutils literal notranslate"><span class="pre">&lt;0.0.0.0&gt;</span></code> and <code class="docutils literal notranslate"><span class="pre">&lt;PORT&gt;</span></code> are throughout this page
+placeholders which you should respectively replace with the correct IP
+address or hostname and TCP port number of the service you are
+attempting to invoke. Similarly, <code class="docutils literal notranslate"><span class="pre">&lt;TOKEN&gt;</span></code> is a placeholder for the
+token value received after executing the <code class="docutils literal notranslate"><span class="pre">login</span></code> operation.</p>
 <div class="section" id="supported-operations">
-<span id="supported-operations"></span><h2>Supported Operations<a class="headerlink" href="#supported-operations" title="Permalink to this headline">¶</a></h2>
-<p>In order to get records from Streaming Service, the user has to invoke a few CLI operations. Operations arguments are placed after <code class="docutils literal notranslate"><span class="pre">--operation</span></code> option. For instance:</p>
+<h2>Supported Operations<a class="headerlink" href="#supported-operations" title="Permalink to this headline">¶</a></h2>
+<p>In order to get records from Streaming Service, the user has to invoke a
+few CLI operations. Operations arguments are placed after
+<code class="docutils literal notranslate"><span class="pre">--operation</span></code> option. For instance:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ java -jar opendxlstreamingclient-java-sdk-&lt;VERSION&gt;.jar --operation &lt;OPERATION_ARGUMENT&gt; ...
 </pre></div>
 </div>
 <div class="section" id="operation-arguments">
-<span id="operation-arguments"></span><h3>Operation Arguments<a class="headerlink" href="#operation-arguments" title="Permalink to this headline">¶</a></h3>
-<p>Operation Arguments | Description
-———— | ————-
-login | get a identity token
-create | create a consumer
-subscribe | subscribe to topics
-consume | poll records from Streaming Service
-commit | mark records as read for the consumer
-delete | close and erase a consumer
-subscriptions | get the list of topics subscribed to</p>
-<p>The sequence invocation of CLI operations to get records assuming a token has already been received is: <code class="docutils literal notranslate"><span class="pre">create</span></code> -&gt; <code class="docutils literal notranslate"><span class="pre">subscribe</span></code> -&gt; <code class="docutils literal notranslate"><span class="pre">consume</span></code> . Because of the polling model, <code class="docutils literal notranslate"><span class="pre">consume</span></code> operation should be called repeatedly to read the following records.</p>
+<h3>Operation Arguments<a class="headerlink" href="#operation-arguments" title="Permalink to this headline">¶</a></h3>
+<table border="1" class="docutils">
+<colgroup>
+<col width="36%" />
+<col width="64%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Operation Arguments</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>login</td>
+<td>get a identity token</td>
+</tr>
+<tr class="row-odd"><td>create</td>
+<td>create a consumer</td>
+</tr>
+<tr class="row-even"><td>subscribe</td>
+<td>subscribe to topics</td>
+</tr>
+<tr class="row-odd"><td>consume</td>
+<td>poll records from Streaming Service</td>
+</tr>
+<tr class="row-even"><td>commit</td>
+<td>mark records as read for the consumer</td>
+</tr>
+<tr class="row-odd"><td>delete</td>
+<td>close and erase a consumer</td>
+</tr>
+<tr class="row-even"><td>subscriptions</td>
+<td>get the list of topics subscribed to</td>
+</tr>
+</tbody>
+</table>
+<p>The sequence invocation of CLI operations to get records assuming a
+token has already been received is: <code class="docutils literal notranslate"><span class="pre">create</span></code> -&gt; <code class="docutils literal notranslate"><span class="pre">subscribe</span></code> -&gt;
+<code class="docutils literal notranslate"><span class="pre">consume</span></code> . Because of the polling model, <code class="docutils literal notranslate"><span class="pre">consume</span></code> operation should
+be called repeatedly to read the following records.</p>
 </div>
 <div class="section" id="login">
-<span id="login"></span><h3>login<a class="headerlink" href="#login" title="Permalink to this headline">¶</a></h3>
-<p>It is an operation argument to get an identity token. The token is a prerequisite for the rest of the CLI operations.</p>
-<p>Mandatory Arguments for login | Description
-———— | ————-
-<code class="docutils literal notranslate"><span class="pre">--auth-url</span></code> | Identity REST service which should return a token
-<code class="docutils literal notranslate"><span class="pre">--user</span></code> | Identity REST service user
-<code class="docutils literal notranslate"><span class="pre">--password</span></code> | Identity REST service password</p>
-<p>Optional Arguments for login | Description
-———— | ————-
-<code class="docutils literal notranslate"><span class="pre">--verify-cert-bundle</span></code> | Certificate filename or certificate in String format to be able to hit Identity REST service
-<code class="docutils literal notranslate"><span class="pre">--http-proxy</span></code> | Http Proxy data: whether enabled, FQDN or IP Address, TCP Port. Optional username and password</p>
+<h3>login<a class="headerlink" href="#login" title="Permalink to this headline">¶</a></h3>
+<p>It is an operation argument to get an identity token. The token is a
+prerequisite for the rest of the CLI operations.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="38%" />
+<col width="62%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Mandatory Arguments for login</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">--auth-url</span></code></td>
+<td>Identity REST service which should return a token</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">--user</span></code></td>
+<td>Identity REST service user</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">--password</span></code></td>
+<td>Identity REST service password</td>
+</tr>
+</tbody>
+</table>
+<table border="1" class="docutils">
+<colgroup>
+<col width="25%" />
+<col width="75%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Optional Arguments for login</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">--verify-cert-bundle</span></code></td>
+<td>Certificate filename or certificate in String format to be able to hit Identity REST service</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">--http-proxy</span></code></td>
+<td>Http Proxy data: whether enabled, FQDN or IP Address, TCP Port. Optional username and password</td>
+</tr>
+</tbody>
+</table>
 <div class="section" id="example">
-<span id="example"></span><h4>example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h4>
+<h4>example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h4>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ java -jar opendxlstreamingclient-java-sdk-&lt;VERSION&gt;.jar \
 --operation login \
 --auth-url http://&lt;0.0.0.0&gt;:&lt;PORT&gt;/login \
 --user &lt;USER_NAME&gt; \
---password &lt;PASSWORD&gt; \ 
+--password &lt;PASSWORD&gt; \
 --verify-cert-bundle cerf-file-name.crt
 </pre></div>
 </div>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span>{
-    &quot;code&quot;: &quot;200&quot;,
-    &quot;result&quot;: &lt;TOKEN&gt;,
-    &quot;options&quot;: {
-        &quot;password&quot;: [&quot;PASSWORD&quot;],
-        &quot;auth-url&quot;: [&quot;http://&lt;0.0.0.0&gt;:&lt;PORT&gt;/login&quot;],
-        &quot;verify-cert-bundle&quot;: [&quot;cerf-file-name.crt&quot;],
-        &quot;user&quot;: [&quot;USER_NAME&quot;],
-        &quot;http-proxy&quot;: [&quot;&quot;]
-    }
-}
+<div class="code json highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;code&quot;</span><span class="p">:</span> <span class="s2">&quot;200&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;result&quot;</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">TOKEN</span><span class="o">&gt;</span><span class="p">,</span>
+    <span class="s2">&quot;options&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;password&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;PASSWORD&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;auth-url&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;http://&lt;0.0.0.0&gt;:&lt;PORT&gt;/login&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;verify-cert-bundle&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;cerf-file-name.crt&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;user&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;USER_NAME&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;http-proxy&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;&quot;</span><span class="p">]</span>
+    <span class="p">}</span>
+<span class="p">}</span>
 </pre></div>
 </div>
 </div>
 </div>
 <div class="section" id="create">
-<span id="create"></span><h3>create<a class="headerlink" href="#create" title="Permalink to this headline">¶</a></h3>
-<p>It is an operation argument to create a consumer that will be part of a specific Consumer Group and will have specific configuration.</p>
-<p>Mandatory Arguments for create | Description
-———— | ————-
-<code class="docutils literal notranslate"><span class="pre">--url</span></code> | Streaming Service base URL
-<code class="docutils literal notranslate"><span class="pre">--token</span></code> | Identity token gotten by login operation
-<code class="docutils literal notranslate"><span class="pre">--cg</span></code> | Consumer Group name</p>
-<p>Optional Arguments for create | Description
-———— | ————-
-<code class="docutils literal notranslate"><span class="pre">--config</span></code> | Consumer configuration, a string of comma separated values Kafka Consumer properties, e.g.: max.message.size=1000,min.message.size=200,auto.offset.reset=latest,session.timeout.ms=300000,request.timeout.ms=310000,enable.auto.commit=false
-<code class="docutils literal notranslate"><span class="pre">--consumer-prefix</span></code> | Consumer prefix URL path. If not present, then its default value will be used instead. Default value: /databus/consumer-service/v1
-<code class="docutils literal notranslate"><span class="pre">--verify-cert-bundle</span></code> | Certificate file name or certificate in String format to be able to hit Streaming Service
-<code class="docutils literal notranslate"><span class="pre">--http-proxy</span></code> | Http Proxy data: whether enabled, FQDN or IP Address, TCP Port. Optional username and password</p>
-<div class="section" id="example">
-<span id="id1"></span><h4>example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h4>
+<h3>create<a class="headerlink" href="#create" title="Permalink to this headline">¶</a></h3>
+<p>It is an operation argument to create a consumer that will be part of a
+specific Consumer Group and will have specific configuration.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="44%" />
+<col width="56%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Mandatory Arguments for create</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">--url</span></code></td>
+<td>Streaming Service base URL</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">--token</span></code></td>
+<td>Identity token gotten by login operation</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">--cg</span></code></td>
+<td>Consumer Group name</td>
+</tr>
+</tbody>
+</table>
+<table border="1" class="docutils">
+<colgroup>
+<col width="12%" />
+<col width="88%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Optional Arguments for create</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">--config</span></code></td>
+<td>Consumer configuration, a string of comma separated values Kafka Consumer properties, e.g.: max.message.size=1000,min.message.size=200,auto.offset.reset=latest,session.timeout.ms=300000,request.timeout.ms=310000,enable.auto.commit=false</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">--consumer-prefix</span></code></td>
+<td>Consumer prefix URL path. If not present, then its default value will be used instead. Default value: /databus/consumer-service/v1</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">--verify-cert-bundle</span></code></td>
+<td>Certificate file name or certificate in String format to be able to hit Streaming Service</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">--http-proxy</span></code></td>
+<td>Http Proxy data: whether enabled, FQDN or IP Address, TCP Port. Optional username and password</td>
+</tr>
+</tbody>
+</table>
+<div class="section" id="id1">
+<h4>example<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h4>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">java</span> <span class="o">-</span><span class="n">jar</span> <span class="n">opendxlstreamingclient</span><span class="o">-</span><span class="n">java</span><span class="o">-</span><span class="n">sdk</span><span class="o">-&lt;</span><span class="n">VERSION</span><span class="o">&gt;.</span><span class="n">jar</span> \
 <span class="o">--</span><span class="n">operation</span> <span class="n">create</span> \
 <span class="o">--</span><span class="n">url</span> <span class="n">http</span><span class="p">:</span><span class="o">//&lt;</span><span class="mf">0.0</span><span class="o">.</span><span class="mf">0.0</span><span class="o">&gt;</span><span class="p">:</span><span class="o">&lt;</span><span class="n">PORT</span><span class="o">&gt;/</span><span class="n">streaming</span> \
@@ -314,47 +420,89 @@ subscriptions | get the list of topics subscribed to</p>
 <span class="o">--</span><span class="n">verify</span><span class="o">-</span><span class="n">cert</span><span class="o">-</span><span class="n">bundle</span> <span class="n">cert</span><span class="o">-</span><span class="n">file</span><span class="o">-</span><span class="n">name</span><span class="o">.</span><span class="n">crt</span>
 </pre></div>
 </div>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span>{
-    &quot;code&quot;: &quot;200&quot;,
-    &quot;result&quot;: {
-        &quot;consumerId&quot;: &quot;6d1dfd66-61f2-4525-ae70-e00ca6a9ffd78e9c79e2-26e6-4cd7-8e2d-75ce2a868cd7&quot;,
-        &quot;cookie&quot;: {
-            &quot;value&quot;: &quot;ee92c43b218c&quot;,
-            &quot;domain&quot;: &quot;domain&quot;
-        }
-    },
-    &quot;options&quot;: {
-        &quot;cg&quot;: [&quot;cg1&quot;],
-        &quot;consumer-prefix&quot;: [&quot;/v1&quot;],
-        &quot;verify-cert-bundle&quot;: [&quot;cert-file-name.crt&quot;],
-        &quot;http-proxy&quot;: [&quot;&quot;],
-        &quot;retry&quot;: [&quot;true&quot;],
-        &quot;url&quot;: [&quot;http://&lt;0.0.0.0&gt;:&lt;PORT&gt;/streaming&quot;],
-        &quot;token&quot;: [&lt;TOKEN&gt;]
-    }
-}
+<div class="code json highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;code&quot;</span><span class="p">:</span> <span class="s2">&quot;200&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;result&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;consumerId&quot;</span><span class="p">:</span> <span class="s2">&quot;6d1dfd66-61f2-4525-ae70-e00ca6a9ffd78e9c79e2-26e6-4cd7-8e2d-75ce2a868cd7&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;cookie&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="s2">&quot;ee92c43b218c&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;domain&quot;</span><span class="p">:</span> <span class="s2">&quot;domain&quot;</span>
+        <span class="p">}</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;options&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;cg&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;cg1&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;consumer-prefix&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;/v1&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;verify-cert-bundle&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;cert-file-name.crt&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;http-proxy&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;retry&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;true&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;url&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;http://&lt;0.0.0.0&gt;:&lt;PORT&gt;/streaming&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;token&quot;</span><span class="p">:</span> <span class="p">[</span><span class="o">&lt;</span><span class="n">TOKEN</span><span class="o">&gt;</span><span class="p">]</span>
+    <span class="p">}</span>
+<span class="p">}</span>
 </pre></div>
 </div>
 </div>
 </div>
 <div class="section" id="subscribe">
-<span id="subscribe"></span><h3>subscribe<a class="headerlink" href="#subscribe" title="Permalink to this headline">¶</a></h3>
-<p>It is an operation argument to set the topics from which to receive records. If operation is successful, then its response is HTTP 204 No Content without body.</p>
-<p>Mandatory Arguments for subscribe | Description
-———— | ————-
-<code class="docutils literal notranslate"><span class="pre">--topic</span></code> | One or more comma-separated topic names to subscribe to
-<code class="docutils literal notranslate"><span class="pre">--consumer-id</span></code> | Consumer Id previously obtained by create operation
-<code class="docutils literal notranslate"><span class="pre">--cookie</span></code> | Cookie value obtained by create operation
-<code class="docutils literal notranslate"><span class="pre">--domain</span></code> | Cookie Domain value obtained by create operation
-<code class="docutils literal notranslate"><span class="pre">--url</span></code> | Streaming Service base URL
-<code class="docutils literal notranslate"><span class="pre">--token</span></code> | Identity token gotten by login operation</p>
-<p>Optional Arguments for subscribe | Description
-———— | ————-
-<code class="docutils literal notranslate"><span class="pre">--consumer-prefix</span></code> | Consumer prefix URL path. If not present, then its default value will be used instead. Default value: /databus/consumer-service/v1
-<code class="docutils literal notranslate"><span class="pre">--verify-cert-bundle</span></code> | Certificate file name or certificate in String format to be able to hit Streaming Service
-<code class="docutils literal notranslate"><span class="pre">--http-proxy</span></code> | Http Proxy data: whether enabled, FQDN or IP Address, TCP Port. Optional username and password</p>
-<div class="section" id="example">
-<span id="id2"></span><h4>example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h4>
+<h3>subscribe<a class="headerlink" href="#subscribe" title="Permalink to this headline">¶</a></h3>
+<p>It is an operation argument to set the topics from which to receive
+records. If operation is successful, then its response is HTTP 204 No
+Content without body.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="39%" />
+<col width="61%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Mandatory Arguments for subscribe</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">--topic</span></code></td>
+<td>One or more comma-separated topic names to subscribe to</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">--consumer-id</span></code></td>
+<td>Consumer Id previously obtained by create operation</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">--cookie</span></code></td>
+<td>Cookie value obtained by create operation</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">--domain</span></code></td>
+<td>Cookie Domain value obtained by create operation</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">--url</span></code></td>
+<td>Streaming Service base URL</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">--token</span></code></td>
+<td>Identity token gotten by login operation</td>
+</tr>
+</tbody>
+</table>
+<table border="1" class="docutils">
+<colgroup>
+<col width="21%" />
+<col width="79%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Optional Arguments for subscribe</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">--consumer-prefix</span></code></td>
+<td>Consumer prefix URL path. If not present, then its default value will be used instead. Default value: /databus/consumer-service/v1</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">--verify-cert-bundle</span></code></td>
+<td>Certificate file name or certificate in String format to be able to hit Streaming Service</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">--http-proxy</span></code></td>
+<td>Http Proxy data: whether enabled, FQDN or IP Address, TCP Port. Optional username and password</td>
+</tr>
+</tbody>
+</table>
+<div class="section" id="id2">
+<h4>example<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h4>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">java</span> <span class="o">-</span><span class="n">jar</span> <span class="n">opendxlstreamingclient</span><span class="o">-</span><span class="n">java</span><span class="o">-</span><span class="n">sdk</span><span class="o">-&lt;</span><span class="n">VERSION</span><span class="o">&gt;.</span><span class="n">jar</span> \
 <span class="o">--</span><span class="n">operation</span> <span class="n">subscribe</span> \
 <span class="o">--</span><span class="n">topic</span> <span class="n">topic</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">topic</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span><span class="n">topic</span><span class="o">-</span><span class="mi">3</span> \
@@ -366,42 +514,82 @@ subscriptions | get the list of topics subscribed to</p>
 <span class="o">--</span><span class="n">consumer</span><span class="o">-</span><span class="n">prefix</span> <span class="o">/</span><span class="n">databus</span><span class="o">/</span><span class="n">consumer</span><span class="o">-</span><span class="n">service</span><span class="o">/</span><span class="n">v1</span>
 </pre></div>
 </div>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span>{
-    &quot;code&quot;:&quot;204&quot;,
-    &quot;result&quot;:&quot;&quot;,
-    &quot;options&quot;:{
-        &quot;cookie&quot;:[&quot;ee92c43b218c&quot;],
-        &quot;consumer-prefix&quot;:[&quot;/databus/consumer-service/v1&quot;],
-        &quot;domain&quot;:[&quot;domain&quot;],
-        &quot;consumer-id&quot;:[&quot;6d1dfd66-61f2-4525-ae70-e00ca6a9ffd78e9c79e2-26e6-4cd7-8e2d-75ce2a868cd7&quot;],
-        &quot;verify-cert-bundle&quot;:[&quot;&quot;],
-        &quot;topic&quot;:[&quot;topic-1,topic-2,topic-3&quot;],
-        &quot;http-proxy&quot;:[&quot;&quot;],
-        &quot;url&quot;:[&quot;http://&lt;0.0.0.0&gt;:&lt;PORT&gt;/databus/consumer-service/v1&quot;],
-        &quot;token&quot;:[&lt;TOKEN&gt;]
-    }
-}
+<div class="code json highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;code&quot;</span><span class="p">:</span><span class="s2">&quot;204&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;result&quot;</span><span class="p">:</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;options&quot;</span><span class="p">:{</span>
+        <span class="s2">&quot;cookie&quot;</span><span class="p">:[</span><span class="s2">&quot;ee92c43b218c&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;consumer-prefix&quot;</span><span class="p">:[</span><span class="s2">&quot;/databus/consumer-service/v1&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;domain&quot;</span><span class="p">:[</span><span class="s2">&quot;domain&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;consumer-id&quot;</span><span class="p">:[</span><span class="s2">&quot;6d1dfd66-61f2-4525-ae70-e00ca6a9ffd78e9c79e2-26e6-4cd7-8e2d-75ce2a868cd7&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;verify-cert-bundle&quot;</span><span class="p">:[</span><span class="s2">&quot;&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;topic&quot;</span><span class="p">:[</span><span class="s2">&quot;topic-1,topic-2,topic-3&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;http-proxy&quot;</span><span class="p">:[</span><span class="s2">&quot;&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;url&quot;</span><span class="p">:[</span><span class="s2">&quot;http://&lt;0.0.0.0&gt;:&lt;PORT&gt;/databus/consumer-service/v1&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;token&quot;</span><span class="p">:[</span><span class="o">&lt;</span><span class="n">TOKEN</span><span class="o">&gt;</span><span class="p">]</span>
+    <span class="p">}</span>
+<span class="p">}</span>
 </pre></div>
 </div>
 </div>
 </div>
 <div class="section" id="subscriptions">
-<span id="subscriptions"></span><h3>subscriptions<a class="headerlink" href="#subscriptions" title="Permalink to this headline">¶</a></h3>
-<p>It is an operation argument to get the topics that the channel is already subscribed to. If operation is successful, then its response is HTTP 200 with a body showing the subscribed topics.</p>
-<p>Mandatory Arguments for subscriptions | Description
-———— | ————-
-<code class="docutils literal notranslate"><span class="pre">--consumer-id</span></code> | Consumer Id previously obtained by create operation
-<code class="docutils literal notranslate"><span class="pre">--cookie</span></code> | Cookie value obtained by create operation
-<code class="docutils literal notranslate"><span class="pre">--domain</span></code> | Cookie Domain value obtained by create operation
-<code class="docutils literal notranslate"><span class="pre">--url</span></code> | Streaming Service base URL
-<code class="docutils literal notranslate"><span class="pre">--token</span></code> | Identity token gotten by login operation</p>
-<p>Optional Arguments for subscribe | Description
-———— | ————-
-<code class="docutils literal notranslate"><span class="pre">--consumer-prefix</span></code> | Consumer prefix URL path. If not present, then its default value will be used instead. Default value: /databus/consumer-service/v1
-<code class="docutils literal notranslate"><span class="pre">--verify-cert-bundle</span></code> | Certificate file name or certificate in String format to be able to hit Streaming Service
-<code class="docutils literal notranslate"><span class="pre">--http-proxy</span></code> | Http Proxy data: whether enabled, FQDN or IP Address, TCP Port. Optional username and password</p>
-<div class="section" id="example">
-<span id="id3"></span><h4>example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h4>
+<h3>subscriptions<a class="headerlink" href="#subscriptions" title="Permalink to this headline">¶</a></h3>
+<p>It is an operation argument to get the topics that the channel is
+already subscribed to. If operation is successful, then its response is
+HTTP 200 with a body showing the subscribed topics.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="43%" />
+<col width="57%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Mandatory Arguments for subscriptions</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">--consumer-id</span></code></td>
+<td>Consumer Id previously obtained by create operation</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">--cookie</span></code></td>
+<td>Cookie value obtained by create operation</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">--domain</span></code></td>
+<td>Cookie Domain value obtained by create operation</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">--url</span></code></td>
+<td>Streaming Service base URL</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">--token</span></code></td>
+<td>Identity token gotten by login operation</td>
+</tr>
+</tbody>
+</table>
+<table border="1" class="docutils">
+<colgroup>
+<col width="21%" />
+<col width="79%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Optional Arguments for subscribe</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">--consumer-prefix</span></code></td>
+<td>Consumer prefix URL path. If not present, then its default value will be used instead. Default value: /databus/consumer-service/v1</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">--verify-cert-bundle</span></code></td>
+<td>Certificate file name or certificate in String format to be able to hit Streaming Service</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">--http-proxy</span></code></td>
+<td>Http Proxy data: whether enabled, FQDN or IP Address, TCP Port. Optional username and password</td>
+</tr>
+</tbody>
+</table>
+<div class="section" id="id3">
+<h4>example<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h4>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">java</span> <span class="o">-</span><span class="n">jar</span> <span class="n">opendxlstreamingclient</span><span class="o">-</span><span class="n">java</span><span class="o">-</span><span class="n">sdk</span><span class="o">-&lt;</span><span class="n">VERSION</span><span class="o">&gt;.</span><span class="n">jar</span> \
 <span class="o">--</span><span class="n">operation</span> <span class="n">subscriptions</span> \
 <span class="o">--</span><span class="n">url</span> <span class="n">http</span><span class="p">:</span><span class="o">//&lt;</span><span class="mf">0.0</span><span class="o">.</span><span class="mf">0.0</span><span class="o">&gt;</span><span class="p">:</span><span class="o">&lt;</span><span class="n">PORT</span><span class="o">&gt;/</span> \
@@ -411,45 +599,85 @@ subscriptions | get the list of topics subscribed to</p>
 <span class="o">--</span><span class="n">domain</span> <span class="n">domain</span>
 </pre></div>
 </div>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span>{
-    &quot;code&quot;:&quot;200&quot;,
-    &quot;result&quot;:[
-        &quot;topic-2-5ca969eb-2757-46ed-bc3f-f9266ccccea7-group0&quot;,
-        &quot;topic-3-5ca969eb-2757-46ed-bc3f-f9266ccccea7-group0&quot;,
-        &quot;topic-1-5ca969eb-2757-46ed-bc3f-f9266ccccea7-group0&quot;
-    ],
-    &quot;options&quot;:{
-        &quot;cookie&quot;:[&quot;ee92c43b218c&quot;],
-        &quot;consumer-prefix&quot;:[&quot;/databus/consumer-service/v1&quot;],
-        &quot;verify-cert-bundle&quot;:[&quot;&quot;],
-        &quot;consumer-id&quot;:[&quot;6d1dfd66-61f2-4525-ae70-e00ca6a9ffd78e9c79e2-26e6-4cd7-8e2d-75ce2a868cd7&quot;],
-        &quot;domain&quot;:[&quot;domain&quot;],
-        &quot;http-proxy&quot;:[&quot;&quot;],
-        &quot;url&quot;:[&quot;http://&lt;0.0.0.0&gt;:&lt;PORT&gt;/&quot;],
-        &quot;token&quot;:[&lt;TOKEN&gt;]
-    }
-}
+<div class="code json highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;code&quot;</span><span class="p">:</span><span class="s2">&quot;200&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;result&quot;</span><span class="p">:[</span>
+        <span class="s2">&quot;topic-2-5ca969eb-2757-46ed-bc3f-f9266ccccea7-group0&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;topic-3-5ca969eb-2757-46ed-bc3f-f9266ccccea7-group0&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;topic-1-5ca969eb-2757-46ed-bc3f-f9266ccccea7-group0&quot;</span>
+    <span class="p">],</span>
+    <span class="s2">&quot;options&quot;</span><span class="p">:{</span>
+        <span class="s2">&quot;cookie&quot;</span><span class="p">:[</span><span class="s2">&quot;ee92c43b218c&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;consumer-prefix&quot;</span><span class="p">:[</span><span class="s2">&quot;/databus/consumer-service/v1&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;verify-cert-bundle&quot;</span><span class="p">:[</span><span class="s2">&quot;&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;consumer-id&quot;</span><span class="p">:[</span><span class="s2">&quot;6d1dfd66-61f2-4525-ae70-e00ca6a9ffd78e9c79e2-26e6-4cd7-8e2d-75ce2a868cd7&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;domain&quot;</span><span class="p">:[</span><span class="s2">&quot;domain&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;http-proxy&quot;</span><span class="p">:[</span><span class="s2">&quot;&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;url&quot;</span><span class="p">:[</span><span class="s2">&quot;http://&lt;0.0.0.0&gt;:&lt;PORT&gt;/&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;token&quot;</span><span class="p">:[</span><span class="o">&lt;</span><span class="n">TOKEN</span><span class="o">&gt;</span><span class="p">]</span>
+    <span class="p">}</span>
+<span class="p">}</span>
 </pre></div>
 </div>
 </div>
 </div>
 <div class="section" id="consume">
-<span id="consume"></span><h3>consume<a class="headerlink" href="#consume" title="Permalink to this headline">¶</a></h3>
-<p>It is an operation argument to get the new records received by the subscribed topics since last call to commit. If operation is successful, then its response is HTTP 200 with a body showing the consumed records.</p>
-<p>Mandatory Arguments for consume | Description
-———— | ————-
-<code class="docutils literal notranslate"><span class="pre">--consumer-id</span></code> | Consumer Id previously obtained by create operation
-<code class="docutils literal notranslate"><span class="pre">--cookie</span></code> | Cookie value obtained by create operation
-<code class="docutils literal notranslate"><span class="pre">--domain</span></code> | Cookie Domain value obtained by create operation
-<code class="docutils literal notranslate"><span class="pre">--url</span></code> | Streaming Service base URL
-<code class="docutils literal notranslate"><span class="pre">--token</span></code> | Identity token gotten by login operation</p>
-<p>Optional Arguments for consume | Description
-———— | ————-
-<code class="docutils literal notranslate"><span class="pre">--consumer-timeout</span></code> | Time limit to wait for consumer records. If no records are available when the request begins, then request will wait up to this time for new records to arrive.
-<code class="docutils literal notranslate"><span class="pre">--verify-cert-bundle</span></code> | Certificate file name or certificate in String format to be able to hit Streaming Service
-<code class="docutils literal notranslate"><span class="pre">--http-proxy</span></code> | Http Proxy data: whether enabled, FQDN or IP Address, TCP Port. Optional username and password</p>
-<div class="section" id="example">
-<span id="id4"></span><h4>example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h4>
+<h3>consume<a class="headerlink" href="#consume" title="Permalink to this headline">¶</a></h3>
+<p>It is an operation argument to get the new records received by the
+subscribed topics since last call to commit. If operation is successful,
+then its response is HTTP 200 with a body showing the consumed records.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="39%" />
+<col width="61%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Mandatory Arguments for consume</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">--consumer-id</span></code></td>
+<td>Consumer Id previously obtained by create operation</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">--cookie</span></code></td>
+<td>Cookie value obtained by create operation</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">--domain</span></code></td>
+<td>Cookie Domain value obtained by create operation</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">--url</span></code></td>
+<td>Streaming Service base URL</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">--token</span></code></td>
+<td>Identity token gotten by login operation</td>
+</tr>
+</tbody>
+</table>
+<table border="1" class="docutils">
+<colgroup>
+<col width="17%" />
+<col width="83%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Optional Arguments for consume</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">--consumer-timeout</span></code></td>
+<td>Time limit to wait for consumer records. If no records are available when the request begins, then request will wait up to this time for new records to arrive.</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">--verify-cert-bundle</span></code></td>
+<td>Certificate file name or certificate in String format to be able to hit Streaming Service</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">--http-proxy</span></code></td>
+<td>Http Proxy data: whether enabled, FQDN or IP Address, TCP Port. Optional username and password</td>
+</tr>
+</tbody>
+</table>
+<div class="section" id="id4">
+<h4>example<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h4>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">java</span> <span class="o">-</span><span class="n">jar</span> <span class="n">opendxlstreamingclient</span><span class="o">-</span><span class="n">java</span><span class="o">-</span><span class="n">sdk</span><span class="o">-&lt;</span><span class="n">VERSION</span><span class="o">&gt;.</span><span class="n">jar</span> \
 <span class="o">--</span><span class="n">operation</span> <span class="n">consume</span> \
 <span class="o">--</span><span class="n">url</span> <span class="n">http</span><span class="p">:</span><span class="o">//&lt;</span><span class="mf">0.0</span><span class="o">.</span><span class="mf">0.0</span><span class="o">&gt;</span><span class="p">:</span><span class="o">&lt;</span><span class="n">PORT</span><span class="o">&gt;/</span> \
@@ -459,74 +687,121 @@ subscriptions | get the list of topics subscribed to</p>
 <span class="o">--</span><span class="n">domain</span> <span class="n">domain</span>
 </pre></div>
 </div>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span>{
-    &quot;code&quot;:&quot;200&quot;,
-    &quot;result&quot;:[
-        {
-            &quot;routingData&quot;:{
-                &quot;topic&quot;:&quot;topic1-5ca969eb-2757-46ed-bc3f-f9266ccccea7&quot;,
-                &quot;shardingKey&quot;:&quot;pool-1-thread-1-0-1&quot;},
-            &quot;message&quot;:{
-                &quot;headers&quot;:{
-                    &quot;sourceId&quot;:&quot;abc&quot;,
-                    &quot;scope&quot;:&quot;algo&quot;,
-                    &quot;tenantId&quot;:&quot;5ca969eb-2757-46ed-bc3f-f9266ccccea7&quot;,
-                    &quot;zoneId&quot;:&quot;TMP.Identity.TRUCHATOR&quot;
-                },
-                &quot;payload&quot;:&quot;SGVsbG8gV29ybGQgYXQ6MjAxOS0wNS0xNFQxNjoyNDoxMC4xNDAgRXh0cmE6IA==&quot;
-            },
-            &quot;partition&quot;:1,&quot;offset&quot;:3
-        },
-        {
-            &quot;routingData&quot;:{
-                    &quot;topic&quot;:&quot;topic1-5ca969eb-2757-46ed-bc3f-f9266ccccea7&quot;,
-                    &quot;shardingKey&quot;:&quot;pool-1-thread-1-0-2&quot;},
-            &quot;message&quot;:{
-                &quot;headers&quot;:{
-                    &quot;sourceId&quot;:&quot;abc&quot;,
-                    &quot;scope&quot;:&quot;algo&quot;,
-                    &quot;tenantId&quot;:&quot;5ca969eb-2757-46ed-bc3f-f9266ccccea7&quot;,
-                    &quot;zoneId&quot;:&quot;TMP.Identity.TRUCHATOR&quot;
-                },
-                &quot;payload&quot;:&quot;SGVsbG8gV29ybGQgYXQ6MjAxOS0wNS0xNFQxNjoyNDoxMC4xNDEgRXh0cmE6IA==&quot;
-            },
-            &quot;partition&quot;:3,&quot;offset&quot;:0
-        }
-    ],
-    &quot;options&quot;:{
-        &quot;cookie&quot;:[&quot;ee92c43b218c&quot;],
-        &quot;consumer-prefix&quot;:[&quot;/databus/consumer-service/v1&quot;],
-        &quot;verify-cert-bundle&quot;:[&quot;&quot;],
-        &quot;consumer-id&quot;:[&quot;6d1dfd66-61f2-4525-ae70-e00ca6a9ffd78e9c79e2-26e6-4cd7-8e2d-75ce2a868cd7&quot;],
-        &quot;domain&quot;:[&quot;domain&quot;],
-        &quot;consume-timeout&quot;:[&quot;&quot;],
-        &quot;http-proxy&quot;:[&quot;&quot;],
-        &quot;url&quot;:[&quot;http://&lt;0.0.0.0&gt;:&lt;PORT&gt;/&quot;],
-        &quot;token&quot;:[&lt;TOKEN&gt;]
-    }
-}
+<div class="code json highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;code&quot;</span><span class="p">:</span><span class="s2">&quot;200&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;result&quot;</span><span class="p">:[</span>
+        <span class="p">{</span>
+            <span class="s2">&quot;routingData&quot;</span><span class="p">:{</span>
+                <span class="s2">&quot;topic&quot;</span><span class="p">:</span><span class="s2">&quot;topic1-5ca969eb-2757-46ed-bc3f-f9266ccccea7&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;shardingKey&quot;</span><span class="p">:</span><span class="s2">&quot;pool-1-thread-1-0-1&quot;</span><span class="p">},</span>
+            <span class="s2">&quot;message&quot;</span><span class="p">:{</span>
+                <span class="s2">&quot;headers&quot;</span><span class="p">:{</span>
+                    <span class="s2">&quot;sourceId&quot;</span><span class="p">:</span><span class="s2">&quot;abc&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;scope&quot;</span><span class="p">:</span><span class="s2">&quot;algo&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;tenantId&quot;</span><span class="p">:</span><span class="s2">&quot;5ca969eb-2757-46ed-bc3f-f9266ccccea7&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;zoneId&quot;</span><span class="p">:</span><span class="s2">&quot;TMP.Identity.TRUCHATOR&quot;</span>
+                <span class="p">},</span>
+                <span class="s2">&quot;payload&quot;</span><span class="p">:</span><span class="s2">&quot;SGVsbG8gV29ybGQgYXQ6MjAxOS0wNS0xNFQxNjoyNDoxMC4xNDAgRXh0cmE6IA==&quot;</span>
+            <span class="p">},</span>
+            <span class="s2">&quot;partition&quot;</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">&quot;offset&quot;</span><span class="p">:</span><span class="mi">3</span>
+        <span class="p">},</span>
+        <span class="p">{</span>
+            <span class="s2">&quot;routingData&quot;</span><span class="p">:{</span>
+                    <span class="s2">&quot;topic&quot;</span><span class="p">:</span><span class="s2">&quot;topic1-5ca969eb-2757-46ed-bc3f-f9266ccccea7&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;shardingKey&quot;</span><span class="p">:</span><span class="s2">&quot;pool-1-thread-1-0-2&quot;</span><span class="p">},</span>
+            <span class="s2">&quot;message&quot;</span><span class="p">:{</span>
+                <span class="s2">&quot;headers&quot;</span><span class="p">:{</span>
+                    <span class="s2">&quot;sourceId&quot;</span><span class="p">:</span><span class="s2">&quot;abc&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;scope&quot;</span><span class="p">:</span><span class="s2">&quot;algo&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;tenantId&quot;</span><span class="p">:</span><span class="s2">&quot;5ca969eb-2757-46ed-bc3f-f9266ccccea7&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;zoneId&quot;</span><span class="p">:</span><span class="s2">&quot;TMP.Identity.TRUCHATOR&quot;</span>
+                <span class="p">},</span>
+                <span class="s2">&quot;payload&quot;</span><span class="p">:</span><span class="s2">&quot;SGVsbG8gV29ybGQgYXQ6MjAxOS0wNS0xNFQxNjoyNDoxMC4xNDEgRXh0cmE6IA==&quot;</span>
+            <span class="p">},</span>
+            <span class="s2">&quot;partition&quot;</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span><span class="s2">&quot;offset&quot;</span><span class="p">:</span><span class="mi">0</span>
+        <span class="p">}</span>
+    <span class="p">],</span>
+    <span class="s2">&quot;options&quot;</span><span class="p">:{</span>
+        <span class="s2">&quot;cookie&quot;</span><span class="p">:[</span><span class="s2">&quot;ee92c43b218c&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;consumer-prefix&quot;</span><span class="p">:[</span><span class="s2">&quot;/databus/consumer-service/v1&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;verify-cert-bundle&quot;</span><span class="p">:[</span><span class="s2">&quot;&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;consumer-id&quot;</span><span class="p">:[</span><span class="s2">&quot;6d1dfd66-61f2-4525-ae70-e00ca6a9ffd78e9c79e2-26e6-4cd7-8e2d-75ce2a868cd7&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;domain&quot;</span><span class="p">:[</span><span class="s2">&quot;domain&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;consume-timeout&quot;</span><span class="p">:[</span><span class="s2">&quot;&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;http-proxy&quot;</span><span class="p">:[</span><span class="s2">&quot;&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;url&quot;</span><span class="p">:[</span><span class="s2">&quot;http://&lt;0.0.0.0&gt;:&lt;PORT&gt;/&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;token&quot;</span><span class="p">:[</span><span class="o">&lt;</span><span class="n">TOKEN</span><span class="o">&gt;</span><span class="p">]</span>
+    <span class="p">}</span>
+<span class="p">}</span>
 </pre></div>
 </div>
 </div>
 </div>
 <div class="section" id="commit">
-<span id="commit"></span><h3>commit<a class="headerlink" href="#commit" title="Permalink to this headline">¶</a></h3>
-<p>It is an operation argument to set the last consumed records to successfully processed by this consumer group. Consequently, these last consumed records will not be present in the response to next consume operation execution.</p>
-<p>Note that consume and commit are operations done on a consumer group basis. If a consumer of a given consumer group consumes records and commits afterwards, then next consume operations from any consumer of such consumer group will no longer contain those records. However, those records are still available to consumers of other consumer groups as long as they have not consumed them yet and their retention period has not expired.</p>
-<p>Mandatory Arguments for commit | Description
-———— | ————-
-<code class="docutils literal notranslate"><span class="pre">--consumer-id</span></code> | Consumer Id previously obtained by create operation
-<code class="docutils literal notranslate"><span class="pre">--cookie</span></code> | Cookie value obtained by create operation
-<code class="docutils literal notranslate"><span class="pre">--domain</span></code> | Cookie Domain value obtained by create operation
-<code class="docutils literal notranslate"><span class="pre">--url</span></code> | Streaming Service base URL
-<code class="docutils literal notranslate"><span class="pre">--token</span></code> | Identity token gotten by login operation</p>
-<p>Optional Arguments for commit | Description
-———— | ————-
-<code class="docutils literal notranslate"><span class="pre">--consumer-prefix</span></code> | Consumer prefix URL path. If not present, then its default value will be used instead. Default value: /databus/consumer-service/v1
-<code class="docutils literal notranslate"><span class="pre">--verify-cert-bundle</span></code> | Certificate file name or certificate in String format to be able to hit Streaming Service
-<code class="docutils literal notranslate"><span class="pre">--http-proxy</span></code> | Http Proxy data: whether enabled, FQDN or IP Address, TCP Port. Optional username and password</p>
-<div class="section" id="example">
-<span id="id5"></span><h4>example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h4>
+<h3>commit<a class="headerlink" href="#commit" title="Permalink to this headline">¶</a></h3>
+<p>It is an operation argument to set the last consumed records to
+successfully processed by this consumer group. Consequently, these last
+consumed records will not be present in the response to next consume
+operation execution.</p>
+<p>Note that consume and commit are operations done on a consumer group
+basis. If a consumer of a given consumer group consumes records and
+commits afterwards, then next consume operations from any consumer of
+such consumer group will no longer contain those records. However, those
+records are still available to consumers of other consumer groups as
+long as they have not consumed them yet and their retention period has
+not expired.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="38%" />
+<col width="62%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Mandatory Arguments for commit</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">--consumer-id</span></code></td>
+<td>Consumer Id previously obtained by create operation</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">--cookie</span></code></td>
+<td>Cookie value obtained by create operation</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">--domain</span></code></td>
+<td>Cookie Domain value obtained by create operation</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">--url</span></code></td>
+<td>Streaming Service base URL</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">--token</span></code></td>
+<td>Identity token gotten by login operation</td>
+</tr>
+</tbody>
+</table>
+<table border="1" class="docutils">
+<colgroup>
+<col width="20%" />
+<col width="80%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Optional Arguments for commit</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">--consumer-prefix</span></code></td>
+<td>Consumer prefix URL path. If not present, then its default value will be used instead. Default value: /databus/consumer-service/v1</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">--verify-cert-bundle</span></code></td>
+<td>Certificate file name or certificate in String format to be able to hit Streaming Service</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">--http-proxy</span></code></td>
+<td>Http Proxy data: whether enabled, FQDN or IP Address, TCP Port. Optional username and password</td>
+</tr>
+</tbody>
+</table>
+<div class="section" id="id5">
+<h4>example<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h4>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">java</span> <span class="o">-</span><span class="n">jar</span> <span class="n">opendxlstreamingclient</span><span class="o">-</span><span class="n">java</span><span class="o">-</span><span class="n">sdk</span><span class="o">-&lt;</span><span class="n">VERSION</span><span class="o">&gt;.</span><span class="n">jar</span> \
 <span class="o">--</span><span class="n">operation</span> <span class="n">commit</span> \
 <span class="o">--</span><span class="n">url</span> <span class="n">http</span><span class="p">:</span><span class="o">//&lt;</span><span class="mf">0.0</span><span class="o">.</span><span class="mf">0.0</span><span class="o">&gt;</span><span class="p">:</span><span class="o">&lt;</span><span class="n">PORT</span><span class="o">&gt;/</span> \
@@ -536,41 +811,82 @@ subscriptions | get the list of topics subscribed to</p>
 <span class="o">--</span><span class="n">domain</span> <span class="n">domain</span>
 </pre></div>
 </div>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span>{
-    &quot;code&quot;:&quot;204&quot;,
-    &quot;result&quot;:&quot;&quot;,
-    &quot;options&quot;:{
-        &quot;cookie&quot;:[&quot;ee92c43b218c&quot;],
-        &quot;consumer-prefix&quot;:[&quot;/databus/consumer-service/v1&quot;],
-        &quot;verify-cert-bundle&quot;:[&quot;&quot;],
-        &quot;consumer-id&quot;:[&quot;6d1dfd66-61f2-4525-ae70-e00ca6a9ffd78e9c79e2-26e6-4cd7-8e2d-75ce2a868cd7&quot;],
-        &quot;domain&quot;:[&quot;domain&quot;],
-        &quot;http-proxy&quot;:[&quot;&quot;],
-        &quot;url&quot;:[&quot;http://&lt;0.0.0.0&gt;:&lt;PORT&gt;/&quot;],
-        &quot;token&quot;:[&lt;TOKEN&gt;]
-    }
-}
+<div class="code json highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;code&quot;</span><span class="p">:</span><span class="s2">&quot;204&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;result&quot;</span><span class="p">:</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;options&quot;</span><span class="p">:{</span>
+        <span class="s2">&quot;cookie&quot;</span><span class="p">:[</span><span class="s2">&quot;ee92c43b218c&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;consumer-prefix&quot;</span><span class="p">:[</span><span class="s2">&quot;/databus/consumer-service/v1&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;verify-cert-bundle&quot;</span><span class="p">:[</span><span class="s2">&quot;&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;consumer-id&quot;</span><span class="p">:[</span><span class="s2">&quot;6d1dfd66-61f2-4525-ae70-e00ca6a9ffd78e9c79e2-26e6-4cd7-8e2d-75ce2a868cd7&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;domain&quot;</span><span class="p">:[</span><span class="s2">&quot;domain&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;http-proxy&quot;</span><span class="p">:[</span><span class="s2">&quot;&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;url&quot;</span><span class="p">:[</span><span class="s2">&quot;http://&lt;0.0.0.0&gt;:&lt;PORT&gt;/&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;token&quot;</span><span class="p">:[</span><span class="o">&lt;</span><span class="n">TOKEN</span><span class="o">&gt;</span><span class="p">]</span>
+    <span class="p">}</span>
+<span class="p">}</span>
 </pre></div>
 </div>
 </div>
 </div>
 <div class="section" id="delete">
-<span id="delete"></span><h3>delete<a class="headerlink" href="#delete" title="Permalink to this headline">¶</a></h3>
-<p>It is an operation argument to delete the consumer identified by its consumer-id. Once deleted, the consumer will fail in all subsequent operations, e.g.: such consumer-id can no longer subscribe, get subscriptions, consume or commit.</p>
-<p>Mandatory Arguments for delete | Description
-———— | ————-
-<code class="docutils literal notranslate"><span class="pre">--consumer-id</span></code> | Consumer Id previously obtained by create operation
-<code class="docutils literal notranslate"><span class="pre">--cookie</span></code> | Cookie value obtained by create operation
-<code class="docutils literal notranslate"><span class="pre">--domain</span></code> | Cookie Domain value obtained by create operation
-<code class="docutils literal notranslate"><span class="pre">--url</span></code> | Streaming Service base URL
-<code class="docutils literal notranslate"><span class="pre">--token</span></code> | Identity token gotten by login operation</p>
-<p>Optional Arguments for delete | Description
-———— | ————-
-<code class="docutils literal notranslate"><span class="pre">--consumer-prefix</span></code> | Consumer prefix URL path. If not present, then its default value will be used instead. Default value: /databus/consumer-service/v1
-<code class="docutils literal notranslate"><span class="pre">--verify-cert-bundle</span></code> | Certificate file name or certificate in String format to be able to hit Streaming Service
-<code class="docutils literal notranslate"><span class="pre">--http-proxy</span></code> | Http Proxy data: whether enabled, FQDN or IP Address, TCP Port. Optional username and password</p>
-<div class="section" id="example">
-<span id="id6"></span><h4>example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h4>
+<h3>delete<a class="headerlink" href="#delete" title="Permalink to this headline">¶</a></h3>
+<p>It is an operation argument to delete the consumer identified by its
+consumer-id. Once deleted, the consumer will fail in all subsequent
+operations, e.g.: such consumer-id can no longer subscribe, get
+subscriptions, consume or commit.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="38%" />
+<col width="62%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Mandatory Arguments for delete</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">--consumer-id</span></code></td>
+<td>Consumer Id previously obtained by create operation</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">--cookie</span></code></td>
+<td>Cookie value obtained by create operation</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">--domain</span></code></td>
+<td>Cookie Domain value obtained by create operation</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">--url</span></code></td>
+<td>Streaming Service base URL</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">--token</span></code></td>
+<td>Identity token gotten by login operation</td>
+</tr>
+</tbody>
+</table>
+<table border="1" class="docutils">
+<colgroup>
+<col width="20%" />
+<col width="80%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Optional Arguments for delete</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">--consumer-prefix</span></code></td>
+<td>Consumer prefix URL path. If not present, then its default value will be used instead. Default value: /databus/consumer-service/v1</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">--verify-cert-bundle</span></code></td>
+<td>Certificate file name or certificate in String format to be able to hit Streaming Service</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">--http-proxy</span></code></td>
+<td>Http Proxy data: whether enabled, FQDN or IP Address, TCP Port. Optional username and password</td>
+</tr>
+</tbody>
+</table>
+<div class="section" id="id6">
+<h4>example<a class="headerlink" href="#id6" title="Permalink to this headline">¶</a></h4>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">java</span> <span class="o">-</span><span class="n">jar</span> <span class="n">opendxlstreamingclient</span><span class="o">-</span><span class="n">java</span><span class="o">-</span><span class="n">sdk</span><span class="o">-&lt;</span><span class="n">VERSION</span><span class="o">&gt;.</span><span class="n">jar</span> \
 <span class="o">--</span><span class="n">operation</span> <span class="n">delete</span> \
 <span class="o">--</span><span class="n">url</span> <span class="n">http</span><span class="p">:</span><span class="o">//&lt;</span><span class="mf">0.0</span><span class="o">.</span><span class="mf">0.0</span><span class="o">&gt;</span><span class="p">:</span><span class="o">&lt;</span><span class="n">PORT</span><span class="o">&gt;/</span> \
@@ -580,20 +896,20 @@ subscriptions | get the list of topics subscribed to</p>
 <span class="o">--</span><span class="n">domain</span> <span class="n">domain</span>
 </pre></div>
 </div>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span>{
-    &quot;code&quot;:&quot;204&quot;,
-    &quot;result&quot;:&quot;&quot;,
-    &quot;options&quot;:{
-        &quot;cookie&quot;:[&quot;ee92c43b218c&quot;],
-        &quot;consumer-prefix&quot;:[&quot;/databus/consumer-service/v1&quot;],
-        &quot;verify-cert-bundle&quot;:[&quot;&quot;],
-        &quot;consumer-id&quot;:[&quot;6d1dfd66-61f2-4525-ae70-e00ca6a9ffd78e9c79e2-26e6-4cd7-8e2d-75ce2a868cd7&quot;],
-        &quot;domain&quot;:[&quot;domain&quot;],
-        &quot;http-proxy&quot;:[&quot;&quot;],
-        &quot;url&quot;:[&quot;http://&lt;0.0.0.0&gt;:&lt;PORT&gt;/&quot;],
-        &quot;token&quot;:[&lt;TOKEN&gt;]
-    }
-}
+<div class="code json highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;code&quot;</span><span class="p">:</span><span class="s2">&quot;204&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;result&quot;</span><span class="p">:</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;options&quot;</span><span class="p">:{</span>
+        <span class="s2">&quot;cookie&quot;</span><span class="p">:[</span><span class="s2">&quot;ee92c43b218c&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;consumer-prefix&quot;</span><span class="p">:[</span><span class="s2">&quot;/databus/consumer-service/v1&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;verify-cert-bundle&quot;</span><span class="p">:[</span><span class="s2">&quot;&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;consumer-id&quot;</span><span class="p">:[</span><span class="s2">&quot;6d1dfd66-61f2-4525-ae70-e00ca6a9ffd78e9c79e2-26e6-4cd7-8e2d-75ce2a868cd7&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;domain&quot;</span><span class="p">:[</span><span class="s2">&quot;domain&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;http-proxy&quot;</span><span class="p">:[</span><span class="s2">&quot;&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;url&quot;</span><span class="p">:[</span><span class="s2">&quot;http://&lt;0.0.0.0&gt;:&lt;PORT&gt;/&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;token&quot;</span><span class="p">:[</span><span class="o">&lt;</span><span class="n">TOKEN</span><span class="o">&gt;</span><span class="p">]</span>
+    <span class="p">}</span>
+<span class="p">}</span>
 </pre></div>
 </div>
 </div>
