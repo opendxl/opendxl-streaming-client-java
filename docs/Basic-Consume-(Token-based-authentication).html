@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Basic Consume token based-authentication example &mdash; OpenDXL Streaming Java Client Library 0.1.0 documentation</title>
+  <title>Basic Consume token-based authentication &mdash; OpenDXL Streaming Java Client Library 0.1.0 documentation</title>
   
 
   
@@ -29,7 +29,7 @@
   <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Basic Consume user and password based-authentication example" href="Basic-Consume-(user-and-pass-authentication).html" />
+    <link rel="next" title="Basic Consume user-password-based authentication" href="Basic-Consume-(user-and-pass-authentication).html" />
     <link rel="prev" title="Prerequisites" href="Prerequisites.html" /> 
 
   
@@ -87,16 +87,22 @@
 <li class="toctree-l1"><a class="reference internal" href="Prerequisites.html">Prerequisites</a></li>
 </ul>
 <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Basic Consume token based-authentication example</a><ul>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Basic Consume token-based authentication</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#sample-code">Sample Code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#run-the-sample">Run the sample</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#prerequisites">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#setup">Setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#running">Running</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="Basic-Consume-(user-and-pass-authentication).html">Basic Consume user and password based-authentication example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Basic-Consume-(user-and-pass-authentication).html">Basic Consume user-password-based authentication</a></li>
 </ul>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="Basic-Consume-(command-line-interface).html">Consume CLI (Command Line Interface)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Basic-Consume-(command-line-interface).html">CLI (Command Line Interface)</a></li>
 </ul>
 
             
@@ -142,7 +148,7 @@
     
       <li><a href="index.html">Docs</a> &raquo;</li>
         
-      <li>Basic Consume token based-authentication example</li>
+      <li>Basic Consume token-based authentication</li>
     
     
       <li class="wy-breadcrumbs-aside">
@@ -159,16 +165,13 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="basic-consume-token-based-authentication-example">
-<h1>Basic Consume token based-authentication example<a class="headerlink" href="#basic-consume-token-based-authentication-example" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="basic-consume-token-based-authentication">
+<h1>Basic Consume token-based authentication<a class="headerlink" href="#basic-consume-token-based-authentication" title="Permalink to this headline">¶</a></h1>
 <p>This sample demonstrates how to establish a channel connection to the
 DXL streaming service by using an identity token authentication
 mechanism. Once the connection is established, the sample repeatedly
 consumes and displays available records for the consumer group.</p>
 <p>Code highlights are shown below:</p>
-<p><em>Note:</em> <code class="docutils literal notranslate"><span class="pre">&lt;0.0.0.0&gt;</span></code> and <code class="docutils literal notranslate"><span class="pre">&lt;PORT&gt;</span></code> are placeholders which you should
-respectively replace with the Http Proxy IP address or hostname and TCP
-port number.</p>
 <div class="section" id="sample-code">
 <h2>Sample Code<a class="headerlink" href="#sample-code" title="Permalink to this headline">¶</a></h2>
 <div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">//</span> <span class="n">Create</span> <span class="n">a</span> <span class="n">new</span> <span class="n">Channel</span> <span class="nb">object</span>
@@ -180,11 +183,11 @@ port number.</p>
                 <span class="n">true</span><span class="p">,</span>
                 <span class="n">verifyCertificateBundle</span><span class="p">,</span>
                 <span class="n">extraConfigs</span><span class="p">,</span>
-                <span class="n">new</span> <span class="n">HttpProxySettings</span><span class="p">(</span><span class="n">true</span><span class="p">,</span>
-                        <span class="o">&lt;</span><span class="mf">0.0</span><span class="o">.</span><span class="mf">0.0</span><span class="o">&gt;</span><span class="p">,</span>
-                        <span class="o">&lt;</span><span class="n">PORT</span><span class="o">&gt;</span><span class="p">,</span>
-                        <span class="s2">&quot;me&quot;</span><span class="p">,</span>
-                        <span class="s2">&quot;secret&quot;</span><span class="p">))</span>
+                <span class="n">new</span> <span class="n">HttpProxySettings</span><span class="p">(</span><span class="n">PROXY_ENABLED</span><span class="p">,</span>
+                        <span class="n">PROXY_HOST</span><span class="p">,</span>
+                        <span class="n">PROXY_PORT</span><span class="p">,</span>
+                        <span class="n">PROXY_USR</span><span class="p">,</span>
+                        <span class="n">PROXY_PWD</span><span class="p">))</span>
 
 <span class="o">//</span> <span class="n">Create</span> <span class="nb">object</span> <span class="n">which</span> <span class="n">processCallback</span><span class="p">()</span> <span class="n">method</span> <span class="n">will</span> <span class="n">be</span> <span class="n">called</span> <span class="n">back</span> <span class="n">upon</span> <span class="n">by</span> <span class="n">the</span> <span class="n">run</span> <span class="n">method</span> <span class="p">(</span><span class="n">see</span> <span class="n">below</span><span class="p">)</span>
 <span class="o">//</span> <span class="n">when</span> <span class="n">records</span> <span class="n">are</span> <span class="n">received</span> <span class="kn">from</span> <span class="nn">the</span> <span class="n">channel</span>
@@ -268,6 +271,84 @@ similar to the following:</p>
 </pre></div>
 </div>
 </div>
+<div class="section" id="run-the-sample">
+<h2>Run the sample<a class="headerlink" href="#run-the-sample" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="prerequisites">
+<h3>Prerequisites<a class="headerlink" href="#prerequisites" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>A DXL streaming service is available for the sample to connect to.</li>
+<li>Credentials for a consumer are available for use with the sample.</li>
+</ul>
+</div>
+<div class="section" id="setup">
+<h3>Setup<a class="headerlink" href="#setup" title="Permalink to this headline">¶</a></h3>
+<p>Modify the example to include the appropriate settings for the streaming
+service channel:</p>
+<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">private</span> <span class="n">static</span> <span class="n">final</span> <span class="n">String</span> <span class="n">CHANNEL_URL</span> <span class="o">=</span> <span class="s2">&quot;http://127.0.0.1:50080&quot;</span><span class="p">;</span>
+<span class="n">private</span> <span class="n">static</span> <span class="n">final</span> <span class="n">String</span> <span class="n">TOKEN</span> <span class="o">=</span> <span class="s2">&quot;Your_Token&quot;</span><span class="p">;</span>
+<span class="n">private</span> <span class="n">static</span> <span class="n">final</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span> <span class="n">TOPICS</span> <span class="o">=</span> <span class="n">Arrays</span><span class="o">.</span><span class="n">asList</span><span class="p">(</span><span class="s2">&quot;topic1&quot;</span><span class="p">);</span>
+<span class="n">private</span> <span class="n">static</span> <span class="n">final</span> <span class="n">String</span> <span class="n">CONSUMER_GROUP</span> <span class="o">=</span> <span class="s2">&quot;sample_consumer_group&quot;</span><span class="p">;</span>
+<span class="n">private</span> <span class="n">static</span> <span class="n">final</span> <span class="n">String</span> <span class="n">VERIFY_CERTIFICATE_BUNDLE</span> <span class="o">=</span> <span class="s2">&quot;-----BEGIN CERTIFICATE-----&quot;</span>
+        <span class="o">+</span> <span class="s2">&quot;Your Certificate if nedded&quot;</span>
+        <span class="o">+</span> <span class="s2">&quot;-----END CERTIFICATE-----&quot;</span><span class="p">;</span>
+
+<span class="n">private</span> <span class="n">static</span> <span class="n">final</span> <span class="n">boolean</span> <span class="n">PROXY_ENABLED</span> <span class="o">=</span> <span class="n">true</span><span class="p">;</span>
+<span class="n">private</span> <span class="n">static</span> <span class="n">final</span> <span class="n">String</span> <span class="n">PROXY_HOST</span> <span class="o">=</span> <span class="s2">&quot;10.20.30.40&quot;</span><span class="p">;</span>
+<span class="n">private</span> <span class="n">static</span> <span class="n">final</span> <span class="nb">int</span> <span class="n">PROXY_PORT</span> <span class="o">=</span> <span class="mi">8080</span><span class="p">;</span>
+<span class="n">private</span> <span class="n">static</span> <span class="n">final</span> <span class="n">String</span> <span class="n">PROXY_USR</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">;</span>
+<span class="n">private</span> <span class="n">static</span> <span class="n">final</span> <span class="n">String</span> <span class="n">PROXY_PWD</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="running">
+<h3>Running<a class="headerlink" href="#running" title="Permalink to this headline">¶</a></h3>
+<p>To run this sample execute the runsample script as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ ./runsample sample.ConsumeRecordsWithToken
+</pre></div>
+</div>
+<p>The initial line in the output window should be similar to the
+following:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="p">(</span><span class="n">Channel</span><span class="o">.</span><span class="n">java</span><span class="p">:</span><span class="mi">691</span><span class="p">)</span> <span class="o">-</span> <span class="n">Channel</span> <span class="ow">is</span> <span class="n">running</span>
+</pre></div>
+</div>
+<p>As records are received by the sample, the contents of the message
+payloads should be displayed to the output window.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Received</span> <span class="mi">15</span> <span class="n">records</span>
+<span class="n">topic</span> <span class="o">=</span> <span class="n">BusinessEvents</span>
+<span class="n">partition</span> <span class="o">=</span> <span class="mi">5</span>
+<span class="n">offset</span> <span class="o">=</span> <span class="mi">13</span>
+<span class="n">sharding</span> <span class="n">key</span> <span class="o">=</span> <span class="mi">123</span>
+<span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="n">scope</span><span class="o">=</span><span class="n">soc</span><span class="o">.</span><span class="n">evt</span><span class="o">.</span><span class="n">vi</span><span class="p">,</span> <span class="n">tenantId</span><span class="o">=</span><span class="n">DBB1FA1E</span><span class="o">-</span><span class="mi">6</span><span class="n">A68</span><span class="o">-</span><span class="mi">4837</span><span class="o">-</span><span class="mi">982</span><span class="n">E</span><span class="o">-</span><span class="n">FB8D839FF4DA</span><span class="p">,</span> <span class="n">zoneId</span><span class="o">=</span><span class="n">TMP</span><span class="o">.</span><span class="n">Identity</span><span class="o">.</span><span class="n">TRUCHATOR</span><span class="p">}</span>
+<span class="n">payload</span> <span class="o">=</span> <span class="n">SGVsbG8sIFdvcmxkLg</span><span class="o">==</span>
+<span class="n">decoded</span> <span class="n">payload</span> <span class="o">=</span> <span class="n">Hello</span><span class="p">,</span> <span class="n">World</span><span class="o">.</span>
+
+<span class="n">topic</span> <span class="o">=</span> <span class="n">BusinessEvents</span>
+<span class="n">partition</span> <span class="o">=</span> <span class="mi">5</span>
+<span class="n">offset</span> <span class="o">=</span> <span class="mi">14</span>
+<span class="n">sharding</span> <span class="n">key</span> <span class="o">=</span> <span class="mi">123</span>
+<span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="n">scope</span><span class="o">=</span><span class="n">soc</span><span class="o">.</span><span class="n">evt</span><span class="o">.</span><span class="n">vi</span><span class="p">,</span> <span class="n">tenantId</span><span class="o">=</span><span class="n">DBB1FA1E</span><span class="o">-</span><span class="mi">6</span><span class="n">A68</span><span class="o">-</span><span class="mi">4837</span><span class="o">-</span><span class="mi">982</span><span class="n">E</span><span class="o">-</span><span class="n">FB8D839FF4DA</span><span class="p">,</span> <span class="n">zoneId</span><span class="o">=</span><span class="n">TMP</span><span class="o">.</span><span class="n">Identity</span><span class="o">.</span><span class="n">TRUCHATOR</span><span class="p">}</span>
+<span class="n">payload</span> <span class="o">=</span> <span class="n">SGVsbG8sIFdvcmxkLg</span><span class="o">==</span>
+<span class="n">decoded</span> <span class="n">payload</span> <span class="o">=</span> <span class="n">Hello</span><span class="p">,</span> <span class="n">World</span><span class="o">.</span>
+
+<span class="n">topic</span> <span class="o">=</span> <span class="n">BusinessEvents</span>
+<span class="n">partition</span> <span class="o">=</span> <span class="mi">5</span>
+<span class="n">offset</span> <span class="o">=</span> <span class="mi">15</span>
+<span class="n">sharding</span> <span class="n">key</span> <span class="o">=</span> <span class="mi">123</span>
+<span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="n">scope</span><span class="o">=</span><span class="n">soc</span><span class="o">.</span><span class="n">evt</span><span class="o">.</span><span class="n">vi</span><span class="p">,</span> <span class="n">tenantId</span><span class="o">=</span><span class="n">DBB1FA1E</span><span class="o">-</span><span class="mi">6</span><span class="n">A68</span><span class="o">-</span><span class="mi">4837</span><span class="o">-</span><span class="mi">982</span><span class="n">E</span><span class="o">-</span><span class="n">FB8D839FF4DA</span><span class="p">,</span> <span class="n">zoneId</span><span class="o">=</span><span class="n">TMP</span><span class="o">.</span><span class="n">Identity</span><span class="o">.</span><span class="n">TRUCHATOR</span><span class="p">}</span>
+<span class="n">payload</span> <span class="o">=</span> <span class="n">SGVsbG8sIFdvcmxkLg</span><span class="o">==</span>
+<span class="n">decoded</span> <span class="n">payload</span> <span class="o">=</span> <span class="n">Hello</span><span class="p">,</span> <span class="n">World</span><span class="o">.</span>
+
+<span class="n">topic</span> <span class="o">=</span> <span class="n">BusinessEvents</span>
+<span class="n">partition</span> <span class="o">=</span> <span class="mi">5</span>
+<span class="n">offset</span> <span class="o">=</span> <span class="mi">16</span>
+<span class="n">sharding</span> <span class="n">key</span> <span class="o">=</span> <span class="mi">123</span>
+<span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="n">scope</span><span class="o">=</span><span class="n">soc</span><span class="o">.</span><span class="n">evt</span><span class="o">.</span><span class="n">vi</span><span class="p">,</span> <span class="n">tenantId</span><span class="o">=</span><span class="n">DBB1FA1E</span><span class="o">-</span><span class="mi">6</span><span class="n">A68</span><span class="o">-</span><span class="mi">4837</span><span class="o">-</span><span class="mi">982</span><span class="n">E</span><span class="o">-</span><span class="n">FB8D839FF4DA</span><span class="p">,</span> <span class="n">zoneId</span><span class="o">=</span><span class="n">TMP</span><span class="o">.</span><span class="n">Identity</span><span class="o">.</span><span class="n">TRUCHATOR</span><span class="p">}</span>
+<span class="n">payload</span> <span class="o">=</span> <span class="n">SGVsbG8sIFdvcmxkLg</span><span class="o">==</span>
+<span class="n">decoded</span> <span class="n">payload</span> <span class="o">=</span> <span class="n">Hello</span><span class="p">,</span> <span class="n">World</span><span class="o">.</span>
+</pre></div>
+</div>
+</div>
+</div>
 </div>
 
 
@@ -278,7 +359,7 @@ similar to the following:</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="Basic-Consume-(user-and-pass-authentication).html" class="btn btn-neutral float-right" title="Basic Consume user and password based-authentication example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="Basic-Consume-(user-and-pass-authentication).html" class="btn btn-neutral float-right" title="Basic Consume user-password-based authentication" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="Prerequisites.html" class="btn btn-neutral" title="Prerequisites" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>

@@ -1,5 +1,5 @@
-Consume CLI (Command Line Interface)
-====================================
+CLI (Command Line Interface)
+----------------------------
 
 OpenDXL streaming client can be invoked from command line for testing or
 checking purposes. Executing CLI like a standard Java library with no
@@ -53,7 +53,7 @@ attempting to invoke. Similarly, ``<TOKEN>`` is a placeholder for the
 token value received after executing the ``login`` operation.
 
 Supported Operations
---------------------
+~~~~~~~~~~~~~~~~~~~~
 
 In order to get records from Streaming Service, the user has to invoke a
 few CLI operations. Operations arguments are placed after
@@ -64,7 +64,7 @@ few CLI operations. Operations arguments are placed after
     $ java -jar opendxlstreamingclient-java-sdk-<VERSION>.jar --operation <OPERATION_ARGUMENT> ...
 
 Operation Arguments
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 +-----------------------+-----------------------------------------+
 | Operation Arguments   | Description                             |
@@ -90,7 +90,7 @@ token has already been received is: ``create`` -> ``subscribe`` ->
 be called repeatedly to read the following records.
 
 login
-~~~~~
+^^^^^
 
 It is an operation argument to get an identity token. The token is a
 prerequisite for the rest of the CLI operations.
@@ -114,7 +114,7 @@ prerequisite for the rest of the CLI operations.
 +--------------------------------+--------------------------------------------------------------------------------------------------+
 
 example
-^^^^^^^
+'''''''
 
 ::
 
@@ -140,7 +140,7 @@ example
     }
 
 create
-~~~~~~
+^^^^^^
 
 It is an operation argument to create a consumer that will be part of a
 specific Consumer Group and will have specific configuration.
@@ -168,7 +168,7 @@ specific Consumer Group and will have specific configuration.
 +---------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 example
-^^^^^^^
+'''''''
 
 ::
 
@@ -203,7 +203,7 @@ example
     }
 
 subscribe
-~~~~~~~~~
+^^^^^^^^^
 
 It is an operation argument to set the topics from which to receive
 records. If operation is successful, then its response is HTTP 204 No
@@ -236,7 +236,7 @@ Content without body.
 +------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------+
 
 example
-^^^^^^^
+'''''''
 
 ::
 
@@ -269,7 +269,7 @@ example
     }
 
 subscriptions
-~~~~~~~~~~~~~
+^^^^^^^^^^^^^
 
 It is an operation argument to get the topics that the channel is
 already subscribed to. If operation is successful, then its response is
@@ -300,7 +300,7 @@ HTTP 200 with a body showing the subscribed topics.
 +------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------+
 
 example
-^^^^^^^
+'''''''
 
 ::
 
@@ -334,7 +334,7 @@ example
     }
 
 consume
-~~~~~~~
+^^^^^^^
 
 It is an operation argument to get the new records received by the
 subscribed topics since last call to commit. If operation is successful,
@@ -365,7 +365,7 @@ then its response is HTTP 200 with a body showing the consumed records.
 +----------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 example
-^^^^^^^
+'''''''
 
 ::
 
@@ -427,7 +427,7 @@ example
     }
 
 commit
-~~~~~~
+^^^^^^
 
 It is an operation argument to set the last consumed records to
 successfully processed by this consumer group. Consequently, these last
@@ -467,7 +467,7 @@ not expired.
 +---------------------------------+--------------------------------------------------------------------------------------------------------------------------------------+
 
 example
-^^^^^^^
+'''''''
 
 ::
 
@@ -497,7 +497,7 @@ example
     }
 
 delete
-~~~~~~
+^^^^^^
 
 It is an operation argument to delete the consumer identified by its
 consumer-id. Once deleted, the consumer will fail in all subsequent
@@ -529,7 +529,7 @@ subscriptions, consume or commit.
 +---------------------------------+--------------------------------------------------------------------------------------------------------------------------------------+
 
 example
-^^^^^^^
+'''''''
 
 ::
 
