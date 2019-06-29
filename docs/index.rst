@@ -26,6 +26,27 @@ To start using the OpenDXL Streaming Java client library:
     * The ``README`` links to the documentation which includes installation instructions and usage examples.
     * The Javadoc API documentation is also available on-line `here <https://opendxl.github.io/opendxl-streaming-client-java/docs/javadoc/index.html>`_.
 
+Maven Repository
+----------------
+Visit the `OpenDXL Streaming Java Client Maven Repository <https://search.maven.org/artifact/com.opendxl/dxlstreaming>`_ for
+access to all released versions including the appropriate dependency syntax for a large number of management
+systems (Maven, Gradle, SBT, Ivy, Grape, etc.).
+
+Maven:
+
+    .. code-block:: xml
+
+        <dependency>
+          <groupId>com.opendxl.streaming</groupId>
+          <artifactId>opendxlstreamingclient-java-sdk</artifactId>
+          <version>0.1.0</version>
+        </dependency>
+
+Gradle:
+
+    .. code-block:: groovy
+
+        compile 'com.opendxl.streaming:opendxlstreamingclient-java-sdk:0.1.0'
 
 API Documentation
 -----------------
