@@ -2,7 +2,7 @@
  * Copyright (c) 2019 McAfee, LLC - All Rights Reserved.                     *
  *---------------------------------------------------------------------------*/
 
-package com.opendxl.streaming.sample;
+package sample;
 
 import com.opendxl.streaming.client.Channel;
 import com.opendxl.streaming.client.HttpProxySettings;
@@ -26,24 +26,37 @@ import java.util.Properties;
  */
 public class ConsumeRecordsWithUserPass {
 
+    private static final String CHANNEL_URL = "http://127.0.0.1:50080";
+    private static final String USER_NAME = "me";
+    private static final String USER_PASSWORD = "password";
+    private static final String CONSUMER_GROUP = "sample_consumer_group";
+    private static final String VERIFY_CERTIFICATE_BUNDLE = "/tmp/certificates.crt";
+    private static final List<String> TOPICS = Arrays.asList("case-mgmt-events",
+            "my-topic",
+            "topic-abc123",
+            "topic1");
+
+    private static final boolean PROXY_ENABLED = true;
+    private static final String PROXY_HOST = "10.20.30.40";
+    private static final int PROXY_PORT = 8080;
+    private static final String PROXY_USR = "";
+    private static final String PROXY_PWD = "";
+
     private ConsumeRecordsWithUserPass() { }
 
     public static void main(String[] args) {
 
-        String channelUrl = "http://127.0.0.1:50080";
-        String channelUsername = "me";
-        String channelPassword = "secret";
-        String channelConsumerGroup = "sample_consumer_group";
-        List<String> channelTopicSubscriptions = Arrays.asList("case-mgmt-events",
-                "my-topic",
-                "topic-abc123",
-                "topic1");
+        String channelUrl = CHANNEL_URL;
+        String channelUsername = USER_NAME;
+        String channelPassword = USER_PASSWORD;
+        String channelConsumerGroup = CONSUMER_GROUP;
+        List<String> channelTopicSubscriptions = TOPICS;
 
         // Path to a CA bundle file containing certificates of trusted CAs. The CA
         // bundle is used to validate that the certificate of the server being connected
         // to was signed by a valid authority. If set to an empty string, the server
         // certificate is not validated.
-        String verifyCertificateBundle = "/tmp/certificates.crt";
+        String verifyCertificateBundle = VERIFY_CERTIFICATE_BUNDLE;
 
         Properties extraConfigs = new Properties();
         extraConfigs.put("enable.auto.commit", false);
@@ -84,11 +97,11 @@ public class ConsumeRecordsWithUserPass {
          */
         HttpProxySettings httpProxySettings;
         try {
-            httpProxySettings = new HttpProxySettings(true,
-                    "10.20.30.40",
-                    8080,
-                    "me",
-                    "secret");
+            httpProxySettings = new HttpProxySettings(PROXY_ENABLED,
+                    PROXY_HOST,
+                    PROXY_PORT,
+                    PROXY_USR,
+                    PROXY_PWD);
         } catch (final PermanentError e) {
             System.out.println("Error occurred: " + e.getMessage() + " No http proxy will be used.");
             httpProxySettings = null;
