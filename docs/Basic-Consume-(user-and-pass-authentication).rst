@@ -146,12 +146,11 @@ service channel:
 .. code:: java
 
         private static final String CHANNEL_URL = "http://127.0.0.1:50080";
-        private static final String TOKEN = "Your_Token";
-        private static final List<String> TOPICS = Arrays.asList("topic1");
+        private static final String USER_NAME = "me";
+        private static final String USER_PASSWORD = "password";
         private static final String CONSUMER_GROUP = "sample_consumer_group";
-        private static final String VERIFY_CERTIFICATE_BUNDLE = "-----BEGIN CERTIFICATE-----"
-                + "Your Certificate if nedded"
-                + "-----END CERTIFICATE-----";
+        private static final String VERIFY_CERTIFICATE_BUNDLE = "/mycert.crt";
+        private static final List<String> TOPICS = Arrays.asList("topic1");
 
         private static final boolean PROXY_ENABLED = true;
         private static final String PROXY_HOST = "10.20.30.40";

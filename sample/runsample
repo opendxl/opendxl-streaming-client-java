@@ -34,4 +34,4 @@ javac -classpath "$CLASSPATH" @"$SOURCES"
 rm -f "$SOURCES"
 
 # Run sample
-java -classpath "$CLASSPATH" $1 "$SCRIPT_PATH/dxlclient.config"
+java -classpath "$CLASSPATH" $1
