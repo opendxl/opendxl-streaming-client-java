@@ -135,7 +135,7 @@ service channel:
         private static final List<String> TOPICS = Arrays.asList("topic1");
         private static final String CONSUMER_GROUP = "sample_consumer_group";
         private static final String VERIFY_CERTIFICATE_BUNDLE = "-----BEGIN CERTIFICATE-----"
-                + "Your Certificate if nedded"
+                + "Your Certificate if nedeed"
                 + "-----END CERTIFICATE-----";
 
         private static final boolean PROXY_ENABLED = true;
