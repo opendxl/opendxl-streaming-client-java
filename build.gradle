@@ -1,13 +1,28 @@
+buildscript {
+    repositories {
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+        mavenCentral()
+    }
+}
+ 
+
 plugins {
     id 'checkstyle'
     id 'java-library'
     id 'distribution'
     id 'maven-publish'
+    id 'signing'
     id "kr.motd.sphinx" version "2.3.1"
 }
 
 apply plugin: 'base'
 apply plugin: 'java'
+apply plugin: 'groovy'
+apply plugin: 'maven-publish'
+apply plugin: 'signing'
+
 group 'com.opendxl.streaming'
 
 sourceCompatibility = 1.8
