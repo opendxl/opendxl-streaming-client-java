@@ -14,6 +14,7 @@ plugins {
     id 'distribution'
     id 'maven-publish'
     id 'signing'
+    id "com.github.johnrengelman.shadow" version "4.0.3"
     id "kr.motd.sphinx" version "2.3.1"
 }
 
@@ -22,6 +23,8 @@ apply plugin: 'java'
 apply plugin: 'groovy'
 apply plugin: 'maven-publish'
 apply plugin: 'signing'
+apply plugin: "com.github.johnrengelman.shadow"
+
 
 group 'com.opendxl.streaming'
 
@@ -49,13 +52,6 @@ jar {
         attributes 'Main-Class': 'com.opendxl.streaming.cli.CommandLineInterface',
                 'Implementation-Title': project.name,
                 'Implementation-Version': project.version
-        doFirst {
-            from {
-                configurations.runtime.collect { it.isDirectory() ? it : zipTree(it) }
-                configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
-            }
-        }
-        baseName = rootProject.name
     }
 }
 
@@ -74,49 +70,6 @@ task javadocJar(type: Jar, dependsOn: javadoc) {
     baseName = rootProject.name
 }
 
-// Property with the source file list used by sourceZip and sourceTarGz tasks to respectively create a zip file and
-// a tar.gz file containing all source files required to build the project
-ext {
-    sourceTree = fileTree(dir: projectDir)
-    sourceTree.include 'src/**/*'
-    sourceTree.include 'config/**/*'
-    sourceTree.include 'gradle/**/*'
-    sourceTree.include 'gradle*'
-    sourceTree.include '.gitignore'
-    sourceTree.include '.travis.yml'
-    sourceTree.include 'LICENSE'
-    sourceTree.include 'README*'
-    sourceTree.include 'build.gradle'
-    sourceTree.include 'settings.gradle'
-    blank = ''
-}
-
-// Task for creating a zip compressed file containing all necessary source files to build the project
-task sourceZip(type: Zip) {
-    classifier = project.ext.blank
-    baseName = project.ext.blank
-    appendix = project.ext.blank
-    from project.ext.sourceTree
-
-    doLast {
-        println "Path to zip: $archivePath.path"
-    }
-}
-
-// Task for creating a tar.gz compressed file containing all necessary source files to build the project
-task sourceTarGz(type: Tar) {
-    compression = Compression.GZIP
-    extension = 'tar.gz'
-    classifier = project.ext.blank
-    baseName = project.ext.blank
-    appendix = project.ext.blank
-    from project.ext.sourceTree
-
-    doLast {
-        println "Path to tar.gz: $archivePath.path"
-    }
-}
-
 javadoc {
     source = sourceSets.main.allJava
     options.memberLevel = JavadocMemberLevel.PUBLIC
@@ -126,8 +79,6 @@ artifacts {
     archives jar
     archives sourceJar
     archives javadocJar
-    archives sourceZip
-    archives sourceTarGz
 }
 
 // Set up the distribution zip
@@ -138,17 +89,20 @@ distributions {
             from(jar) {
                 into('lib')
             }
-            from('sample') {
-                into 'sample'
+            from(shadowJar) {
+                into("lib")
             }
-            from(jar) {
-                into('sample/lib')
+            from(configurations.compileClasspath) {
+                into("lib/3rdparty")
             }
             from(sphinx) {
                 into('doc')
             }
-            from(javadoc) {
-                into('doc/javadoc')
+            from('sample') {
+                into 'sample'
+            }
+            from(shadowJar) {
+                into("sample/lib")
             }
             from('distribution')
         }
@@ -233,6 +187,29 @@ publishing {
 
 }
 
+// Replace version string in some files that contains version reference
+task replaceVersionInREADME() {
+    if (!version.endsWith('SNAPSHOT')) {
+        // Maven
+        ant.replaceregexp(match: '<version>(.+)</version>', replace: "<version>${version}</version>", flags: 'g', byline: true) {
+            fileset(dir: '.', includes: 'README.md')
+        }
+        ant.replaceregexp(match: '<version>(.+)</version>', replace: "<version>${version}</version>", flags: 'g', byline: true) {
+            fileset(dir: 'docs', includes: 'index.rst')
+        }
+        // Gradle
+        ant.replaceregexp(match: "com\\.opendxl\\.streaming\\:opendxlstreamingclient-java-sdk\\:(.+)", replace: "com.opendxl.streaming:opendxlstreamingclient-java-sdk:${version}'", flags: 'g', byline: true) {
+            fileset(dir: '.', includes: 'README.md')
+        }
+        ant.replaceregexp(match: "com\\.opendxl\\.streaming\\:opendxlstreamingclient-java-sdk\\:(.+)", replace: "com.opendxl.streaming:opendxlstreamingclient-java-sdk:${version}'", flags: 'g', byline: true) {
+            fileset(dir: 'docs', includes: 'index.rst')
+        }
+    }
+}
+
+signing {sign publishing.publications.maven}
+
 distZip.dependsOn javadocJar
 distZip.dependsOn sourceJar
 sphinx.dependsOn(versionFile)
+assemble.dependsOn(replaceVersionInREADME)
