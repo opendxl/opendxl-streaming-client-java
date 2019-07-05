@@ -1,5 +1,5 @@
 Basic Consume user-password-based authentication
-----------------------------------------------
+------------------------------------------------
 
 This sample demonstrates how to establish a channel connection to the
 DXL streaming service by using user and password credentials

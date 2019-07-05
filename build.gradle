@@ -110,7 +110,28 @@ distributions {
     }
 }
 
-
+sourceSets {
+    main {
+        java {
+            srcDir 'src/main/java'
+        }
+        resources {
+            srcDir 'src/main/java'
+        }
+    }
+    sample {
+        java {
+            srcDir 'sample/src'
+        }
+        compileClasspath += main.output + configurations.compileClasspath
+        runtimeClasspath += main.output + configurations.runtimeClasspath
+    }
+    test {
+        resources {
+            srcDir 'src/test/resources'
+        }
+    }
+}
 
 
 // Make check style run before creating a jar
