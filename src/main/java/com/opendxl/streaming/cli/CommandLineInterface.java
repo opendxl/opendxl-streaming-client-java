@@ -177,7 +177,7 @@ public class CommandLineInterface {
                 parser.accepts("consume-timeout", "Consume Poll Timeout. Time that the channel waits for "
                         + "new records during a consume operation. Optional parameter, if absent, it defaults to zero.")
                         .withRequiredArg()
-                        .describedAs("domain")
+                        .describedAs("consume-timeout")
                         .ofType(String.class)
                         .defaultsTo("");
 
