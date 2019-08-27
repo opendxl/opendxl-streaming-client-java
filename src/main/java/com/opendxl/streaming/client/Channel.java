@@ -16,6 +16,7 @@ import com.opendxl.streaming.client.exception.TemporaryError;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonIOException;
 import com.google.gson.JsonSyntaxException;
 import org.apache.log4j.Logger;
 
@@ -1014,14 +1015,14 @@ public class Channel implements AutoCloseable {
      */
     public void produce(final ProducerRecords producerRecords) throws PermanentError, TemporaryError {
 
-        acquireAndEnsureChannelIsActive();
-
         try {
 
             produce(gson.toJson(producerRecords, ProducerRecords.class));
 
-        } finally {
-            release();
+        } catch (final JsonIOException error) {
+            final String errorDescription = "Failed to produce due to a JSON error " + error.getMessage() ;
+            logger.error(errorDescription, error);
+            throw new TemporaryError(errorDescription, error, "produce");
         }
     }
 
@@ -1036,8 +1037,6 @@ public class Channel implements AutoCloseable {
      */
     public void produce(final String jsonProducerRecords) throws PermanentError, TemporaryError {
 
-        acquireAndEnsureChannelIsActive();
-
         String api = new StringBuilder(producerPathPrefix)
                 .append("/produce").toString();
 
@@ -1050,13 +1049,11 @@ public class Channel implements AutoCloseable {
 
         } catch (final PermanentError | TemporaryError error) {
             error.setApi("produce");
-            logger.error("Failed to produce with " + logConsumerId(), error);
+            logger.error("Failed to produce", error);
             throw error;
         } catch (final ConsumerError error) {
             error.setApi("produce");
-            logger.error("Failed to produce with " + logConsumerId(), error);
-        } finally {
-            release();
+            logger.error("Failed to produce", error);
         }
     }
 
