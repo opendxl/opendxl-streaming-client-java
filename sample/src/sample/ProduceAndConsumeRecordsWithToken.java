@@ -14,6 +14,8 @@ import com.opendxl.streaming.client.exception.PermanentError;
 import com.opendxl.streaming.client.exception.StopError;
 import com.opendxl.streaming.client.exception.TemporaryError;
 
+import org.apache.log4j.Logger;
+
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -65,6 +67,10 @@ public class ProduceAndConsumeRecordsWithToken {
     private static final String PROXY_USR = "";
     private static final String PROXY_PWD = "";
 
+    /**
+     * The logger
+     */
+    private static Logger logger = Logger.getLogger(Channel.class);
 
     private ProduceAndConsumeRecordsWithToken() { }
 
@@ -160,13 +166,13 @@ public class ProduceAndConsumeRecordsWithToken {
             // Setup shutdown hook to call stop when program is terminated
             Runtime.getRuntime().addShutdownHook(
                     new Thread(() -> {
-                        System.out.println("Shutdown app requested. Exiting");
+                        logger.info("Shutdown app requested. Exiting");
 
                         try {
                             keepProducing.set(false);
                             consumeChannel.stop();
                         } catch (final StopError e) {
-                            System.out.println("Failed to shutdown app." + e.getMessage());
+                            logger.error("Failed to shutdown app." + e.getMessage());
                         }
                     }));
 
@@ -179,26 +185,26 @@ public class ProduceAndConsumeRecordsWithToken {
                     // Print the received payloads. 'payloads' is a list of
                     // dictionary objects extracted from the records received
                     // from the channel.
-                    System.out.println(new StringBuilder("Received ")
+                    logger.info(new StringBuilder("Received ")
                             .append(consumerRecords.getRecords().size())
                             .append(" records")
                             .toString());
 
                     for (ConsumerRecords.ConsumerRecord record : consumerRecords.getRecords()) {
 
-                        System.out.println("topic = " + record.getTopic());
-                        System.out.println("partition = " + record.getPartition());
-                        System.out.println("offset = " + record.getOffset());
-                        System.out.println("sharding key = " + record.getShardingKey());
-                        System.out.println("headers = " + record.getHeaders());
-                        System.out.println("payload = " + record.getPayload());
-                        System.out.println("decoded payload = " + new String(record.getDecodedPayload()));
-                        System.out.println("");
+                        logger.info("topic = " + record.getTopic());
+                        logger.info("partition = " + record.getPartition());
+                        logger.info("offset = " + record.getOffset());
+                        logger.info("sharding key = " + record.getShardingKey());
+                        logger.info("headers = " + record.getHeaders());
+                        logger.info("payload = " + record.getPayload());
+                        logger.info("decoded payload = " + new String(record.getDecodedPayload()));
+                        logger.info("");
 
                     }
 
                     // Return 'True' in order for the 'run' call to continue attempting to consume records.
-                    System.out.println("let commit records");
+                    logger.info("let commit records");
                     return true;
                 }
             };
@@ -230,16 +236,22 @@ public class ProduceAndConsumeRecordsWithToken {
         Runnable produceChannelRunnable = new Runnable() {
             @Override
             public void run() {
-                for (int i = 1; keepProducing.get(); ++i) {
+                /**
+                 * counter which value is appended to produce record payloads.
+                 * Its goal is cosmetic: just to always produce records different payloads.
+                 */
+                int recordCounter = 1;
+                while (keepProducing.get()) {
                     /**
                      * Produce records: two records are sent in a single call to
                      * {@link com.opendxl.streaming.client.Channel#produce()}
+                     * so many records can be produced in just a single call.
                      */
                     final ProducerRecords producerRecords = new ProducerRecords();
                     producerRecords.add(
                             new ProducerRecords.ProducerRecord
                                     .Builder("my-topic",
-                                    "Hello from OpenDXL - " + i)
+                                    "Hello from OpenDXL - " + recordCounter)
                                     .withHeaders(new HashMap<String, String>() {{
                                         put("sourceId", "D5452543-E2FB-4585-8BE5-A61C3636819C");
                                     }})
@@ -249,7 +261,7 @@ public class ProduceAndConsumeRecordsWithToken {
                     producerRecords.add(
                             new ProducerRecords.ProducerRecord
                                     .Builder("topic1",
-                                    "Hello from OpenDXL - " + ++i)
+                                    "Hello from OpenDXL - " + (recordCounter + 1))
                                     .withHeaders(new HashMap<String, String>() {{
                                         put("sourceId", "F567D6A2-500E-4D35-AE15-A707f165D4FA");
                                     }})
@@ -257,8 +269,9 @@ public class ProduceAndConsumeRecordsWithToken {
                                     .build()
                     );
                     try {
-                        System.out.println("\nproduce records " + (i - 1) + " and " + i + "\n");
+                        logger.info("produce records " + recordCounter + " and " + (recordCounter + 1));
                         produceChannel.produce(producerRecords);
+                        recordCounter += 2;
                     } catch (final PermanentError | TemporaryError e) {
                         printError(e);
                     }
@@ -277,8 +290,8 @@ public class ProduceAndConsumeRecordsWithToken {
      * @param e Exception occurred when producing or consuming
      */
     private static void printError(final Exception e) {
-        System.out.println("Error occurred: " + e.getClass().getCanonicalName() + ": " + e.getMessage());
-        System.out.println(e.getCause() != null
+        logger.error("Error occurred: " + e.getClass().getCanonicalName() + ": " + e.getMessage());
+        logger.error(e.getCause() != null
                 ? e.getClass().getCanonicalName() + ": " + e.getCause().getMessage()
                 : "no exception cause reported");
 

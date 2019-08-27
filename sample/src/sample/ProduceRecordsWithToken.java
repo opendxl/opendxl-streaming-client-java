@@ -12,11 +12,16 @@ import com.opendxl.streaming.client.exception.PermanentError;
 import com.opendxl.streaming.client.exception.StopError;
 import com.opendxl.streaming.client.exception.TemporaryError;
 
+import org.apache.log4j.Logger;
+
 import java.util.HashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * This example uses the opendxl-streaming-java-client to produce records to a Databus topic. It instantiates
- * a ChannelAuthToken object and a Channel object. Then, the Channel produce method is
+ * This example uses the opendxl-streaming-java-client to continuously produce records to a Databus topic.
+ * To quit this sample program, press CTRL+C or execute kill.
+ *
+ * It instantiates a ChannelAuthToken object and a Channel object. Then, the Channel produce method is
  * invoked to set the given topic and payload into a record and send the record to Databus.
  */
 public class ProduceRecordsWithToken {
@@ -49,6 +54,11 @@ public class ProduceRecordsWithToken {
     private static final int PROXY_PORT = 8080;
     private static final String PROXY_USR = "";
     private static final String PROXY_PWD = "";
+
+    /**
+     * The logger
+     */
+    private static Logger logger = Logger.getLogger(Channel.class);
 
     private ProduceRecordsWithToken() { }
 
@@ -85,25 +95,50 @@ public class ProduceRecordsWithToken {
                         PROXY_USR,
                         PROXY_PWD))) {
 
-            // Create Produce record
-            final ProducerRecords producerRecords = new ProducerRecords();
-            producerRecords.add(
-                    new ProducerRecords.ProducerRecord
-                            .Builder("topic1", "Hello from OpenDXL")
-                            .withHeaders(new HashMap<String, String>() {{
-                                put("sourceId", "D5452543-E2FB-4585-8BE5-A61C3636819C");
-                            }})
-                            .withShardingKey("123")
-                            .build()
-            );
+            /**
+             * Produce records as long as keepProducing flag is true
+             */
+            final AtomicBoolean keepProducing = new AtomicBoolean(true);
+            /**
+             * counter which value is appended to produce record payloads.
+             * Its goal is cosmetic: just to always produce records different payloads.
+             */
+            int recordCounter = 1;
 
-            // produce the record
-            channel.produce(producerRecords);
+            // Setup shutdown hook to call stop when program is terminated
+            Runtime.getRuntime().addShutdownHook(
+                    new Thread(() -> {
+                        logger.info("Shutdown app requested. Exiting");
+                        keepProducing.set(false);
+                    }));
+
+            /**
+             * Produce records continuously
+             */
+            while (keepProducing.get()) {
+
+                // Create Produce record
+                final ProducerRecords producerRecords = new ProducerRecords();
+                producerRecords.add(
+                        new ProducerRecords.ProducerRecord
+                                .Builder("topic1", "Hello from OpenDXL - " + recordCounter)
+                                .withHeaders(new HashMap<String, String>() {{
+                                    put("sourceId", "D5452543-E2FB-4585-8BE5-A61C3636819C");
+                                }})
+                                .withShardingKey("123")
+                                .build()
+                );
+
+                // produce the record
+                channel.produce(producerRecords);
+                logger.info("produced record - " + recordCounter);
+                recordCounter++;
+            }
 
         } catch (final PermanentError | TemporaryError | StopError e) {
 
-            System.out.println("Error occurred: " + e.getClass().getCanonicalName() + ": " + e.getMessage());
-            System.out.println(e.getCause() != null
+            logger.error("Error occurred: " + e.getClass().getCanonicalName() + ": " + e.getMessage());
+            logger.error(e.getCause() != null
                     ? e.getClass().getCanonicalName() + ": " + e.getCause().getMessage()
                     : "no exception cause reported");
 

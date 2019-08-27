@@ -13,6 +13,8 @@ import com.opendxl.streaming.client.exception.PermanentError;
 import com.opendxl.streaming.client.exception.StopError;
 import com.opendxl.streaming.client.exception.TemporaryError;
 
+import org.apache.log4j.Logger;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
@@ -59,6 +61,11 @@ public class ConsumeRecordsWithToken {
     private static final int PROXY_PORT = 8080;
     private static final String PROXY_USR = "";
     private static final String PROXY_PWD = "";
+
+    /**
+     * The logger
+     */
+    private static Logger logger = Logger.getLogger(Channel.class);
 
 
     private ConsumeRecordsWithToken() { }
@@ -126,12 +133,12 @@ public class ConsumeRecordsWithToken {
             // Setup shutdown hook to call stop when program is terminated
             Runtime.getRuntime().addShutdownHook(
                     new Thread(() -> {
-                        System.out.println("Shutdown app requested. Exiting");
+                        logger.info("Shutdown app requested. Exiting");
 
                         try {
                             channel.stop();
                         } catch (final StopError e) {
-                            System.out.println("Failed to shutdown app." + e.getMessage());
+                            logger.error("Failed to shutdown app." + e.getMessage());
                         }
                     }));
 
@@ -144,26 +151,26 @@ public class ConsumeRecordsWithToken {
                     // Print the received payloads. 'payloads' is a list of
                     // dictionary objects extracted from the records received
                     // from the channel.
-                    System.out.println(new StringBuilder("Received ")
+                    logger.info(new StringBuilder("Received ")
                             .append(consumerRecords.getRecords().size())
                             .append(" records")
                             .toString());
 
                     for (ConsumerRecords.ConsumerRecord record : consumerRecords.getRecords()) {
 
-                        System.out.println("topic = " + record.getTopic());
-                        System.out.println("partition = " + record.getPartition());
-                        System.out.println("offset = " + record.getOffset());
-                        System.out.println("sharding key = " + record.getShardingKey());
-                        System.out.println("headers = " + record.getHeaders());
-                        System.out.println("payload = " + record.getPayload());
-                        System.out.println("decoded payload = " + new String(record.getDecodedPayload()));
-                        System.out.println("");
+                        logger.info("topic = " + record.getTopic());
+                        logger.info("partition = " + record.getPartition());
+                        logger.info("offset = " + record.getOffset());
+                        logger.info("sharding key = " + record.getShardingKey());
+                        logger.info("headers = " + record.getHeaders());
+                        logger.info("payload = " + record.getPayload());
+                        logger.info("decoded payload = " + new String(record.getDecodedPayload()));
+                        logger.info("");
 
                     }
 
                     // Return 'True' in order for the 'run' call to continue attempting to consume records.
-                    System.out.println("let commit records");
+                    logger.info("let commit records");
                     return true;
                 }
             };
@@ -174,8 +181,8 @@ public class ConsumeRecordsWithToken {
 
         } catch (final PermanentError | StopError | TemporaryError e) {
 
-            System.out.println("Error occurred: " + e.getClass().getCanonicalName() + ": " + e.getMessage());
-            System.out.println(e.getCause() != null
+            logger.error("Error occurred: " + e.getClass().getCanonicalName() + ": " + e.getMessage());
+            logger.error(e.getCause() != null
                     ? e.getClass().getCanonicalName() + ": " + e.getCause().getMessage()
                     : "no exception cause reported");
 
