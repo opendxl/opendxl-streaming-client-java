@@ -52,7 +52,8 @@ public class CommandLineInterface {
 
         // operation option spec represented as --operation command line
         final ArgumentAcceptingOptionSpec<String> operationsOpt =
-                parser.accepts("operation", "Operations: login | create | subscribe | consume | commit | subscriptions")
+                parser.accepts("operation", "Operations: login | create | subscribe | consume | commit | subscriptions"
+                        + " | produce")
                         .withRequiredArg()
                         .describedAs("operation")
                         .ofType(String.class)
@@ -181,6 +182,21 @@ public class CommandLineInterface {
                         .ofType(String.class)
                         .defaultsTo("");
 
+        // Producer path prefix option spec represented as --producer-prefix command line
+        final ArgumentAcceptingOptionSpec<String> producerPathPrefix =
+                parser.accepts("producer-prefix", "Producer path prefix.")
+                        .withRequiredArg()
+                        .describedAs("producer-prefix")
+                        .ofType(String.class)
+                        .defaultsTo("/databus/cloudproxy/v1");
+
+        // Consumer config option spec represented as --records command line
+        final ArgumentAcceptingOptionSpec<String> producerRecords =
+                parser.accepts("records", "Array of records to be produced in a simplified JSON format.")
+                        .withRequiredArg()
+                        .describedAs("producer-records")
+                        .ofType(String.class)
+                        .defaultsTo("");
 
         if (args.length == 0) {
             CliUtils.printUsageAndFinish(parser, "There are not options");
@@ -207,6 +223,8 @@ public class CommandLineInterface {
         optionSpecMap.put(Options.DOMAIN, domainOpt);
         optionSpecMap.put(Options.HTTP_PROXY, httpProxyOpt);
         optionSpecMap.put(Options.CONSUME_TIMEOUT, consumeTimeoutOpt);
+        optionSpecMap.put(Options.PRODUCER_PATH_PREFIX, producerPathPrefix);
+        optionSpecMap.put(Options.PRODUCER_RECORDS, producerRecords);
 
         this.operation = buildOperation(optionSpecMap);
         CliUtils.validateMandatoryOperationArgs(operation, parser, options);
