@@ -33,7 +33,7 @@ import java.util.Properties;
  * consume records and to deliver them to ConsumerRecordProcessor which finally prints them out. To quit this sample
  * program, press CTRL+C or execute kill to stop both, Producer Thread and Consumer object, and to then gracefully exit.
  */
-public class ProduceAndConsumeRecordsWithTokenUsingInterfaces {
+public class ProduceAndConsumeRecordsUsingInterfacesWithToken {
 
     private static final String CHANNEL_URL = "http://127.0.0.1:50080";
     private static final String TOKEN = "TOKEN3";
@@ -74,7 +74,7 @@ public class ProduceAndConsumeRecordsWithTokenUsingInterfaces {
      */
     private static Logger logger = Logger.getLogger(Consumer.class);
 
-    private ProduceAndConsumeRecordsWithTokenUsingInterfaces() { }
+    private ProduceAndConsumeRecordsUsingInterfacesWithToken() { }
 
     public static void main(String[] args) {
 
