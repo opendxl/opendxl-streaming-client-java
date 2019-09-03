@@ -70,7 +70,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * channel.create()
  * </pre>
  */
-public class Channel implements AutoCloseable {
+public class Channel implements Consumer, Producer, AutoCloseable {
 
     // Constants for consumer config settings
     private static final String ENABLE_AUTO_COMMIT_CONFIG_SETTING = "enable.auto.commit";

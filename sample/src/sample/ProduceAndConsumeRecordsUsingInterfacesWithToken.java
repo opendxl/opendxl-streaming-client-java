@@ -4,11 +4,13 @@
 
 package sample;
 
-import com.opendxl.streaming.client.Channel;
 import com.opendxl.streaming.client.ConsumerRecordProcessor;
 import com.opendxl.streaming.client.HttpProxySettings;
 import com.opendxl.streaming.client.auth.ChannelAuthToken;
-import com.opendxl.streaming.client.builder.ChannelBuilder;
+import com.opendxl.streaming.client.Consumer;
+import com.opendxl.streaming.client.builder.ConsumerBuilder;
+import com.opendxl.streaming.client.Producer;
+import com.opendxl.streaming.client.builder.ProducerBuilder;
 import com.opendxl.streaming.client.entity.ConsumerRecords;
 import com.opendxl.streaming.client.entity.ProducerRecords;
 import com.opendxl.streaming.client.exception.PermanentError;
@@ -24,14 +26,14 @@ import java.util.Properties;
 
 /**
  * This example uses the opendxl-streaming-java-client to produce records to and consume records from Databus topics.
- * It instantiates a ChannelAuthToken object, a Channel object to produce records to topics and to
- * consume those records from topics and finally a ConsumerRecordProcessor object. Then, a thread is instantiated to
- * call the produce() method on the Channel object to produce records periodically. Then, the run() method is
- * invoked on the the Channel object so it starts to indefinitely consume records and to deliver them
- * to ConsumerRecordProcessor which finally prints them out. To quit this sample program, press CTRL+C or execute kill
- * to call Channel destroy method which will stop the Channel instance and gracefully exit.
+ * It instantiates a ChannelAuthToken object, a {@link Producer} object to produce records to topics, a {@link Consumer}
+ * object to consume records from topics and finally a ConsumerRecordProcessor object. Then, a thread is instantiated
+ * to call {@link Producer#produce(ProducerRecords)} to produce records periodically. Then,
+ * {@link Consumer#run(ConsumerRecordProcessor, List, int)} is invoked so {@link Consumer} object starts to indefinitely
+ * consume records and to deliver them to ConsumerRecordProcessor which finally prints them out. To quit this sample
+ * program, press CTRL+C or execute kill to stop both, Producer Thread and Consumer object, and to then gracefully exit.
  */
-public class ProduceAndConsumeRecordsWithToken {
+public class ProduceAndConsumeRecordsWithTokenUsingInterfaces {
 
     private static final String CHANNEL_URL = "http://127.0.0.1:50080";
     private static final String TOKEN = "TOKEN3";
@@ -70,9 +72,9 @@ public class ProduceAndConsumeRecordsWithToken {
     /**
      * The logger
      */
-    private static Logger logger = Logger.getLogger(Channel.class);
+    private static Logger logger = Logger.getLogger(Consumer.class);
 
-    private ProduceAndConsumeRecordsWithToken() { }
+    private ProduceAndConsumeRecordsWithTokenUsingInterfaces() { }
 
     public static void main(String[] args) {
 
@@ -91,7 +93,7 @@ public class ProduceAndConsumeRecordsWithToken {
         extraConfigs.put("enable.auto.commit", false);
         extraConfigs.put("auto.commit.interval.ms", 0);
         /**
-         * Offset for the next record to retrieve from the streaming service for the new {@link Channel#consume()} call.
+         * Offset for the next record to retrieve from the streaming service for the new {@link Consumer#consume()} call
          * Must be one of 'latest', 'earliest', or 'none'.
          */
         extraConfigs.put("auto.offset.reset", "earliest");
@@ -121,10 +123,13 @@ public class ProduceAndConsumeRecordsWithToken {
         extraConfigs.put("session.timeout.ms", 15000);
 
         /**
-         * One channel object is instantiated not only to produce records but to consume them as well.
-         * {@link Channel} instance is built by {@link ChannelBuilder} which implements the suitable builder pattern.
+         * Two objects, a {@link Producer} and {@link Consumer} objects are instantiated, one to produce records and
+         * the other to consume them. Instances are respectively created by {@link ProducerBuilder} and
+         * {@link ConsumerBuilder} using the build pattern. A {@link Producer} object can produce records but it
+         * cannot consume them. Conversely, a {@link Consumer} object can subscribe to topics, consume records and
+         * commit them but it cannot produce them.
          */
-        try (Channel channel = new ChannelBuilder()
+        try (Consumer consumer = new ConsumerBuilder()
                 .withBase(channelUrl)
                 .withChannelAuth(new ChannelAuthToken(token))
                 .withConsumerGroup(channelConsumerGroup)
@@ -136,14 +141,24 @@ public class ProduceAndConsumeRecordsWithToken {
                         PROXY_PORT,
                         PROXY_USR,
                         PROXY_PWD))
-                .build()) {
+                .build();
+             Producer producer = new ProducerBuilder()
+                     .withBase(channelUrl)
+                     .withChannelAuth(new ChannelAuthToken(token))
+                     .withCertificateBundle(verifyCertificateBundle)
+                     .withHttpProxy(new HttpProxySettings(PROXY_ENABLED,
+                             PROXY_HOST,
+                             PROXY_PORT,
+                             PROXY_USR,
+                             PROXY_PWD))
+                     .build()) {
 
             /**
              * Create thread to produce records to selected topics. When
-             * {@link com.opendxl.streaming.client.Channel#run()} is called, these records will be consumed and
+             * {@link Consumer#run(ConsumerRecordProcessor, List, int)} is called, these records will be consumed and
              * printed out by the consumerRecordCallback.
              */
-            final Thread produceThread = createProduceThread(channel);
+            final Thread produceThread = createProduceThread(producer);
 
             // Setup shutdown hook to call stop when program is terminated
             Runtime.getRuntime().addShutdownHook(
@@ -153,10 +168,10 @@ public class ProduceAndConsumeRecordsWithToken {
                         try {
                             produceThread.interrupt();
                             produceThread.join();
-                            channel.stop();
+                            consumer.stop();
                         } catch (final StopError e) {
                             logger.error("Failed to shutdown app." + e.getMessage());
-                        } catch (final InterruptedException e) {
+                        } catch (InterruptedException e) {
                             logger.error("Failed to stop producing while shutting down app." + e.getMessage());
                         }
                     }));
@@ -198,7 +213,7 @@ public class ProduceAndConsumeRecordsWithToken {
             produceThread.start();
             // Consume records indefinitely
             final int consumePollTimeoutMs = 500;
-            channel.run(consumerRecordCallback, channelTopicSubscriptions, consumePollTimeoutMs);
+            consumer.run(consumerRecordCallback, channelTopicSubscriptions, consumePollTimeoutMs);
 
         } catch (final PermanentError | StopError | TemporaryError e) {
 
@@ -210,25 +225,25 @@ public class ProduceAndConsumeRecordsWithToken {
 
     /**
      * Helper method to set up the produce thread, e.g.: the thread that will periodically produce 2 ProduceRecords
-     * until it is interrupted
+     * until it is terminated
      *
-     * @param produceChannel the channel object to use to produce records
+     * @param producer the object to use to produce records
      * @return the thread object to produce records
      */
-    private static Thread createProduceThread(final Channel produceChannel) {
+    private static Thread createProduceThread(final Producer producer) {
 
         Runnable produceChannelRunnable = new Runnable() {
             @Override
             public void run() {
                 /**
                  * counter which value is appended to produce record payloads.
-                 * Its goal is cosmetic: just to always produce records with different payloads.
+                 * Its goal is cosmetic: just to always produce records different payloads.
                  */
                 int recordCounter = 1;
                 while (!Thread.interrupted()) {
                     /**
                      * Produce records: two records are sent in a single call to
-                     * {@link com.opendxl.streaming.client.Channel#produce()}
+                     * {@link Producer#produce(ProducerRecords)}
                      * so many records can be produced in just a single call.
                      */
                     final ProducerRecords producerRecords = new ProducerRecords();
@@ -254,7 +269,7 @@ public class ProduceAndConsumeRecordsWithToken {
                     );
                     try {
                         logger.info("produce records " + recordCounter + " and " + (recordCounter + 1));
-                        produceChannel.produce(producerRecords);
+                        producer.produce(producerRecords);
                         recordCounter += 2;
                     } catch (final PermanentError | TemporaryError e) {
                         printError(e);
