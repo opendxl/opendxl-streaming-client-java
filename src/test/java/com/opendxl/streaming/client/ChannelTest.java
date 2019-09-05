@@ -6,6 +6,7 @@ package com.opendxl.streaming.client;
 
 import com.opendxl.streaming.client.auth.ChannelAuthToken;
 import com.opendxl.streaming.client.entity.ConsumerRecords;
+import com.opendxl.streaming.client.entity.ProducerRecords;
 import com.opendxl.streaming.client.exception.ClientError;
 import com.opendxl.streaming.client.exception.ConsumerError;
 import com.opendxl.streaming.client.exception.PermanentError;
@@ -28,6 +29,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 
 import junit.extensions.PA;
 
+import com.google.gson.Gson;
+
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.impl.cookie.BasicClientCookie;
 import org.junit.After;
@@ -41,6 +44,7 @@ import org.mockito.Mockito;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -1180,6 +1184,267 @@ public class ChannelTest {
         }
     }
 
+    // Channel produce tests
+    @Test
+    public final void testProduceRecordsSuccessfulDueTo204Response() throws ClientError {
+        // Setup
+        final Channel channel = getProducerChannel("/producerPathPrefix");
+        // Setup records to produce
+        final ProducerRecords producerRecords = TWO_PRODUCER_RECORDS;
+        // Setup RESTful service mock
+        final String jsonProducerRecords = new Gson().toJson(producerRecords, ProducerRecords.class);
+        stubFor(post(urlEqualTo("/producerPathPrefix/produce"))
+                .withRequestBody(equalToJson(jsonProducerRecords))
+                .willReturn(aResponse()
+                        .withStatus(204)));
+
+        // Test
+        channel.produce(producerRecords);
+
+        // Evaluate: nothing to evaluate; when successful, produce does not return any data nor throw any exception
+    }
+
+    @Test
+    public final void testProduceJsonProducerRecordsSuccessfulDueTo204Response() throws ClientError {
+        // Setup
+        final Channel channel = getProducerChannel("/jsonProducerRecords");
+        // Setup records to produce
+        final String jsonProducerRecords = "{\"records\":["
+                + "{\"routingData\":{"
+                + "\"topic\":\"my-topic\","
+                + "\"shardingKey\":\"123\""
+                + "},"
+                + "\"message\":{"
+                + "\"headers\":{"
+                + "\"sourceId\":\"D5452543-E2FB-4585-8BE5-A61C3636819C\""
+                + "},"
+                + "\"payload\":\"SGVsbG8gT3BlbkRYTCAtIDE=\""
+                + "}"
+                + "},"
+                + "{\"routingData\":{"
+                + "\"topic\":\"topic1\","
+                + "\"shardingKey\":\"456\""
+                + "},"
+                + "\"message\":{"
+                + "\"headers\":{"
+                + "\"sourceId\":\"F567D6A2-500E-4D35-AE15-A707f165D4FA\","
+                + "\"anotherHeader\":\"one-two-three-four\""
+                + "},"
+                + "\"payload\":\"SGVsbG8gT3BlbkRYTCAtIDI=\""
+                + "}"
+                + "}"
+                + "]}";
+        // Setup RESTful service mock
+        stubFor(post(urlEqualTo("/jsonProducerRecords/produce"))
+                .withRequestBody(equalToJson(jsonProducerRecords))
+                .willReturn(aResponse()
+                        .withStatus(204)));
+
+        // Test
+        channel.produce(jsonProducerRecords);
+
+        // Evaluate: nothing to evaluate; when successful, produce does not return any data nor throw any exception
+    }
+
+    @Test
+    public final void testProduceMalFormedJsonFailsWithPermanentErrorDueTo400Response() throws ClientError {
+        // Setup
+        final Channel channel = getProducerChannel("/malformedJsonProducerRecords");
+        // Setup records to produce
+        final String malformedJsonProducerRecords = "{\"records\":"
+                + "["
+                + "{"
+                + "\"routingData\":{"
+                + "\"topic\":\"my-topic\","
+                + "\"shardingKey\":\"123\""
+                + "},";
+        // Setup RESTful service mock - it answers 400 upon receiving a malformed JSON request
+        stubFor(post(urlEqualTo("/malformedJsonProducerRecords/produce"))
+                .willReturn(aResponse()
+                        .withStatus(400)
+                        .withStatusMessage("Malformed JSON received")
+                        .withBody("Dummy 400 error message")));
+        // Setup expected exception
+        ClientError error = null;
+
+        // Test
+        try {
+            channel.produce(malformedJsonProducerRecords);
+        } catch (final PermanentError e) {
+            error = e;
+        }
+
+        // Evaluate
+        Assert.assertTrue(error != null);
+        Assert.assertEquals(400, error.getStatusCode());
+        Assert.assertEquals("Dummy 400 error message: HTTP/1.1 400 Malformed JSON received",
+                error.getMessage());
+        Assert.assertEquals("produce", error.getApi());
+    }
+
+    @Test
+    public final void testProduceFailsWithTemporaryErrorDueTo401Response() throws ClientError {
+        // Setup
+        final Channel channel = getProducerChannel("/unauthorized");
+        // Setup RESTful service mock - it answers 401 regardless of received data
+        stubFor(post(urlEqualTo("/unauthorized/produce"))
+                .willReturn(aResponse()
+                        .withStatus(401)
+                        .withStatusMessage("Unauthorized")
+                        .withBody("Dummy 401 error message")));
+        // Setup expected exception
+        ClientError error = null;
+
+        // Test
+        try {
+            channel.produce(TWO_PRODUCER_RECORDS);
+        } catch (final TemporaryError e) {
+            error = e;
+        }
+
+        // Evaluate
+        Assert.assertTrue(error != null);
+        Assert.assertEquals(401, error.getStatusCode());
+        Assert.assertEquals("Dummy 401 error message: HTTP/1.1 401 Unauthorized", error.getMessage());
+        Assert.assertEquals("produce", error.getApi());
+    }
+
+    @Test
+    public final void testProduceFailsWithTemporaryErrorDueTo403Response() throws ClientError {
+        // Setup
+        final Channel channel = getProducerChannel("/forbidden");
+        // Setup RESTful service mock - it answers 403 regardless of received data
+        stubFor(post(urlEqualTo("/forbidden/produce"))
+                .willReturn(aResponse()
+                        .withStatus(403)
+                        .withStatusMessage("Forbidden")
+                        .withBody("Dummy 403 error message")));
+        // Setup expected exception
+        ClientError error = null;
+
+        // Test
+        try {
+            channel.produce(TWO_PRODUCER_RECORDS);
+        } catch (final TemporaryError e) {
+            error = e;
+        }
+
+        // Evaluate
+        Assert.assertTrue(error != null);
+        Assert.assertEquals(403, error.getStatusCode());
+        Assert.assertEquals("Dummy 403 error message: HTTP/1.1 403 Forbidden", error.getMessage());
+        Assert.assertEquals("produce", error.getApi());
+    }
+
+    @Test
+    public final void testProduceFailsWithPermanentErrorDueTo404Response() throws ClientError {
+        // Setup
+        final Channel channel = getProducerChannel("/not-found");
+        // Setup RESTful service mock - it answers 404 regardless of received data
+        stubFor(post(urlEqualTo("/not-found/produce"))
+                .willReturn(aResponse()
+                        .withStatus(404)
+                        .withStatusMessage("Not Found")
+                        .withBody("Dummy 404 error message")));
+        // Setup expected exception
+        ClientError error = null;
+
+        // Test
+        try {
+            channel.produce(TWO_PRODUCER_RECORDS);
+        } catch (final PermanentError e) {
+            error = e;
+        }
+
+        // Evaluate
+        Assert.assertTrue(error != null);
+        Assert.assertEquals(404, error.getStatusCode());
+        Assert.assertEquals("Dummy 404 error message: HTTP/1.1 404 Not Found", error.getMessage());
+        Assert.assertEquals("produce", error.getApi());
+    }
+
+    @Test
+    public final void testProduceFailsWithTemporaryErrorDueTo409Response() throws ClientError {
+        // Setup
+        final Channel channel = getProducerChannel("/conflict");
+        // Setup RESTful service mock - it answers 409 regardless of received data
+        stubFor(post(urlEqualTo("/conflict/produce"))
+                .willReturn(aResponse()
+                        .withStatus(409)
+                        .withStatusMessage("Conflict")
+                        .withBody("Dummy 409 error message")));
+        // Setup expected exception
+        ClientError error = null;
+
+        // Test
+        try {
+            channel.produce(TWO_PRODUCER_RECORDS);
+        } catch (final TemporaryError e) {
+            error = e;
+        }
+
+        // Evaluate
+        Assert.assertTrue(error != null);
+        Assert.assertEquals(409, error.getStatusCode());
+        Assert.assertEquals("Dummy 409 error message: HTTP/1.1 409 Conflict", error.getMessage());
+        Assert.assertEquals("produce", error.getApi());
+    }
+
+    @Test
+    public final void testProduceFailsWithTemporaryErrorDueTo500Response() throws ClientError {
+        // Setup
+        final Channel channel = getProducerChannel("/internal-server-error");
+        // Setup RESTful service mock - it answers 500 regardless of received data
+        stubFor(post(urlEqualTo("/internal-server-error/produce"))
+                .willReturn(aResponse()
+                        .withStatus(500)
+                        .withStatusMessage("Internal Server Error")
+                        .withBody("Dummy 500 error message")));
+        // Setup expected exception
+        ClientError error = null;
+
+        // Test
+        try {
+            channel.produce(TWO_PRODUCER_RECORDS);
+        } catch (final TemporaryError e) {
+            error = e;
+        }
+
+        // Evaluate
+        Assert.assertTrue(error != null);
+        Assert.assertEquals(500, error.getStatusCode());
+        Assert.assertEquals("Dummy 500 error message: HTTP/1.1 500 Internal Server Error", error.getMessage());
+        Assert.assertEquals("produce", error.getApi());
+    }
+
+    @Test
+    public final void testProduceFailsWithTemporaryErrorDueToUnmapped405ErrorResponse() throws ClientError {
+        // Setup
+        final Channel channel = getProducerChannel("/internal-server-error");
+        // Setup RESTful service mock - it answers 405 regardless of received data
+        stubFor(post(urlEqualTo("/internal-server-error/produce"))
+                .willReturn(aResponse()
+                        .withStatus(405)
+                        .withStatusMessage("Method Not Allowed")
+                        .withBody("Dummy 405 error message")));
+        // Setup expected exception
+        TemporaryError error = null;
+
+        // Test
+        try {
+            channel.produce(TWO_PRODUCER_RECORDS);
+        } catch (final TemporaryError e) {
+            error = e;
+        }
+
+        // Evaluate
+        Assert.assertTrue(error != null);
+        Assert.assertEquals(405, error.getStatusCode());
+        Assert.assertEquals("Unexpected temporary error: HTTP/1.1 405 Method Not Allowed", error.getMessage());
+        Assert.assertEquals("produce", error.getApi());
+        Assert.assertEquals("POST http://localhost:8080/internal-server-error/produce HTTP/1.1",
+                error.getHttpRequest().toString());
+    }
 
     //---------------------------------------------------------------
     // Helper Methods
@@ -1338,5 +1603,45 @@ public class ChannelTest {
         } catch (final Exception e) {
             // ignore it
         }
+    }
+
+    private static Channel getProducerChannel(final String producerPathPrefix) throws TemporaryError {
+        final Channel channel = new Channel("http://localhost:8080",
+                new ChannelAuthToken("myToken"),
+                null,
+                null,
+                null,
+                producerPathPrefix,
+                true,
+                null,
+                null,
+                null);
+
+        return channel;
+    }
+
+    private static final ProducerRecords TWO_PRODUCER_RECORDS = new ProducerRecords();
+    static {
+        TWO_PRODUCER_RECORDS.add(
+                new ProducerRecords.ProducerRecord
+                        .Builder("my-topic",
+                        "Hello OpenDXL - 1")
+                        .withHeaders(new HashMap<String, String>() {{
+                            put("sourceId", "D5452543-E2FB-4585-8BE5-A61C3636819C");
+                        }})
+                        .withShardingKey("123")
+                        .build()
+        );
+        TWO_PRODUCER_RECORDS.add(
+                new ProducerRecords.ProducerRecord
+                        .Builder("topic1",
+                        "Hello OpenDXL - 2")
+                        .withHeaders(new HashMap<String, String>() {{
+                            put("sourceId", "F567D6A2-500E-4D35-AE15-A707f165D4FA");
+                            put("anotherHeader", "one-two-three-four");
+                        }})
+                        .withShardingKey("456")
+                        .build()
+        );
     }
 }

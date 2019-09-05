@@ -7,6 +7,7 @@ package com.opendxl.streaming.cli;
 import com.opendxl.streaming.cli.entity.ExecutionResult;
 import com.opendxl.streaming.cli.entity.StickinessCookie;
 import com.opendxl.streaming.client.entity.ConsumerRecords;
+import com.opendxl.streaming.client.entity.ProducerRecords;
 
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.google.gson.Gson;
@@ -19,6 +20,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.contrib.java.lang.system.ExpectedSystemExit;
 
+import java.util.HashMap;
 import java.util.List;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
@@ -983,6 +985,239 @@ public class CommandLineInterfaceTest {
 
     }
 
+    // --produce Operation
+    @Test
+    public void shouldProduceRecords() throws Exception {
+        // Setup
+        final Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+        // Setup a mock http response to produce request
+        stubFor(post(urlEqualTo("/databus/cloudproxy/v1/produce"))
+                .withRequestBody(equalToJson(gson.toJson(TWO_PRODUCER_RECORDS, ProducerRecords.class)))
+                .willReturn(aResponse()
+                        .withStatus(204)));
+        // Setup CLI parameters
+        String args = "--operation produce "
+                + "--url http://localhost:8080/databus/cloudproxy/v1 "
+                + "--token MY_AUTHORIZATION_TOKEN "
+                + "--producer-prefix /databus/cloudproxy/v1 "
+                + "--records " + TWO_SIMPLIFIED_PRODUCER_RECORDS + " "
+                + "--verify-cert-bundle 1234";
+
+        // Test
+        CommandLineInterface cli = new CommandLineInterface(args.split(" "));
+        ExecutionResult executionResult = cli.execute();
+
+        // Evaluate
+        Assert.assertEquals("204", executionResult.getCode());
+    }
+
+    @Test
+    public void shouldProduceRecordsWithJustTopicAndPayloadAttributes() throws Exception {
+        // Setup
+        final Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+        // Setup a mock http response to produce request
+        stubFor(post(urlEqualTo("/databus/cloudproxy/v1/produce"))
+                .withRequestBody(equalToJson("{\"records\":[{"
+                        + "\"routingData\":{\"topic\":\"my-topic\"},"
+                        + "\"message\":{\"payload\":\"SGVsbG8tT3BlbkRYTC0x\"}"
+                        + "}]}"))
+                .willReturn(aResponse()
+                        .withStatus(204)));
+        // Setup CLI parameters
+        String args = "--operation produce "
+                + "--url http://localhost:8080/databus/cloudproxy/v1 "
+                + "--token MY_AUTHORIZATION_TOKEN "
+                + "--producer-prefix /databus/cloudproxy/v1 "
+                + "--records [{\"topic\":\"my-topic\",\"payload\":\"Hello-OpenDXL-1\"}] "
+                + "--verify-cert-bundle 1234";
+
+        // Test
+        CommandLineInterface cli = new CommandLineInterface(args.split(" "));
+        ExecutionResult executionResult = cli.execute();
+
+        // Evaluate
+        Assert.assertEquals("204", executionResult.getCode());
+    }
+
+    @Test
+    public void shouldProduceRecordsIgnoringExtraUnknownAttributes() throws Exception {
+        // Setup
+        final Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+        // Setup a mock http response to produce request
+        stubFor(post(urlEqualTo("/databus/cloudproxy/v1/produce"))
+                .withRequestBody(equalToJson("{\"records\":[{"
+                        + "\"routingData\":{\"topic\":\"my-topic\"},"
+                        + "\"message\":{\"payload\":\"SGVsbG8tT3BlbkRYTC0x\"}"
+                        + "}]}"))
+                .willReturn(aResponse()
+                        .withStatus(204)));
+        // Setup CLI parameters
+        String args = "--operation produce "
+                + "--url http://localhost:8080/databus/cloudproxy/v1 "
+                + "--token MY_AUTHORIZATION_TOKEN "
+                + "--producer-prefix /databus/cloudproxy/v1 "
+                + "--records [{\"topic\":\"my-topic\",\"payload\":\"Hello-OpenDXL-1\""
+                // extra unknown attributes
+                + ",\"test1\":\"value1\",\"test2\":{\"test21\":\"value21\"}}] "
+                + "--verify-cert-bundle 1234";
+
+        // Test
+        CommandLineInterface cli = new CommandLineInterface(args.split(" "));
+        ExecutionResult executionResult = cli.execute();
+
+        // Evaluate
+        Assert.assertEquals("204", executionResult.getCode());
+    }
+
+    @Test
+    public void shouldProduceFailWhenRecordsTopElementIsNotAnArray() throws Exception {
+        // This test case evaluates the case when "--record" parameter value is not a JSON array of
+        // SimplifiedProducerRecords. Since {"records":[{"topic":"my-topic"}]} top element is not an array but an
+        // object, CliUtils.getProducerRecords() throw a JSON exception while parsing it:
+        // ERROR: java.lang.IllegalStateException: Expected BEGIN_ARRAY but was BEGIN_OBJECT at line 1 column 2 path
+        // CLI catches this exception and it exits with error.
+        exit.expectSystemExitWithStatus(1);
+
+        // Setup
+        // Setup CLI parameters
+        String args = "--operation produce "
+                + "--url http://localhost:8080/databus/cloudproxy/v1 "
+                + "--token MY_AUTHORIZATION_TOKEN "
+                + "--producer-prefix /databus/cloudproxy/v1 "
+                + "--records {\"records\":[{\"topic\":\"my-topic\"}]} "
+                + "--verify-cert-bundle 1234";
+
+        // Test
+        CommandLineInterface cli = new CommandLineInterface(args.split(" "));
+        ExecutionResult executionResult = cli.execute();
+
+        // Evaluate
+        Assert.assertEquals("204", executionResult.getCode());
+    }
+
+    @Test
+    public void shouldProduceFailWhenRecordsParameterAreIncompleteRecords() throws Exception {
+        // in this test case, record is sent to stub, stub checks received JSON is the expected one and stub answers
+        // 400 error. Streaming client will throw a PermanentError exception upon reception of 400 error. CLI catches
+        // PermanentError and exits with error.
+        exit.expectSystemExitWithStatus(1);
+
+        // Setup
+        final Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+        // Setup a mock http response to produce request
+        stubFor(post(urlEqualTo("/databus/cloudproxy/v1/produce"))
+                .withRequestBody(equalToJson("{\"records\":["
+                        + "{"
+                        + "\"routingData\":{\"topic\":\"my-topic\"},"
+                        + "\"message\":{\"payload\":\"\"}"
+                        + "}]}"))
+                .willReturn(aResponse()
+                        .withStatus(400)));
+        // Setup CLI parameters
+        String args = "--operation produce "
+                + "--url http://localhost:8080/databus/cloudproxy/v1 "
+                + "--token MY_AUTHORIZATION_TOKEN "
+                + "--producer-prefix /databus/cloudproxy/v1 "
+                + "--records [{\"topic\":\"my-topic\"}] "
+                + "--verify-cert-bundle 1234";
+
+        // Test
+        CommandLineInterface cli = new CommandLineInterface(args.split(" "));
+        ExecutionResult executionResult = cli.execute();
+
+        // Evaluate
+        // Nothing to evaluate: test is expected to cause Streaming Client to throw a PermanentError which is caught by
+        // the CLI which in turns exits with error.
+    }
+
+    @Test
+    public void shouldFailWhenProduceOperationHasNotRecordsOption() {
+        exit.expectSystemExitWithStatus(1);
+
+        String args = "--operation produce "
+                + "--url http://localhost:8080/databus/cloudproxy/v1 "
+                + "--token MY_AUTHORIZATION_TOKEN "
+                + "--producer-prefix /databus/cloudproxy/v1 "
+                + "--verify-cert-bundle 1234";
+
+        CommandLineInterface.main(args.split(" "));
+    }
+
+    @Test
+    public void shouldFailWhenProduceOperationHasNotURLOption() {
+        exit.expectSystemExitWithStatus(1);
+
+        String args = "--operation produce "
+                + "--token MY_AUTHORIZATION_TOKEN "
+                + "--producer-prefix /databus/cloudproxy/v1 "
+                + "--records " + TWO_SIMPLIFIED_PRODUCER_RECORDS + " "
+                + "--verify-cert-bundle 1234";
+
+        CommandLineInterface.main(args.split(" "));
+    }
+
+    @Test
+    public void shouldFailWhenProduceOperationHasNotTokenOption() {
+        exit.expectSystemExitWithStatus(1);
+
+        String args = "--operation produce "
+                + "--url http://localhost:8080/databus/cloudproxy/v1 "
+                + "--producer-prefix /databus/cloudproxy/v1 "
+                + "--records " + TWO_SIMPLIFIED_PRODUCER_RECORDS + " "
+                + "--verify-cert-bundle 1234";
+
+        CommandLineInterface.main(args.split(" "));
+    }
+
+    @Test
+    public void shouldSetDefaultOptionsValuesForProduceOperation() {
+
+        String args = "--operation produce "
+                + "--url http://127.0.0.1:50080/ "
+                + "--token MY_AUTHORIZATION_TOKEN "
+                + "--consumer-id 132413 "
+                + "--cookie 12341234 "
+                + "--domain my-domain "
+                + "--verify-cert-bundle 1234 "
+                + "--records " + TWO_SIMPLIFIED_PRODUCER_RECORDS;
+
+        final CommandLineInterface cli = new CommandLineInterface(args.split(" "));
+        final OptionSet options = (OptionSet) PA.getValue(cli, "options");
+        assertTrue(options.valueOf("producer-prefix").equals("/databus/cloudproxy/v1"));
+        assertTrue(options.valueOf("http-proxy").equals(""));
+    }
+
+    @Test
+    public void shouldFailWhenProduceOperationHasInsufficientHttpProxyParameters() {
+        exit.expectSystemExitWithStatus(1);
+
+        String args = "--operation produce "
+                + "--url http://127.0.0.1:50080/databus/cloudproxy/v1 "
+                + "--token MY_AUTHORIZATION_TOKEN "
+                + "--verify-cert-bundle 1234 "
+                + "--records " + TWO_SIMPLIFIED_PRODUCER_RECORDS + " "
+                + "--http-proxy alfa,bravo";
+
+        CommandLineInterface.main(args.split(" "));
+    }
+
+    @Test
+    public void shouldFailWhenProduceOperationHasInvalidPortInHttpProxyParameters() {
+        exit.expectSystemExitWithStatus(1);
+
+        String args = "--operation produce "
+                + "--url http://127.0.0.1:50080/databus/consumer-service/v1 "
+                + "--token MY_AUTHORIZATION_TOKEN "
+                + "--consumer-id 132413 "
+                + "--cookie 12341234 "
+                + "--domain my-domain "
+                + "--verify-cert-bundle 1234 "
+                + "--records " + TWO_SIMPLIFIED_PRODUCER_RECORDS + " "
+                + "--http-proxy alfa,bravo,charlie";
+        CommandLineInterface.main(args.split(" "));
+    }
+
+
     // ------------------------------------------------------------
 
     private static final String CONSUMER_ID =
@@ -998,6 +1233,56 @@ public class CommandLineInterfaceTest {
             + "},"
             + "\"partition\":0,\"offset\":1"
             + "}";
+
+    private static final ProducerRecords TWO_PRODUCER_RECORDS = new ProducerRecords();
+    static {
+        TWO_PRODUCER_RECORDS.add(
+                new ProducerRecords.ProducerRecord
+                        .Builder("my-topic",
+                        "Hello-OpenDXL-1")
+                        .withHeaders(new HashMap<String, String>() {{
+                            put("sourceId", "D5452543-E2FB-4585-8BE5-A61C3636819C");
+                        }})
+                        .withShardingKey("123")
+                        .build()
+        );
+        TWO_PRODUCER_RECORDS.add(
+                new ProducerRecords.ProducerRecord
+                        .Builder("topic1",
+                        "Hello-OpenDXL-2")
+                        .withHeaders(new HashMap<String, String>() {{
+                            put("sourceId", "F567D6A2-500E-4D35-AE15-A707f165D4FA");
+                            put("anotherHeader", "one-two-three-four");
+                        }})
+                        .withShardingKey("456")
+                        .build()
+        );
+    }
+
+    // The following records are intended to be used as "--records" parameter value
+    // They are equivalent to TWO_PRODUCER_RECORDS, e.g.: when CLI reads the simplified records, it will
+    // instantiate an equivalent ProducerRecord
+    private static final String TWO_SIMPLIFIED_PRODUCER_RECORDS = "["
+            + "{"
+            + "\"topic\":\"my-topic\","
+            + "\"payload\":\"Hello-OpenDXL-1\","
+            + "\"shardingKey\":\"123\","
+            + "\"headers\":"
+            + "{"
+            + "\"sourceId\":\"D5452543-E2FB-4585-8BE5-A61C3636819C\""
+            + "}"
+            + "},"
+            + "{"
+            + "\"topic\":\"topic1\","
+            + "\"payload\":\"Hello-OpenDXL-2\","
+            + "\"shardingKey\":\"456\","
+            + "\"headers\":"
+            + "{"
+            + "\"sourceId\":\"F567D6A2-500E-4D35-AE15-A707f165D4FA\","
+            + "\"anotherHeader\":\"one-two-three-four\""
+            + "}"
+            + "}"
+            + "]";
 
     private void setUpWireMockStubs(final String consumerId, final String cookieValue, final String topic,
                             final String jsonConsumerRecord, final int timeoutMs) {

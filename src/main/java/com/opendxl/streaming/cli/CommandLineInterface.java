@@ -195,8 +195,7 @@ public class CommandLineInterface {
                 parser.accepts("records", "Array of records to be produced in a simplified JSON format.")
                         .withRequiredArg()
                         .describedAs("producer-records")
-                        .ofType(String.class)
-                        .defaultsTo("");
+                        .ofType(String.class);
 
         if (args.length == 0) {
             CliUtils.printUsageAndFinish(parser, "There are not options");
