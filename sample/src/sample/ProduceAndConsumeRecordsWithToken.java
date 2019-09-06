@@ -24,12 +24,12 @@ import java.util.Properties;
 
 /**
  * This example uses the opendxl-streaming-java-client to produce records to and consume records from Databus topics.
- * It instantiates a ChannelAuthToken object, a Channel object to produce records to topics and to
- * consume those records from topics and finally a ConsumerRecordProcessor object. Then, a thread is instantiated to
- * call the produce() method on the Channel object to produce records periodically. Then, the run() method is
- * invoked on the the Channel object so it starts to indefinitely consume records and to deliver them
+ * It instantiates a ChannelAuthToken object, two Channel objects: one to produce records to topics and another to
+ * consume records from topics and finally a ConsumerRecordProcessor object. Then, a thread is instantiated to
+ * call the produce() method on one Channel object to produce records periodically. Then, the run() method is
+ * invoked on the other Channel object so it starts to indefinitely consume records and to deliver them
  * to ConsumerRecordProcessor which finally prints them out. To quit this sample program, press CTRL+C or execute kill
- * to call Channel destroy method which will stop the Channel instance and gracefully exit.
+ * to call Channel destroy method which will stop the both Channel instances and gracefully exit.
  */
 public class ProduceAndConsumeRecordsWithToken {
 
@@ -121,10 +121,13 @@ public class ProduceAndConsumeRecordsWithToken {
         extraConfigs.put("session.timeout.ms", 15000);
 
         /**
-         * One channel object is instantiated not only to produce records but to consume them as well.
-         * {@link Channel} instance is built by {@link ChannelBuilder} which implements the suitable builder pattern.
+         * Two channel objects are instantiated, one to produce records and the other to consume them.
+         * Rationale is that Channel API can be used by one thread at a time. If
+         * {@link Channel#run(ConsumerRecordProcessor, List, int)} is called, it starts consuming records continuously
+         * and it will not exit run() API, thus preventing other threads from calling other Channel API methods
+         * in general, and {@link Channel#produce(String)} in particular.
          */
-        try (Channel channel = new ChannelBuilder()
+        try (Channel consumerChannel = new ChannelBuilder()
                 .withBase(channelUrl)
                 .withChannelAuth(new ChannelAuthToken(token))
                 .withConsumerGroup(channelConsumerGroup)
@@ -136,14 +139,24 @@ public class ProduceAndConsumeRecordsWithToken {
                         PROXY_PORT,
                         PROXY_USR,
                         PROXY_PWD))
-                .build()) {
+                .build();
+             Channel producerChannel = new ChannelBuilder()
+                     .withBase(channelUrl)
+                     .withChannelAuth(new ChannelAuthToken(token))
+                     .withCertificateBundle(verifyCertificateBundle)
+                     .withHttpProxy(new HttpProxySettings(PROXY_ENABLED,
+                             PROXY_HOST,
+                             PROXY_PORT,
+                             PROXY_USR,
+                             PROXY_PWD))
+                     .build()) {
 
             /**
              * Create thread to produce records to selected topics. When
              * {@link com.opendxl.streaming.client.Channel#run()} is called, these records will be consumed and
              * printed out by the consumerRecordCallback.
              */
-            final Thread produceThread = createProduceThread(channel);
+            final Thread produceThread = createProduceThread(producerChannel);
 
             // Setup shutdown hook to call stop when program is terminated
             Runtime.getRuntime().addShutdownHook(
@@ -153,7 +166,7 @@ public class ProduceAndConsumeRecordsWithToken {
                         try {
                             produceThread.interrupt();
                             produceThread.join();
-                            channel.stop();
+                            consumerChannel.stop();
                         } catch (final StopError e) {
                             logger.error("Failed to shutdown app." + e.getMessage());
                         } catch (final InterruptedException e) {
@@ -198,7 +211,7 @@ public class ProduceAndConsumeRecordsWithToken {
             produceThread.start();
             // Consume records indefinitely
             final int consumePollTimeoutMs = 500;
-            channel.run(consumerRecordCallback, channelTopicSubscriptions, consumePollTimeoutMs);
+            consumerChannel.run(consumerRecordCallback, channelTopicSubscriptions, consumePollTimeoutMs);
 
         } catch (final PermanentError | StopError | TemporaryError e) {
 
