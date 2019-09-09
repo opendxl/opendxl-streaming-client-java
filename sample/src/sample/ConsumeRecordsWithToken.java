@@ -8,6 +8,7 @@ import com.opendxl.streaming.client.Channel;
 import com.opendxl.streaming.client.HttpProxySettings;
 import com.opendxl.streaming.client.auth.ChannelAuthToken;
 import com.opendxl.streaming.client.ConsumerRecordProcessor;
+import com.opendxl.streaming.client.builder.ChannelBuilder;
 import com.opendxl.streaming.client.entity.ConsumerRecords;
 import com.opendxl.streaming.client.exception.PermanentError;
 import com.opendxl.streaming.client.exception.StopError;
@@ -116,19 +117,16 @@ public class ConsumeRecordsWithToken {
          */
         extraConfigs.put("session.timeout.ms", 15000);
 
-        try (Channel channel = new Channel(channelUrl,
-                new ChannelAuthToken(token),
-                channelConsumerGroup,
-                null,
-                null,
-                true,
-                verifyCertificateBundle,
-                extraConfigs,
-                new HttpProxySettings(PROXY_ENABLED,
+        try (Channel channel = new ChannelBuilder(channelUrl, new ChannelAuthToken(token), channelConsumerGroup)
+                .withExtraConfigs(extraConfigs)
+                .withRetryOnFail(true)
+                .withCertificateBundle(verifyCertificateBundle)
+                .withHttpProxy(new HttpProxySettings(PROXY_ENABLED,
                         PROXY_HOST,
                         PROXY_PORT,
                         PROXY_USR,
-                        PROXY_PWD))) {
+                        PROXY_PWD))
+                .build()) {
 
             // Setup shutdown hook to call stop when program is terminated
             Runtime.getRuntime().addShutdownHook(

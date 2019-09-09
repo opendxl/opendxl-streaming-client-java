@@ -8,6 +8,7 @@ import com.opendxl.streaming.client.Channel;
 import com.opendxl.streaming.client.HttpProxySettings;
 import com.opendxl.streaming.client.auth.ChannelAuthUserPass;
 import com.opendxl.streaming.client.ConsumerRecordProcessor;
+import com.opendxl.streaming.client.builder.ChannelBuilder;
 import com.opendxl.streaming.client.entity.ConsumerRecords;
 import com.opendxl.streaming.client.exception.PermanentError;
 import com.opendxl.streaming.client.exception.StopError;
@@ -114,20 +115,19 @@ public class ConsumeRecordsWithUserPass {
             httpProxySettings = null;
         }
 
-        try (Channel channel = new Channel(channelUrl,
-                new ChannelAuthUserPass(channelUrl,
-                        channelUsername,
-                        channelPassword,
-                        null,
-                        verifyCertificateBundle,
-                        httpProxySettings),
-                channelConsumerGroup,
-                null,
-                null,
-                true,
-                verifyCertificateBundle,
-                extraConfigs,
-                httpProxySettings)) {
+        try (Channel channel = new ChannelBuilder(channelUrl,
+                        new ChannelAuthUserPass(channelUrl,
+                                channelUsername,
+                                channelPassword,
+                                null,
+                                verifyCertificateBundle,
+                                httpProxySettings),
+                        channelConsumerGroup)
+                .withExtraConfigs(extraConfigs)
+                .withRetryOnFail(true)
+                .withCertificateBundle(verifyCertificateBundle)
+                .withHttpProxy(httpProxySettings)
+                .build()) {
 
             // Setup shutdown hook to call stop when program is terminated
             Runtime.getRuntime().addShutdownHook(

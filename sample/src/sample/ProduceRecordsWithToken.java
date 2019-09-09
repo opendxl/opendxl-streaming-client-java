@@ -7,6 +7,7 @@ package sample;
 import com.opendxl.streaming.client.Channel;
 import com.opendxl.streaming.client.HttpProxySettings;
 import com.opendxl.streaming.client.auth.ChannelAuthToken;
+import com.opendxl.streaming.client.builder.ChannelBuilder;
 import com.opendxl.streaming.client.entity.ProducerRecords;
 import com.opendxl.streaming.client.exception.PermanentError;
 import com.opendxl.streaming.client.exception.StopError;
@@ -75,26 +76,18 @@ public class ProduceRecordsWithToken {
         String verifyCertificateBundle = VERIFY_CERTIFICATE_BUNDLE;
 
         /**
-         * Note that Channel extraConfigs parameter is not required to produce records. The extraConfigs value applies
-         * only to consume records. The producerPathPrefix parameter should be set to value suitable to your
-         * environment. If it is set to null, then its default value {@link Channel#DEFAULT_PRODUCER_PATH_PREFIX} will
-         * be used.
+         * Note that Channel requires less parameters to produce records than to consume them. The producerPathPrefix
+         * parameter, which is not shown in this example, should be set to value suitable to your environment.
+         * If it is not set, then its default value {@link Channel#DEFAULT_PRODUCER_PATH_PREFIX} will be used.
          */
-        try (Channel channel = new Channel(channelUrl,
-                new ChannelAuthToken(token),
-                null,
-                null,
-                null,
-                null,
-                false,
-                verifyCertificateBundle,
-                null,
-                // http proxy settings
-                new HttpProxySettings(PROXY_ENABLED,
+        try (Channel channel = new ChannelBuilder(channelUrl, new ChannelAuthToken(token), null)
+                .withCertificateBundle(verifyCertificateBundle)
+                .withHttpProxy(new HttpProxySettings(PROXY_ENABLED,
                         PROXY_HOST,
                         PROXY_PORT,
                         PROXY_USR,
-                        PROXY_PWD))) {
+                        PROXY_PWD))
+                .build()) {
 
             /**
              * Produce records as long as keepProducing flag is true
