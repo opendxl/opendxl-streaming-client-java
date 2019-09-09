@@ -47,7 +47,7 @@ public class ConsumeRecordsWithUserPass {
     /**
      * The logger
      */
-    private static Logger logger = Logger.getLogger(Channel.class);
+    private static Logger logger = Logger.getLogger(ConsumeRecordsWithUserPass.class);
 
     private ConsumeRecordsWithUserPass() { }
 

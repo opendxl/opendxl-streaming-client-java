@@ -53,7 +53,7 @@ public class CommandLineInterface {
         // operation option spec represented as --operation command line
         final ArgumentAcceptingOptionSpec<String> operationsOpt =
                 parser.accepts("operation", "Operations: login | create | subscribe | consume | commit | subscriptions"
-                        + " | produce")
+                        + " | delete | produce")
                         .withRequiredArg()
                         .describedAs("operation")
                         .ofType(String.class)
@@ -192,7 +192,12 @@ public class CommandLineInterface {
 
         // Consumer config option spec represented as --records command line
         final ArgumentAcceptingOptionSpec<String> producerRecords =
-                parser.accepts("records", "Array of records to be produced in a simplified JSON format.")
+                parser.accepts("records", "Array of simplified records to be produced in JSON format. A simplified "
+                        + "record consists of topic, payload, shardingKey (optional) and headers map (optional). "
+                        + "Example: "
+                        + "[{\"topic\":\"topic1\",\"payload\":\"HelloOpenDXL-1\"},"
+                        + "{\"topic\":\"my-topic\",\"payload\":\"HelloOpenDXL-2\",\"shardingKey\":\"101418986\","
+                        + "\"headers\":{\"sourceId\":\"D5452543-E2FB-4585-8BE5-A61C3636819C\"}}]")
                         .withRequiredArg()
                         .describedAs("producer-records")
                         .ofType(String.class);

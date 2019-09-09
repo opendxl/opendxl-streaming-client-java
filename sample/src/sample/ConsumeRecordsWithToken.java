@@ -36,7 +36,7 @@ public class ConsumeRecordsWithToken {
             "topic-abc123",
             "topic1");
 
-    private static final String VERIFY_CERTIFICATE_BUNDLE = "-----BEGIN CERTIFICATE-----"
+    private static final String VERIFY_CERTIFICATE_BUNDLE = "-----BEGIN CERTIFICATE-----\n"
             + "MIIDBzCCAe+gAwIBAgIJALteQYzVdTj3MA0GCSqGSIb3DQEBBQUAMBoxGDAWBgNV"
             + "BAMMD3d3dy5leGFtcGxlLmNvbTAeFw0xOTA0MjIxNTI2MjZaFw0yOTA0MTkxNTI2"
             + "MjZaMBoxGDAWBgNVBAMMD3d3dy5leGFtcGxlLmNvbTCCASIwDQYJKoZIhvcNAQEB"
@@ -65,7 +65,7 @@ public class ConsumeRecordsWithToken {
     /**
      * The logger
      */
-    private static Logger logger = Logger.getLogger(Channel.class);
+    private static Logger logger = Logger.getLogger(ConsumeRecordsWithToken.class);
 
 
     private ConsumeRecordsWithToken() { }

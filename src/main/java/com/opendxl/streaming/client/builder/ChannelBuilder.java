@@ -22,19 +22,19 @@ public class ChannelBuilder {
     /**
      * Base URL at which the streaming service resides.
      */
-    private String base;
+    private final String base;
 
     /**
      * An implementation of Channel Authorization interface. It adds the http header with the Authorization token to
      * http requests. Two implementations are available: {@link com.opendxl.streaming.client.auth.ChannelAuthToken} and
      * {@link com.opendxl.streaming.client.auth.ChannelAuthUserPass}.
      */
-    private ChannelAuth auth;
+    private final ChannelAuth auth;
 
     /**
      * Consumer group to subscribe the channel consumer to.
      */
-    private String consumerGroup;
+    private final String consumerGroup;
 
     /**
      * Path to append to streaming ALL service requests, to consume so as to produce. If it is set, then its value will
@@ -79,43 +79,18 @@ public class ChannelBuilder {
 
     /**
      * <p>Constructor for {@link ChannelBuilder}</p>
-     */
-    public ChannelBuilder() { }
-
-    /**
-     * <p>Set the base URL to be used at {@link ChannelBuilder#build()} when creating {@link Channel} instance</p>
      *
-     * @param base Base URL at which the streaming service resides. This base URL applies to both, consume and produce
+     * <p>Its parameters are mandatory parameters to create a {@link Channel} instance.
+     *
+     * @param base base URL at which the streaming service resides. This base URL applies to both, consume and produce
      *             requests.
-     * @return this {@link ChannelBuilder} instance
-     */
-    public ChannelBuilder withBase(final String base) {
-        this.base = base;
-        return this;
-    }
-
-    /**
-     * <p>Set the Authentication object to be used at {@link ChannelBuilder#build()} when creating {@link Channel}
-     * instance</p>
-     *
      * @param auth Authentication object to use for channel requests.
-     * @return this {@link ChannelBuilder} instance
-     */
-    public ChannelBuilder withChannelAuth(final ChannelAuth auth) {
-        this.auth = auth;
-        return this;
-    }
-
-    /**
-     * <p>Set the consumer group value to be used at {@link ChannelBuilder#build()} when creating {@link Channel}
-     * instance</p>
-     *
      * @param consumerGroup Consumer group to subscribe the channel consumer to
-     * @return this {@link ChannelBuilder} instance
      */
-    public ChannelBuilder withConsumerGroup(final String consumerGroup) {
+    public ChannelBuilder(final String base, final ChannelAuth auth, final String consumerGroup) {
+        this.base = base;
+        this.auth = auth;
         this.consumerGroup = consumerGroup;
-        return this;
     }
 
     /**

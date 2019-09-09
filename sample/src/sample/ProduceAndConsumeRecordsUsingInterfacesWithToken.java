@@ -38,10 +38,12 @@ public class ProduceAndConsumeRecordsUsingInterfacesWithToken {
     private static final String CHANNEL_URL = "http://127.0.0.1:50080";
     private static final String TOKEN = "TOKEN3";
     private static final String CONSUMER_GROUP = "sample_consumer_group";
-    private static final List<String> TOPICS = Arrays.asList("case-mgmt-events",
+    private static final List<String> CONSUMER_TOPICS = Arrays.asList("case-mgmt-events",
             "my-topic",
             "topic-abc123",
             "topic1");
+    private static final String PRODUCER_TOPIC_1 = "my-topic";
+    private static final String PRODUCER_TOPIC_2 = "topic1";
 
     private static final String VERIFY_CERTIFICATE_BUNDLE = "-----BEGIN CERTIFICATE-----\n"
             + "MIIDBzCCAe+gAwIBAgIJALteQYzVdTj3MA0GCSqGSIb3DQEBBQUAMBoxGDAWBgNV"
@@ -72,7 +74,7 @@ public class ProduceAndConsumeRecordsUsingInterfacesWithToken {
     /**
      * The logger
      */
-    private static Logger logger = Logger.getLogger(Consumer.class);
+    private static Logger logger = Logger.getLogger(ProduceAndConsumeRecordsUsingInterfacesWithToken.class);
 
     private ProduceAndConsumeRecordsUsingInterfacesWithToken() { }
 
@@ -81,7 +83,7 @@ public class ProduceAndConsumeRecordsUsingInterfacesWithToken {
         String channelUrl = CHANNEL_URL;
         String token = TOKEN;
         String channelConsumerGroup = CONSUMER_GROUP;
-        List<String> channelTopicSubscriptions = TOPICS;
+        List<String> channelTopicSubscriptions = CONSUMER_TOPICS;
 
         // CA bundle certificate chain of trusted CAs provided as a string. The CA
         // bundle is used to validate that the certificate of the server being connected
@@ -129,10 +131,7 @@ public class ProduceAndConsumeRecordsUsingInterfacesWithToken {
          * cannot consume them. Conversely, a {@link Consumer} object can subscribe to topics, consume records and
          * commit them but it cannot produce them.
          */
-        try (Consumer consumer = new ConsumerBuilder()
-                .withBase(channelUrl)
-                .withChannelAuth(new ChannelAuthToken(token))
-                .withConsumerGroup(channelConsumerGroup)
+        try (Consumer consumer = new ConsumerBuilder(channelUrl, new ChannelAuthToken(token), channelConsumerGroup)
                 .withRetryOnFail(true)
                 .withCertificateBundle(verifyCertificateBundle)
                 .withExtraConfigs(extraConfigs)
@@ -142,9 +141,7 @@ public class ProduceAndConsumeRecordsUsingInterfacesWithToken {
                         PROXY_USR,
                         PROXY_PWD))
                 .build();
-             Producer producer = new ProducerBuilder()
-                     .withBase(channelUrl)
-                     .withChannelAuth(new ChannelAuthToken(token))
+             Producer producer = new ProducerBuilder(channelUrl, new ChannelAuthToken(token))
                      .withCertificateBundle(verifyCertificateBundle)
                      .withHttpProxy(new HttpProxySettings(PROXY_ENABLED,
                              PROXY_HOST,
@@ -249,22 +246,22 @@ public class ProduceAndConsumeRecordsUsingInterfacesWithToken {
                     final ProducerRecords producerRecords = new ProducerRecords();
                     producerRecords.add(
                             new ProducerRecords.ProducerRecord
-                                    .Builder("my-topic",
+                                    .Builder(PRODUCER_TOPIC_1,
                                     "Hello from OpenDXL - " + recordCounter)
                                     .withHeaders(new HashMap<String, String>() {{
                                         put("sourceId", "D5452543-E2FB-4585-8BE5-A61C3636819C");
                                     }})
-                                    .withShardingKey("123")
+                                    .withShardingKey("29598919")
                                     .build()
                     );
                     producerRecords.add(
                             new ProducerRecords.ProducerRecord
-                                    .Builder("topic1",
+                                    .Builder(PRODUCER_TOPIC_2,
                                     "Hello from OpenDXL - " + (recordCounter + 1))
                                     .withHeaders(new HashMap<String, String>() {{
                                         put("sourceId", "F567D6A2-500E-4D35-AE15-A707f165D4FA");
                                     }})
-                                    .withShardingKey("123")
+                                    .withShardingKey("176927523")
                                     .build()
                     );
                     try {

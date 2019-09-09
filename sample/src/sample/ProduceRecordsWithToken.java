@@ -28,8 +28,9 @@ public class ProduceRecordsWithToken {
 
     private static final String CHANNEL_URL = "http://127.0.0.1:50080";
     private static final String TOKEN = "TOKEN3";
+    private static final String PRODUCER_TOPIC = "topic1";
 
-    private static final String VERIFY_CERTIFICATE_BUNDLE = "-----BEGIN CERTIFICATE-----"
+    private static final String VERIFY_CERTIFICATE_BUNDLE = "-----BEGIN CERTIFICATE-----\n"
             + "MIIDBzCCAe+gAwIBAgIJALteQYzVdTj3MA0GCSqGSIb3DQEBBQUAMBoxGDAWBgNV"
             + "BAMMD3d3dy5leGFtcGxlLmNvbTAeFw0xOTA0MjIxNTI2MjZaFw0yOTA0MTkxNTI2"
             + "MjZaMBoxGDAWBgNVBAMMD3d3dy5leGFtcGxlLmNvbTCCASIwDQYJKoZIhvcNAQEB"
@@ -58,7 +59,7 @@ public class ProduceRecordsWithToken {
     /**
      * The logger
      */
-    private static Logger logger = Logger.getLogger(Channel.class);
+    private static Logger logger = Logger.getLogger(ProduceRecordsWithToken.class);
 
     private ProduceRecordsWithToken() { }
 
@@ -85,7 +86,7 @@ public class ProduceRecordsWithToken {
                 null,
                 null,
                 null,
-                true,
+                false,
                 verifyCertificateBundle,
                 null,
                 // http proxy settings
@@ -121,11 +122,11 @@ public class ProduceRecordsWithToken {
                 final ProducerRecords producerRecords = new ProducerRecords();
                 producerRecords.add(
                         new ProducerRecords.ProducerRecord
-                                .Builder("topic1", "Hello from OpenDXL - " + recordCounter)
+                                .Builder(PRODUCER_TOPIC, "Hello from OpenDXL - " + recordCounter)
                                 .withHeaders(new HashMap<String, String>() {{
                                     put("sourceId", "D5452543-E2FB-4585-8BE5-A61C3636819C");
                                 }})
-                                .withShardingKey("123")
+                                .withShardingKey("119159619")
                                 .build()
                 );
 

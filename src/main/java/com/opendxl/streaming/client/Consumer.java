@@ -28,8 +28,8 @@ import java.util.List;
 public interface Consumer extends AutoCloseable {
 
     /**
-     * <p>Creates a new consumer on the consumer group specified with {@link ConsumerBuilder#withConsumerGroup(String)}
-     * at construction time.</p>
+     * <p>Creates a new consumer on the consumer group specified by
+     * {@link ConsumerBuilder#ConsumerBuilder(String, ChannelAuth, String)}} at construction time.</p>
      *
      * @throws PermanentError if no consumer group was specified.
      * @throws TemporaryError if the creation attempt fails.

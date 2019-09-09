@@ -40,6 +40,8 @@ public class ProduceAndConsumeRecordsWithToken {
             "my-topic",
             "topic-abc123",
             "topic1");
+    private static final String PRODUCER_TOPIC_1 = "my-topic";
+    private static final String PRODUCER_TOPIC_2 = "topic1";
 
     private static final String VERIFY_CERTIFICATE_BUNDLE = "-----BEGIN CERTIFICATE-----\n"
             + "MIIDBzCCAe+gAwIBAgIJALteQYzVdTj3MA0GCSqGSIb3DQEBBQUAMBoxGDAWBgNV"
@@ -70,7 +72,7 @@ public class ProduceAndConsumeRecordsWithToken {
     /**
      * The logger
      */
-    private static Logger logger = Logger.getLogger(Channel.class);
+    private static Logger logger = Logger.getLogger(ProduceAndConsumeRecordsWithToken.class);
 
     private ProduceAndConsumeRecordsWithToken() { }
 
@@ -127,10 +129,7 @@ public class ProduceAndConsumeRecordsWithToken {
          * and it will not exit run() API, thus preventing other threads from calling other Channel API methods
          * in general, and {@link Channel#produce(String)} in particular.
          */
-        try (Channel consumerChannel = new ChannelBuilder()
-                .withBase(channelUrl)
-                .withChannelAuth(new ChannelAuthToken(token))
-                .withConsumerGroup(channelConsumerGroup)
+        try (Channel consumerChannel = new ChannelBuilder(channelUrl, new ChannelAuthToken(token), channelConsumerGroup)
                 .withRetryOnFail(true)
                 .withCertificateBundle(verifyCertificateBundle)
                 .withExtraConfigs(extraConfigs)
@@ -140,9 +139,7 @@ public class ProduceAndConsumeRecordsWithToken {
                         PROXY_USR,
                         PROXY_PWD))
                 .build();
-             Channel producerChannel = new ChannelBuilder()
-                     .withBase(channelUrl)
-                     .withChannelAuth(new ChannelAuthToken(token))
+             Channel producerChannel = new ChannelBuilder(channelUrl, new ChannelAuthToken(token), null)
                      .withCertificateBundle(verifyCertificateBundle)
                      .withHttpProxy(new HttpProxySettings(PROXY_ENABLED,
                              PROXY_HOST,
@@ -247,22 +244,22 @@ public class ProduceAndConsumeRecordsWithToken {
                     final ProducerRecords producerRecords = new ProducerRecords();
                     producerRecords.add(
                             new ProducerRecords.ProducerRecord
-                                    .Builder("my-topic",
+                                    .Builder(PRODUCER_TOPIC_1,
                                     "Hello from OpenDXL - " + recordCounter)
                                     .withHeaders(new HashMap<String, String>() {{
                                         put("sourceId", "D5452543-E2FB-4585-8BE5-A61C3636819C");
                                     }})
-                                    .withShardingKey("123")
+                                    .withShardingKey("32180085")
                                     .build()
                     );
                     producerRecords.add(
                             new ProducerRecords.ProducerRecord
-                                    .Builder("topic1",
+                                    .Builder(PRODUCER_TOPIC_2,
                                     "Hello from OpenDXL - " + (recordCounter + 1))
                                     .withHeaders(new HashMap<String, String>() {{
                                         put("sourceId", "F567D6A2-500E-4D35-AE15-A707f165D4FA");
                                     }})
-                                    .withShardingKey("123")
+                                    .withShardingKey("4436423")
                                     .build()
                     );
                     try {

@@ -17,14 +17,14 @@ public class ProducerBuilder {
     /**
      * Base URL at which the streaming service resides.
      */
-    private String base;
+    private final String base;
 
     /**
      * An implementation of Channel Authorization interface. It adds the http header with the Authorization token to
      * http requests. Two implementations are available: {@link com.opendxl.streaming.client.auth.ChannelAuthToken} and
      * {@link com.opendxl.streaming.client.auth.ChannelAuthUserPass}.
      */
-    private ChannelAuth auth;
+    private final ChannelAuth auth;
 
     /**
      * Path to append to base for producer-related requests made to the streaming service.
@@ -45,30 +45,13 @@ public class ProducerBuilder {
 
     /**
      * <p>Constructor for {@link ProducerBuilder}</p>
-     */
-    public ProducerBuilder() { }
-
-    /**
-     * <p>Set the base URL to be used at {@link ProducerBuilder#build()} when creating {@link Producer} instance</p>
      *
-     * @param base Base URL at which the streaming service resides.
-     * @return this {@link ProducerBuilder} instance
-     */
-    public ProducerBuilder withBase(final String base) {
-        this.base = base;
-        return this;
-    }
-
-    /**
-     * <p>Set the Authentication object to be used at {@link ProducerBuilder#build()} when creating {@link Producer}
-     * instance</p>
-     *
+     * @param base base URL at which the streaming service resides.
      * @param auth Authentication object to use for channel requests.
-     * @return this {@link ProducerBuilder} instance
      */
-    public ProducerBuilder withChannelAuth(final ChannelAuth auth) {
+    public ProducerBuilder(final String base, final ChannelAuth auth) {
+        this.base = base;
         this.auth = auth;
-        return this;
     }
 
     /**
