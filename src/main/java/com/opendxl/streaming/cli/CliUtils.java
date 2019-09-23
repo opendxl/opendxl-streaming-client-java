@@ -10,8 +10,6 @@ import com.opendxl.streaming.client.Channel;
 import com.opendxl.streaming.client.HttpConnection;
 import com.opendxl.streaming.client.HttpProxySettings;
 import com.opendxl.streaming.client.Request;
-import com.opendxl.streaming.client.entity.ProducerRecords;
-import com.opendxl.streaming.client.entity.ProducerRecords.ProducerRecord;
 
 import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.OptionParser;
@@ -21,9 +19,6 @@ import junit.extensions.PA;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.cookie.Cookie;
 import org.apache.http.impl.cookie.BasicClientCookie;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -366,110 +361,6 @@ public class CliUtils {
         }
 
         return returnValue;
-
-    }
-
-    /**
-     * Helper class intended to reduce the typing required to enter {@link ProducerRecords} value from the
-     * CLI. The {@link SimplifiedProducerRecord} consists of exactly the same basic attributes of a
-     * {@link ProducerRecord} but they are arranged in a plain structure, e.g.: while a {@link ProducerRecord} structure
-     * is:
-     *
-     * ProducerRecord
-     *      RoutingData
-     *          topic
-     *          shardingKey
-     *      Message
-     *          headers
-     *          payload
-     *
-     * the {@link SimplifiedProducerRecord} structure is:
-     *
-     * SimplifiedProducerRecord
-     *      topic
-     *      payload
-     *      shardingKey
-     *      headers
-     *
-     * CLI "--records" parameter asks for a {@link SimplifiedProducerRecord} JSON array and then the CLI internally
-     * builds the equivalent {@link ProducerRecords} object (see {@link CliUtils#getProducerRecords(String)}
-     * method).
-     */
-    private static final class SimplifiedProducerRecord {
-        /**
-         * topic where to produce the payload and headers
-         */
-        private final String topic;
-        /**
-         * message payload to produce
-         * Later, when {@link com.opendxl.streaming.client.entity.ProducerRecords.ProducerRecord.Builder} builds the
-         * equivalent {@link ProducerRecord} object, it will be Base64 encoded as required by the produce RESTful
-         * service.
-         */
-        private final String payload;
-        /**
-         * shardingKey value can be used to indicate a preferred partition where to produce the record.
-         * If shardingkey is present, then the partition will be chosen using a hash of the shardingKey. All records
-         * having the same shardingKey value, thus yielding the same hash value, will be produced on the same partition.
-         * If shardingKey is not present, then the partition will be assigned in a round-robin fashion.
-         */
-        private final String shardingKey;
-        /**
-         * The headers that will be included in the record
-         */
-        private final Map<String, String> headers;
-
-        SimplifiedProducerRecord(final String topic, final String payload, final String shardingKey,
-                                 final Map<String, String> headers) {
-
-            this.topic = topic;
-            this.payload = payload;
-            this.shardingKey = shardingKey;
-            this.headers = headers;
-        }
-
-        public String getTopic() {
-            return topic;
-        }
-
-        public String getPayload() {
-            return payload;
-        }
-
-        public String getShardingKey() {
-            return shardingKey;
-        }
-
-        public Map<String, String> getHeaders() {
-            return headers;
-        }
-    }
-
-    /**
-     * Create a {@link ProducerRecords} object from the {@link SimplifiedProducerRecord} JSON objects specified by user
-     * in the --records CLI parameter.
-     *
-     * @param simplifiedProducerRecords JSON representation of an array of SimplifiedProducerRecord objects
-     * @return an equivalent {@link ProducerRecords} object
-     */
-    public static ProducerRecords getProducerRecords(final String simplifiedProducerRecords) {
-
-        final Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-
-        SimplifiedProducerRecord[] parsedInputData = gson.fromJson(simplifiedProducerRecords,
-                SimplifiedProducerRecord[].class);
-
-        final ProducerRecords producerRecords = new ProducerRecords();
-        for (SimplifiedProducerRecord record : parsedInputData) {
-            producerRecords.add(
-                    new ProducerRecords.ProducerRecord
-                            .Builder(record.getTopic(), record.getPayload())
-                            .withShardingKey(record.getShardingKey())
-                            .withHeaders(record.getHeaders())
-                            .build());
-        }
-
-        return producerRecords;
 
     }
 

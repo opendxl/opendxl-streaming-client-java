@@ -8,11 +8,13 @@ import com.opendxl.streaming.cli.CliUtils;
 import com.opendxl.streaming.cli.CommandLineInterface;
 import com.opendxl.streaming.cli.Options;
 import com.opendxl.streaming.cli.entity.ExecutionResult;
+import com.opendxl.streaming.cli.entity.SimplifiedProducerRecords;
 import com.opendxl.streaming.client.Channel;
 import com.opendxl.streaming.client.ChannelAuth;
 import com.opendxl.streaming.client.auth.ChannelAuthToken;
 import com.opendxl.streaming.client.entity.ProducerRecords;
 import joptsimple.ArgumentAcceptingOptionSpec;
+import joptsimple.OptionException;
 import joptsimple.OptionSet;
 
 import java.net.MalformedURLException;
@@ -126,8 +128,9 @@ public class ProduceOperation implements CommandLineOperation {
              * {@link com.opendxl.streaming.cli.CliUtils.SimplifiedProducerRecord} object got from the "--records"
              * parameter
              */
-            final ProducerRecords producerRecords = CliUtils.getProducerRecords(
-                    options.valueOf(mandatoryOptions.get(Options.PRODUCER_RECORDS)));
+            final ProducerRecords producerRecords = options.valueOf(mandatoryOptions.get(Options.PRODUCER_RECORDS)
+                    .ofType(SimplifiedProducerRecords.class))
+                    .getProducerRecords();
 
             /**
              * Produce the records
@@ -138,6 +141,8 @@ public class ProduceOperation implements CommandLineOperation {
                     CliUtils.getCommandLine(options, mandatoryOptions));
 
 
+        } catch (final OptionException e) {
+            CliUtils.printUsageAndFinish(CommandLineInterface.parser, e.getCause().getMessage());
         } catch (Exception e) {
             CliUtils.printUsageAndFinish(CommandLineInterface.parser, e.getMessage(), e);
         }
