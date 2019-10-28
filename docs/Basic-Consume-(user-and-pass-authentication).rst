@@ -17,6 +17,7 @@ Sample Code
     ...
     final String channelUsername = "me";
     final String channelPassword = "secret";
+    static Logger logger = Logger.getLogger(ConsumeRecordsWithUserPass.class);
     ...
     // Gather the Http Proxy attributes, e.g.: FQDN or IP Address, TCP port, username, password,
     // in a single plain Java object
@@ -27,21 +28,19 @@ Sample Code
             PROXY_PWD);
 
     // Create a new Channel object
-    Channel channel = new Channel(channelUrl,
-            new ChannelAuthUserPass(channelUrl,
-                    channelUsername,
-                    channelPassword,
-                    null,
-                    verifyCertificateBundle,
-                    httpProxySettings),
-            channelConsumerGroup,
-            null,
-            null,
-            true,
-            verifyCertificateBundle,
-            extraConfigs,
-            httpProxySettings)
-
+    Channel channel = new ChannelBuilder(channelUrl,
+                            new ChannelAuthUserPass(channelUrl,
+                                    channelUsername,
+                                    channelPassword,
+                                    null,
+                                    verifyCertificateBundle,
+                                    httpProxySettings),
+                            channelConsumerGroup)
+                    .withExtraConfigs(extraConfigs)
+                    .withRetryOnFail(true)
+                    .withCertificateBundle(verifyCertificateBundle)
+                    .withHttpProxy(httpProxySettings)
+                    .build();
 
     // Create object which processCallback() method will be called back upon by the run method (see below)
     // when records are received from the channel
@@ -52,26 +51,26 @@ Sample Code
             // Print the received payloads. 'payloads' is a list of
             // dictionary objects extracted from the records received
             // from the channel.
-            System.out.println(new StringBuilder("Received ")
+            logger.info(new StringBuilder("Received ")
                     .append(consumerRecords.getRecords().size())
                     .append(" records")
                     .toString());
 
             for (ConsumerRecords.ConsumerRecord record : consumerRecords.getRecords()) {
 
-                System.out.println("topic = " + record.getTopic());
-                System.out.println("partition = " + record.getPartition());
-                System.out.println("offset = " + record.getOffset());
-                System.out.println("sharding key = " + record.getShardingKey());
-                System.out.println("headers = " + record.getHeaders());
-                System.out.println("payload = " + record.getPayload());
-                System.out.println("decoded payload = " + new String(record.getDecodedPayload()));
-                System.out.println("");
+                logger.info("topic = " + record.getTopic());
+                logger.info("partition = " + record.getPartition());
+                logger.info("offset = " + record.getOffset());
+                logger.info("sharding key = " + record.getShardingKey());
+                logger.info("headers = " + record.getHeaders());
+                logger.info("payload = " + record.getPayload());
+                logger.info("decoded payload = " + new String(record.getDecodedPayload()));
+                logger.info("");
 
             }
 
             // Return 'True' in order for the 'run' call to continue attempting to consume records.
-            System.out.println("let commit records");
+            logger.info("let commit records");
             return true;
         }
     };
@@ -112,7 +111,7 @@ similar to the following:
 
 ::
 
-    topic = topic1-5ca969eb-2757-46ed-bc3f-f9266ccccea7
+    topic = topic1
     partition = 0
     offset = 4
     sharding key = pool-1-thread-1-0-0
@@ -120,7 +119,7 @@ similar to the following:
     payload = SGVsbG8gV29ybGQgYXQ6MjAxOS0wNS0wN1QxNjowMjoxOC42NjcgRXh0cmE6IEI0ODlNOTNTSFVEME5VTVYzWlZKTU43NkJSNE5HUEE4NFIzSVI1R1NDME05WTFYT1FISjMyNzhMSzY2UFpYNTg4QU42WjEyMjlKRUE4Nlg2MDhLSUxDSDczSFRSSkQyUlNKTkQ=
     decoded payload = Hello World at:2019-05-07T16:02:18.667 Extra: B489M93SHUD0NUMV3ZVJMN76BR4NGPA84R3IR5GSC0M9Y1XOQHJ3278LK66PZX588AN6Z1229JEA86X608KILCH73HTRJD2RSJND
 
-    topic = topic1-5ca969eb-2757-46ed-bc3f-f9266ccccea7
+    topic = topic1
     partition = 0
     offset = 5
     sharding key = pool-1-thread-1-0-0
@@ -145,18 +144,18 @@ service channel:
 
 .. code:: java
 
-        private static final String CHANNEL_URL = "http://127.0.0.1:50080";
-        private static final String USER_NAME = "me";
-        private static final String USER_PASSWORD = "password";
-        private static final String CONSUMER_GROUP = "sample_consumer_group";
-        private static final String VERIFY_CERTIFICATE_BUNDLE = "/mycert.crt";
-        private static final List<String> TOPICS = Arrays.asList("topic1");
+            private static final String CHANNEL_URL = "http://127.0.0.1:50080";
+            private static final String USER_NAME = "me";
+            private static final String USER_PASSWORD = "password";
+            private static final String CONSUMER_GROUP = "sample_consumer_group";
+            private static final String VERIFY_CERTIFICATE_BUNDLE = "/mycert.crt";
+            private static final List<String> TOPICS = Arrays.asList("topic1");
 
-        private static final boolean PROXY_ENABLED = true;
-        private static final String PROXY_HOST = "10.20.30.40";
-        private static final int PROXY_PORT = 8080;
-        private static final String PROXY_USR = "";
-        private static final String PROXY_PWD = "";
+            private static final boolean PROXY_ENABLED = true;
+            private static final String PROXY_HOST = "10.20.30.40";
+            private static final int PROXY_PORT = 8080;
+            private static final String PROXY_USR = "";
+            private static final String PROXY_PWD = "";
 
 Running
 ^^^^^^^
@@ -180,7 +179,7 @@ payloads should be displayed to the output window.
 ::
 
     Received 15 records
-    topic = BusinessEvents
+    topic = topic1
     partition = 5
     offset = 13
     sharding key = 123
@@ -188,7 +187,7 @@ payloads should be displayed to the output window.
     payload = SGVsbG8sIFdvcmxkLg==
     decoded payload = Hello, World.
 
-    topic = BusinessEvents
+    topic = topic1
     partition = 5
     offset = 14
     sharding key = 123
@@ -196,7 +195,7 @@ payloads should be displayed to the output window.
     payload = SGVsbG8sIFdvcmxkLg==
     decoded payload = Hello, World.
 
-    topic = BusinessEvents
+    topic = topic1
     partition = 5
     offset = 15
     sharding key = 123
@@ -204,7 +203,7 @@ payloads should be displayed to the output window.
     payload = SGVsbG8sIFdvcmxkLg==
     decoded payload = Hello, World.
 
-    topic = BusinessEvents
+    topic = topic1
     partition = 5
     offset = 16
     sharding key = 123
