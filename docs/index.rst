@@ -7,12 +7,13 @@ Java Client Library and examples.
 Overview
 --------
 The OpenDXL Streaming Java client library is used to consume records
-from a `Data Exchange Layer <http://www.mcafee.com/us/solutions/data-exchange-layer.aspx>`_
+from as well as to produce records to a `Data Exchange Layer <http://www.mcafee.com/us/solutions/data-exchange-layer.aspx>`_
 (DXL) Streaming Service.
 
 The DXL Streaming Service exposes a REST-based API that communicates
 with a back-end streaming platform. The streaming service
-performs authentication and authorization and exposes methods to retrieve records.
+performs authentication and authorization and exposes methods to retrieve records
+and to send them.
 
 One concrete example of a DXL Streaming Service is the `McAfee MVISION EDR <https://www.mcafee.com/enterprise/en-us/products/investigator.html>`_ "Events feed".
 
@@ -39,14 +40,14 @@ Maven:
         <dependency>
           <groupId>com.opendxl.streaming</groupId>
           <artifactId>opendxlstreamingclient-java-sdk</artifactId>
-          <version>0.1.0</version>
+          <version>0.2.0</version>
         </dependency>
 
 Gradle:
 
     .. code-block:: groovy
 
-        compile 'com.opendxl.streaming:opendxlstreamingclient-java-sdk:0.1.0'
+        compile 'com.opendxl.streaming:opendxlstreamingclient-java-sdk:0.2.0'
 
 API Documentation
 -----------------
@@ -73,4 +74,14 @@ Table of content
 .. toctree::
 	:maxdepth: 1
 
-	Basic-Consume-(command-line-interface).rst
+	Basic-Produce-(Token-based-authentication).rst
+
+.. toctree::
+	:maxdepth: 1
+
+	Basic-Produce-and-Consume-(Token-based-authentication).rst
+
+.. toctree::
+        :maxdepth: 1
+
+        Basic-Consume-(command-line-interface).rst

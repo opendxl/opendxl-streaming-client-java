@@ -5,7 +5,7 @@
 package com.opendxl.streaming.client;
 
 import com.opendxl.streaming.client.entity.ConsumerRecords;
-
+import com.opendxl.streaming.client.entity.ProducerRecords;
 import com.opendxl.streaming.client.entity.Topics;
 import com.opendxl.streaming.client.exception.ClientError;
 import com.opendxl.streaming.client.exception.ConsumerError;
@@ -15,6 +15,8 @@ import com.opendxl.streaming.client.exception.StopError;
 import com.opendxl.streaming.client.exception.TemporaryError;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonIOException;
 import com.google.gson.JsonSyntaxException;
 import org.apache.log4j.Logger;
 
@@ -68,7 +70,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * channel.create()
  * </pre>
  */
-public class Channel implements AutoCloseable {
+public class Channel implements Consumer, Producer, AutoCloseable {
 
     // Constants for consumer config settings
     private static final String ENABLE_AUTO_COMMIT_CONFIG_SETTING = "enable.auto.commit";
@@ -79,6 +81,11 @@ public class Channel implements AutoCloseable {
     private static final String DEFAULT_CONSUMER_PATH_PREFIX = "/databus/consumer-service/v1";
 
     /**
+     * Default URL path for Produce Service
+     */
+    private static final String DEFAULT_PRODUCER_PATH_PREFIX = "/databus/cloudproxy/v1";
+
+    /**
      * Time to wait between two consecutive checks while awaiting a running Channel to be stopped.
      */
     private static final int STOP_CHANNEL_WAIT_PERIOD_MS = 1000;
@@ -87,6 +94,11 @@ public class Channel implements AutoCloseable {
      * Base URL at which the streaming service resides.
      */
     private final String base;
+
+    /**
+     * Path to append to base for producer-related requests made to the streaming service.
+     */
+    private final String producerPathPrefix;
 
     /**
      * Path to append to base for consumer-related requests made to the streaming service.
@@ -206,6 +218,12 @@ public class Channel implements AutoCloseable {
     private final HttpProxySettings httpProxySettings;
 
     /**
+     * JSON serializer and deserializer. It is used by {@link Channel#produce(ProducerRecords)} to serialize
+     * {@link ProducerRecords} in order to produce them
+     */
+    final Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+
+    /**
      * The logger
      */
     private static Logger logger = Logger.getLogger(Channel.class);
@@ -237,15 +255,51 @@ public class Channel implements AutoCloseable {
                    final Properties extraConfigs, final HttpProxySettings httpProxySettings)
             throws TemporaryError {
 
+        this(base, auth, consumerGroup, pathPrefix, consumerPathPrefix, null, retryOnFail, verifyCertBundle,
+                extraConfigs, httpProxySettings);
+
+    }
+
+    /**
+     * @param base Base URL at which the streaming service resides.
+     * @param auth Authentication object to use for channel requests.
+     * @param consumerGroup Consumer group to subscribe the channel consumer to.
+     * @param pathPrefix Path to append to streaming service requests.
+     * @param consumerPathPrefix Path to append to consumer-related requests made to the streaming service. Note that
+     *                          if the pathPrefix parameter is set to a non-empty value, the pathPrefix value will be
+     *                          appended to consumer-related requests instead of the consumerPathPrefix value.
+     * @param producerPathPrefix Path to append to producer-related requests made to the streaming service. Note that
+     *                          if the pathPrefix parameter is set to a non-empty value, the pathPrefix value will be
+     *                          appended to producer-related requests instead of the producerPathPrefix value.
+     * @param retryOnFail Whether or not the channel will automatically retry a call which failed due to a temporary
+     *                   error.
+     * @param verifyCertBundle CA Bundle chain certificates. This string shall be either the certificates themselves or
+     *                         a path to a CA bundle file containing those certificates. The CA bundle is used to
+     *                         validate that the certificate of the authentication server being connected to was signed
+     *                         by a valid authority. If set to an empty string, the server certificate will not be
+     *                         validated.
+     * @param extraConfigs Dictionary of key/value pairs containing any custom configuration settings which should be
+     *                     sent to the streaming service when a consumer is created. Examples of key/value pairs are:
+     *                     ("auto.offset.reset", "latest"); ("request.timeout.ms", 30000) and
+     *                     ("session.timeout.ms", 10000).
+     * @param httpProxySettings contains http proxy hostname, port, username and password.
+     * @throws TemporaryError if http client request object failed to be created.
+     */
+    public Channel(final String base, final ChannelAuth auth, final String consumerGroup, final String pathPrefix,
+                   final String consumerPathPrefix, final String producerPathPrefix, final boolean retryOnFail,
+                   final String verifyCertBundle, final Properties extraConfigs,
+                   final HttpProxySettings httpProxySettings)
+            throws TemporaryError {
+
         this.base = base;
         this.auth = auth;
 
         if (pathPrefix != null) {
             this.consumerPathPrefix = pathPrefix;
-        } else if (consumerPathPrefix != null) {
-            this.consumerPathPrefix = consumerPathPrefix;
+            this.producerPathPrefix = pathPrefix;
         } else {
-            this.consumerPathPrefix = DEFAULT_CONSUMER_PATH_PREFIX;
+            this.consumerPathPrefix = consumerPathPrefix != null ? consumerPathPrefix : DEFAULT_CONSUMER_PATH_PREFIX;
+            this.producerPathPrefix = producerPathPrefix != null ? producerPathPrefix : DEFAULT_PRODUCER_PATH_PREFIX;
         }
 
         this.consumerGroup = consumerGroup;
@@ -952,6 +1006,63 @@ public class Channel implements AutoCloseable {
     }
 
     /**
+     * <p>Produce records to the channel.</p>
+     *
+     * @param producerRecords a {@link ProducerRecords} object containing the records to be posted to the channel.
+     * @throws PermanentError if produce request was malformed or produce RESTful service was not found.
+     * @throws TemporaryError if produce request was temporarily not authorized or there was an internal RESTful error
+     *                        while serving the request.
+     */
+    public void produce(final ProducerRecords producerRecords) throws PermanentError, TemporaryError {
+
+        acquireAndEnsureChannelIsActive();
+        try {
+
+            produce(gson.toJson(producerRecords, ProducerRecords.class));
+
+        } catch (final JsonIOException error) {
+            final String errorDescription = "Failed to produce due to a JSON error " + error.getMessage() ;
+            logger.error(errorDescription, error);
+            throw new TemporaryError(errorDescription, error, "produce");
+        } finally {
+            release();
+        }
+    }
+
+    /**
+     * <p>Produce records to the channel.</p>
+     *
+     * @param jsonProducerRecords a {@link String} object containing the records to be posted to the channel in
+     *                            JSON string format.
+     * @throws PermanentError if produce request was malformed or produce RESTful service was not found.
+     * @throws TemporaryError if produce request was temporarily not authorized or there was an internal RESTful error
+     *                        while serving the request.
+     */
+    public void produce(final String jsonProducerRecords) throws PermanentError, TemporaryError {
+
+        acquireAndEnsureChannelIsActive();
+        try {
+            final String api = new StringBuilder(producerPathPrefix)
+                    .append("/produce").toString();
+
+            request.post(api, jsonProducerRecords.getBytes(), PRODUCE_RECORDS_ERROR_MAP);
+            if (logger.isDebugEnabled()) {
+                logger.debug("produced records.");
+            }
+
+        } catch (final PermanentError | TemporaryError error) {
+            error.setApi("produce");
+            logger.error("Failed to produce", error);
+            throw error;
+        } catch (final ConsumerError error) {
+            error.setApi("produce");
+            logger.error("Failed to produce", error);
+        } finally {
+            release();
+        }
+    }
+
+    /**
      * <p>Deletes the current consumer and then creates a brand new one.</p>
      *
      * <p>This method is used to easily get a new consumer to continue consuming records from the given topics.</p>
@@ -1085,6 +1196,17 @@ public class Channel implements AutoCloseable {
         put(HttpStatusCodes.INTERNAL_SERVER_ERROR, ErrorType.TEMPORARY_ERROR);
     }};
 
+    /**
+     * Mapping of HTTP Status Code errors to {@link ErrorType} for {@link Channel#produce(String)} API
+     */
+    private static final Map<Integer, ErrorType> PRODUCE_RECORDS_ERROR_MAP = new HashMap() {{
+        put(HttpStatusCodes.BAD_REQUEST, ErrorType.PERMANENT_ERROR);
+        put(HttpStatusCodes.UNAUTHORIZED, ErrorType.TEMPORARY_ERROR);
+        put(HttpStatusCodes.FORBIDDEN, ErrorType.TEMPORARY_ERROR);
+        put(HttpStatusCodes.NOT_FOUND, ErrorType.PERMANENT_ERROR);
+        put(HttpStatusCodes.CONFLICT, ErrorType.TEMPORARY_ERROR);
+        put(HttpStatusCodes.INTERNAL_SERVER_ERROR, ErrorType.TEMPORARY_ERROR);
+    }};
 }
 
 // Helper classes to serialize / deserialize JSON objects

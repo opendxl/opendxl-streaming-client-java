@@ -38,7 +38,8 @@ public class OperationFactory {
                 new DeleteOperation(optionSpecMap, options));
         operationArgumentsFactoryMap.put(OperationArguments.SUBSCRIPTIONS,
                 new SubscriptionsOperation(optionSpecMap, options));
-
+        operationArgumentsFactoryMap.put(OperationArguments.PRODUCE,
+                new ProduceOperation(optionSpecMap, options));
 
 
     }

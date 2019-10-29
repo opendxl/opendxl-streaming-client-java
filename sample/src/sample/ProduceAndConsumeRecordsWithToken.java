@@ -5,11 +5,12 @@
 package sample;
 
 import com.opendxl.streaming.client.Channel;
+import com.opendxl.streaming.client.ConsumerRecordProcessor;
 import com.opendxl.streaming.client.HttpProxySettings;
 import com.opendxl.streaming.client.auth.ChannelAuthToken;
-import com.opendxl.streaming.client.ConsumerRecordProcessor;
 import com.opendxl.streaming.client.builder.ChannelBuilder;
 import com.opendxl.streaming.client.entity.ConsumerRecords;
+import com.opendxl.streaming.client.entity.ProducerRecords;
 import com.opendxl.streaming.client.exception.PermanentError;
 import com.opendxl.streaming.client.exception.StopError;
 import com.opendxl.streaming.client.exception.TemporaryError;
@@ -17,17 +18,20 @@ import com.opendxl.streaming.client.exception.TemporaryError;
 import org.apache.log4j.Logger;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
 
 /**
- * This example uses the opendxl-streaming-java-client to consume records from a Databus topic. It instantiates
- * a ChannelAuthToken object, a Channel object and a ConsumerRecordProcessor object. Then, the Channel run method is
- * invoked and Channel starts to indefinitely consume records and to deliver them to ConsumerRecordProcessor which
- * finally prints them out. To quit this sample program, press CTRL+C or execute kill to call Channel destroy method
- * which will stop the Channel and gracefully exit.
+ * This example uses the opendxl-streaming-java-client to produce records to and consume records from Databus topics.
+ * It instantiates a ChannelAuthToken object, two Channel objects: one to produce records to topics and another to
+ * consume records from topics and finally a ConsumerRecordProcessor object. Then, a thread is instantiated to
+ * call the produce() method on one Channel object to produce records periodically. Then, the run() method is
+ * invoked on the other Channel object so it starts to indefinitely consume records and to deliver them
+ * to ConsumerRecordProcessor which finally prints them out. To quit this sample program, press CTRL+C or execute kill
+ * to call Channel destroy method which will stop the both Channel instances and gracefully exit.
  */
-public class ConsumeRecordsWithToken {
+public class ProduceAndConsumeRecordsWithToken {
 
     private static final String CHANNEL_URL = "http://127.0.0.1:50080";
     private static final String TOKEN = "TOKEN3";
@@ -36,6 +40,8 @@ public class ConsumeRecordsWithToken {
             "my-topic",
             "topic-abc123",
             "topic1");
+    private static final String PRODUCER_TOPIC_1 = "my-topic";
+    private static final String PRODUCER_TOPIC_2 = "topic1";
 
     private static final String VERIFY_CERTIFICATE_BUNDLE = "-----BEGIN CERTIFICATE-----\n"
             + "MIIDBzCCAe+gAwIBAgIJALteQYzVdTj3MA0GCSqGSIb3DQEBBQUAMBoxGDAWBgNV"
@@ -66,10 +72,9 @@ public class ConsumeRecordsWithToken {
     /**
      * The logger
      */
-    private static Logger logger = Logger.getLogger(ConsumeRecordsWithToken.class);
+    private static Logger logger = Logger.getLogger(ProduceAndConsumeRecordsWithToken.class);
 
-
-    private ConsumeRecordsWithToken() { }
+    private ProduceAndConsumeRecordsWithToken() { }
 
     public static void main(String[] args) {
 
@@ -117,16 +122,38 @@ public class ConsumeRecordsWithToken {
          */
         extraConfigs.put("session.timeout.ms", 15000);
 
-        try (Channel channel = new ChannelBuilder(channelUrl, new ChannelAuthToken(token), channelConsumerGroup)
-                .withExtraConfigs(extraConfigs)
+        /**
+         * Two channel objects are instantiated, one to produce records and the other to consume them.
+         * Rationale is that Channel API can be used by one thread at a time. If
+         * {@link Channel#run(ConsumerRecordProcessor, List, int)} is called, it starts consuming records continuously
+         * and it will not exit run() API, thus preventing other threads from calling other Channel API methods
+         * in general, and {@link Channel#produce(String)} in particular.
+         */
+        try (Channel consumerChannel = new ChannelBuilder(channelUrl, new ChannelAuthToken(token), channelConsumerGroup)
                 .withRetryOnFail(true)
                 .withCertificateBundle(verifyCertificateBundle)
+                .withExtraConfigs(extraConfigs)
                 .withHttpProxy(new HttpProxySettings(PROXY_ENABLED,
                         PROXY_HOST,
                         PROXY_PORT,
                         PROXY_USR,
                         PROXY_PWD))
-                .build()) {
+                .build();
+             Channel producerChannel = new ChannelBuilder(channelUrl, new ChannelAuthToken(token), null)
+                     .withCertificateBundle(verifyCertificateBundle)
+                     .withHttpProxy(new HttpProxySettings(PROXY_ENABLED,
+                             PROXY_HOST,
+                             PROXY_PORT,
+                             PROXY_USR,
+                             PROXY_PWD))
+                     .build()) {
+
+            /**
+             * Create thread to produce records to selected topics. When
+             * {@link com.opendxl.streaming.client.Channel#run()} is called, these records will be consumed and
+             * printed out by the consumerRecordCallback.
+             */
+            final Thread produceThread = createProduceThread(producerChannel);
 
             // Setup shutdown hook to call stop when program is terminated
             Runtime.getRuntime().addShutdownHook(
@@ -134,9 +161,13 @@ public class ConsumeRecordsWithToken {
                         logger.info("Shutdown app requested. Exiting");
 
                         try {
-                            channel.stop();
+                            produceThread.interrupt();
+                            produceThread.join();
+                            consumerChannel.stop();
                         } catch (final StopError e) {
                             logger.error("Failed to shutdown app." + e.getMessage());
+                        } catch (final InterruptedException e) {
+                            logger.error("Failed to stop producing while shutting down app." + e.getMessage());
                         }
                     }));
 
@@ -173,21 +204,90 @@ public class ConsumeRecordsWithToken {
                 }
             };
 
+            // Produce records indefinitely
+            produceThread.start();
             // Consume records indefinitely
             final int consumePollTimeoutMs = 500;
-            channel.run(consumerRecordCallback, channelTopicSubscriptions, consumePollTimeoutMs);
+            consumerChannel.run(consumerRecordCallback, channelTopicSubscriptions, consumePollTimeoutMs);
 
         } catch (final PermanentError | StopError | TemporaryError e) {
 
-            logger.error("Error occurred: " + e.getClass().getCanonicalName() + ": " + e.getMessage());
-            logger.error(e.getCause() != null
-                    ? e.getClass().getCanonicalName() + ": " + e.getCause().getMessage()
-                    : "no exception cause reported");
-
-            e.printStackTrace();
+            printError(e);
 
         }
 
+    }
+
+    /**
+     * Helper method to set up the produce thread, e.g.: the thread that will periodically produce 2 ProduceRecords
+     * until it is interrupted
+     *
+     * @param produceChannel the channel object to use to produce records
+     * @return the thread object to produce records
+     */
+    private static Thread createProduceThread(final Channel produceChannel) {
+
+        Runnable produceChannelRunnable = new Runnable() {
+            @Override
+            public void run() {
+                /**
+                 * counter which value is appended to produce record payloads.
+                 * Its goal is cosmetic: just to always produce records with different payloads.
+                 */
+                int recordCounter = 1;
+                while (!Thread.interrupted()) {
+                    /**
+                     * Produce records: two records are sent in a single call to
+                     * {@link com.opendxl.streaming.client.Channel#produce()}
+                     * so many records can be produced in just a single call.
+                     */
+                    final ProducerRecords producerRecords = new ProducerRecords();
+                    producerRecords.add(
+                            new ProducerRecords.ProducerRecord
+                                    .Builder(PRODUCER_TOPIC_1,
+                                    "Hello from OpenDXL - " + recordCounter)
+                                    .withHeaders(new HashMap<String, String>() {{
+                                        put("sourceId", "D5452543-E2FB-4585-8BE5-A61C3636819C");
+                                    }})
+                                    .withShardingKey("32180085")
+                                    .build()
+                    );
+                    producerRecords.add(
+                            new ProducerRecords.ProducerRecord
+                                    .Builder(PRODUCER_TOPIC_2,
+                                    "Hello from OpenDXL - " + (recordCounter + 1))
+                                    .withHeaders(new HashMap<String, String>() {{
+                                        put("sourceId", "F567D6A2-500E-4D35-AE15-A707f165D4FA");
+                                    }})
+                                    .withShardingKey("4436423")
+                                    .build()
+                    );
+                    try {
+                        logger.info("produce records " + recordCounter + " and " + (recordCounter + 1));
+                        produceChannel.produce(producerRecords);
+                        recordCounter += 2;
+                    } catch (final PermanentError | TemporaryError e) {
+                        printError(e);
+                    }
+                }
+            }
+        };
+
+        return new Thread(produceChannelRunnable);
+    }
+
+    /**
+     * Helper method to print out error information. It can be called when producing and when consuming records.
+     *
+     * @param e Exception occurred when producing or consuming
+     */
+    private static void printError(final Exception e) {
+        logger.error("Error occurred: " + e.getClass().getCanonicalName() + ": " + e.getMessage());
+        logger.error(e.getCause() != null
+                ? e.getClass().getCanonicalName() + ": " + e.getCause().getMessage()
+                : "no exception cause reported");
+
+        e.printStackTrace();
     }
 
 }

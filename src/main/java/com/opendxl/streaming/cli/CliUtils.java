@@ -10,6 +10,7 @@ import com.opendxl.streaming.client.Channel;
 import com.opendxl.streaming.client.HttpConnection;
 import com.opendxl.streaming.client.HttpProxySettings;
 import com.opendxl.streaming.client.Request;
+
 import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;

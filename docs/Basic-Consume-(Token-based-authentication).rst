@@ -13,20 +13,20 @@ Sample Code
 
 .. code:: java
 
+    ...
+    static Logger logger = Logger.getLogger(ConsumeRecordsWithToken.class);
+    ...
     // Create a new Channel object
-    Channel channel = new Channel(channelUrl,
-                    new ChannelAuthToken(token),
-                    channelConsumerGroup,
-                    pathPrefix,
-                    consumerPathPrefix,
-                    true,
-                    verifyCertificateBundle,
-                    extraConfigs,
-                    new HttpProxySettings(PROXY_ENABLED,
+    Channel channel = new ChannelBuilder(channelUrl, new ChannelAuthToken(token), channelConsumerGroup)
+                    .withExtraConfigs(extraConfigs)
+                    .withRetryOnFail(true)
+                    .withCertificateBundle(verifyCertificateBundle)
+                    .withHttpProxy(new HttpProxySettings(PROXY_ENABLED,
                             PROXY_HOST,
                             PROXY_PORT,
                             PROXY_USR,
                             PROXY_PWD))
+                    .build();
 
     // Create object which processCallback() method will be called back upon by the run method (see below)
     // when records are received from the channel
@@ -37,26 +37,26 @@ Sample Code
             // Print the received payloads. 'payloads' is a list of
             // dictionary objects extracted from the records received
             // from the channel.
-            System.out.println(new StringBuilder("Received ")
+            logger.info(new StringBuilder("Received ")
                     .append(consumerRecords.getRecords().size())
                     .append(" records")
                     .toString());
 
             for (ConsumerRecords.ConsumerRecord record : consumerRecords.getRecords()) {
 
-                System.out.println("topic = " + record.getTopic());
-                System.out.println("partition = " + record.getPartition());
-                System.out.println("offset = " + record.getOffset());
-                System.out.println("sharding key = " + record.getShardingKey());
-                System.out.println("headers = " + record.getHeaders());
-                System.out.println("payload = " + record.getPayload());
-                System.out.println("decoded payload = " + new String(record.getDecodedPayload()));
-                System.out.println("");
+                logger.info("topic = " + record.getTopic());
+                logger.info("partition = " + record.getPartition());
+                logger.info("offset = " + record.getOffset());
+                logger.info("sharding key = " + record.getShardingKey());
+                logger.info("headers = " + record.getHeaders());
+                logger.info("payload = " + record.getPayload());
+                logger.info("decoded payload = " + new String(record.getDecodedPayload()));
+                logger.info("");
 
             }
 
             // Return 'True' in order for the 'run' call to continue attempting to consume records.
-            System.out.println("let commit records");
+            logger.info("let commit records");
             return true;
         }
     };
@@ -97,7 +97,7 @@ similar to the following:
 
 ::
 
-    topic = topic1-5ca969eb-2757-46ed-bc3f-f9266ccccea7
+    topic = topic1
     partition = 0
     offset = 4
     sharding key = pool-1-thread-1-0-0
@@ -105,7 +105,7 @@ similar to the following:
     payload = SGVsbG8gV29ybGQgYXQ6MjAxOS0wNS0wN1QxNjowMjoxOC42NjcgRXh0cmE6IEI0ODlNOTNTSFVEME5VTVYzWlZKTU43NkJSNE5HUEE4NFIzSVI1R1NDME05WTFYT1FISjMyNzhMSzY2UFpYNTg4QU42WjEyMjlKRUE4Nlg2MDhLSUxDSDczSFRSSkQyUlNKTkQ=
     decoded payload = Hello World at:2019-05-07T16:02:18.667 Extra: B489M93SHUD0NUMV3ZVJMN76BR4NGPA84R3IR5GSC0M9Y1XOQHJ3278LK66PZX588AN6Z1229JEA86X608KILCH73HTRJD2RSJND
 
-    topic = topic1-5ca969eb-2757-46ed-bc3f-f9266ccccea7
+    topic = topic1
     partition = 0
     offset = 5
     sharding key = pool-1-thread-1-0-0
@@ -166,7 +166,7 @@ payloads should be displayed to the output window.
 ::
 
     Received 15 records
-    topic = BusinessEvents
+    topic = topic1
     partition = 5
     offset = 13
     sharding key = 123
@@ -174,7 +174,7 @@ payloads should be displayed to the output window.
     payload = SGVsbG8sIFdvcmxkLg==
     decoded payload = Hello, World.
 
-    topic = BusinessEvents
+    topic = topic1
     partition = 5
     offset = 14
     sharding key = 123
@@ -182,7 +182,7 @@ payloads should be displayed to the output window.
     payload = SGVsbG8sIFdvcmxkLg==
     decoded payload = Hello, World.
 
-    topic = BusinessEvents
+    topic = topic1
     partition = 5
     offset = 15
     sharding key = 123
@@ -190,7 +190,7 @@ payloads should be displayed to the output window.
     payload = SGVsbG8sIFdvcmxkLg==
     decoded payload = Hello, World.
 
-    topic = BusinessEvents
+    topic = topics1
     partition = 5
     offset = 16
     sharding key = 123
