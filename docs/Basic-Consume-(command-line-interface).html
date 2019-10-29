@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>CLI (Command Line Interface) &mdash; OpenDXL Streaming Java Client Library 0.1.0 documentation</title>
+  <title>CLI (Command Line Interface) &mdash; OpenDXL Streaming Java Client Library 0.2.0 documentation</title>
   
 
   
@@ -29,7 +29,7 @@
   <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="prev" title="Basic Consume user-password-based authentication" href="Basic-Consume-(user-and-pass-authentication).html" /> 
+    <link rel="prev" title="Basic Produce and Consume using token-based authentication" href="Basic-Produce-and-Consume-(Token-based-authentication).html" /> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.1.0
+                0.2.0
               </div>
             
           
@@ -91,6 +91,12 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="Basic-Consume-(user-and-pass-authentication).html">Basic Consume user-password-based authentication</a></li>
 </ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Basic-Produce-(Token-based-authentication).html">Basic Produce token-based authentication</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Basic-Produce-and-Consume-(Token-based-authentication).html">Basic Produce and Consume using token-based authentication</a></li>
+</ul>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">CLI (Command Line Interface)</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#supported-operations">Supported Operations</a><ul>
@@ -121,6 +127,10 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#delete">delete</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#id6">example</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#produce">produce</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id7">example</a></li>
 </ul>
 </li>
 </ul>
@@ -218,10 +228,14 @@ Option (* = required)                  Description
                                        true,&lt;0.0.0.0&gt;,&lt;PORT&gt;,&lt;USERNAME&gt;,&lt;PASSWORD&gt;
                                        where &lt;0.0.0.0&gt; must be replaced by the HttpProxy
                                        IP Address or hostname
-* --operation &lt;String: operation&gt;      Operations: login | create | subscribe
-                                         | consume | commit | subscription
+* --operation &lt;String: operation&gt;      Operations: login | create | subscribe | consume
+                                         | commit | subscriptions | delete | produce
 --password &lt;String: password&gt;          The password to send to authorization
                                          service.
+--producer-prefix &lt;String: producer-   Producer path prefix. (default:
+  prefix&gt;                                /databus/cloudproxy/v1)
+--records &lt;String: producer-records&gt;   Array of records to be produced in a
+                                         simplified JSON format.
 --retry &lt;String: retry&gt;                Retry on fail. (default: true)
 --token &lt;String: token&gt;                The authorized token.
 --topic &lt;String: topic&gt;                Comma-separated topic list to
@@ -281,12 +295,20 @@ few CLI operations. Operations arguments are placed after
 <tr class="row-even"><td>subscriptions</td>
 <td>get the list of topics subscribed to</td>
 </tr>
+<tr class="row-odd"><td>produce</td>
+<td>send records to Streaming Service</td>
+</tr>
 </tbody>
 </table>
 <p>The sequence invocation of CLI operations to get records assuming a
 token has already been received is: <code class="docutils literal notranslate"><span class="pre">create</span></code> -&gt; <code class="docutils literal notranslate"><span class="pre">subscribe</span></code> -&gt;
 <code class="docutils literal notranslate"><span class="pre">consume</span></code> . Because of the polling model, <code class="docutils literal notranslate"><span class="pre">consume</span></code> operation should
 be called repeatedly to read the following records.</p>
+<p>In order to send records to Streaming Service, the <code class="docutils literal notranslate"><span class="pre">produce</span></code> operation
+has to be used. Unlike <code class="docutils literal notranslate"><span class="pre">consume</span></code> operation, the <code class="docutils literal notranslate"><span class="pre">produce</span></code> operation
+can be called immediately since it is a stateless operation and it is
+completely independent of <code class="docutils literal notranslate"><span class="pre">consume</span></code> ones. Like all other operations, a
+token is also required.</p>
 </div>
 <div class="section" id="login">
 <h3>login<a class="headerlink" href="#login" title="Permalink to this headline">¶</a></h3>
@@ -386,8 +408,8 @@ specific Consumer Group and will have specific configuration.</p>
 </table>
 <table border="1" class="docutils">
 <colgroup>
-<col width="12%" />
-<col width="88%" />
+<col width="20%" />
+<col width="80%" />
 </colgroup>
 <thead valign="bottom">
 <tr class="row-odd"><th class="head">Optional Arguments for create</th>
@@ -396,7 +418,10 @@ specific Consumer Group and will have specific configuration.</p>
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">--config</span></code></td>
-<td>Consumer configuration, a string of comma separated values Kafka Consumer properties, e.g.: max.message.size=1000,min.message.size=200,auto.offset.reset=latest,session.timeout.ms=300000,request.timeout.ms=310000,enable.auto.commit=false</td>
+<td>Consumer configuration, a string of comma separated values Kafka Consumer properties, e.g.:
+max.message.size=1000,min.message.size=200,auto.offset.reset=latest,
+session.timeout.ms=300000,request.timeout.ms=310000,
+enable.auto.commit=false</td>
 </tr>
 <tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">--consumer-prefix</span></code></td>
 <td>Consumer prefix URL path. If not present, then its default value will be used instead. Default value: /databus/consumer-service/v1</td>
@@ -568,11 +593,11 @@ HTTP 200 with a body showing the subscribed topics.</p>
 </table>
 <table border="1" class="docutils">
 <colgroup>
-<col width="21%" />
-<col width="79%" />
+<col width="23%" />
+<col width="77%" />
 </colgroup>
 <thead valign="bottom">
-<tr class="row-odd"><th class="head">Optional Arguments for subscribe</th>
+<tr class="row-odd"><th class="head">Optional Arguments for subscriptions</th>
 <th class="head">Description</th>
 </tr>
 </thead>
@@ -914,6 +939,87 @@ subscriptions, consume or commit.</p>
 </div>
 </div>
 </div>
+<div class="section" id="produce">
+<h3>produce<a class="headerlink" href="#produce" title="Permalink to this headline">¶</a></h3>
+<p>It is an operation argument to send records to the Streaming Service.
+Successfully sent records will be available at the Streaming Service for
+consumption.</p>
+<p>A record consists of four attributes: topic, payload, shardingKey and
+headers. Since the <code class="docutils literal notranslate"><span class="pre">produce</span></code> operation can send many records in a
+single call, its <code class="docutils literal notranslate"><span class="pre">--records</span></code> parameter takes an array of records. CLI
+expects these records in a simplified JSON format. Then, the <code class="docutils literal notranslate"><span class="pre">produce</span></code>
+operation reshapes them into the suitable data type expected by the
+Streaming Service. Topic and payload are mandatory parameters for
+Streaming Service, while shardingKey and headers are optional.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="44%" />
+<col width="56%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Mandatory Arguments for produce</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">--url</span></code></td>
+<td>Streaming Service base URL</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">--token</span></code></td>
+<td>Identity token gotten by login operation</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">--records</span></code></td>
+<td>JSON array of simplified Producer Records</td>
+</tr>
+</tbody>
+</table>
+<table border="1" class="docutils">
+<colgroup>
+<col width="21%" />
+<col width="79%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Optional Arguments for produce</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">--producer-prefix</span></code></td>
+<td>Producer prefix URL path. If not present, then its default value will be used instead. Default value: /databus/cloud proxy/v1</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">--verify-cert-bundle</span></code></td>
+<td>Certificate file name or certificate in String format to be able to hit Streaming Service</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">--http-proxy</span></code></td>
+<td>Http Proxy data: whether enabled, FQDN or IP Address, TCP Port. Optional username and password</td>
+</tr>
+</tbody>
+</table>
+<div class="section" id="id7">
+<h4>example<a class="headerlink" href="#id7" title="Permalink to this headline">¶</a></h4>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">java</span> <span class="o">-</span><span class="n">jar</span> <span class="n">opendxlstreamingclient</span><span class="o">-</span><span class="n">java</span><span class="o">-</span><span class="n">sdk</span><span class="o">-&lt;</span><span class="n">VERSION</span><span class="o">&gt;.</span><span class="n">jar</span> \
+<span class="o">--</span><span class="n">operation</span> <span class="n">produce</span> \
+<span class="o">--</span><span class="n">url</span> <span class="n">http</span><span class="p">:</span><span class="o">//&lt;</span><span class="mf">0.0</span><span class="o">.</span><span class="mf">0.0</span><span class="o">&gt;</span><span class="p">:</span><span class="o">&lt;</span><span class="n">PORT</span><span class="o">&gt;/</span> \
+<span class="o">--</span><span class="n">token</span> <span class="o">&lt;</span><span class="n">TOKEN</span><span class="o">&gt;</span> \
+<span class="o">--</span><span class="n">records</span> <span class="s1">&#39;[{&quot;topic&quot;:&quot;topic1&quot;,&quot;payload&quot;:&quot;HelloOpenDXL-1&quot;},{&quot;topic&quot;:&quot;my-topic&quot;,&quot;payload&quot;:&quot;HelloOpenDXL-2&quot;,&quot;shardingKey&quot;:&quot;101418986&quot;,&quot;headers&quot;:{&quot;sourceId&quot;:&quot;D5452543-E2FB-4585-8BE5-A61C3636819C&quot;,&quot;anotherId&quot;:&quot;valueOfAnotherId&quot;}}]&#39;</span>
+</pre></div>
+</div>
+<div class="code json highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+        <span class="s2">&quot;code&quot;</span><span class="p">:</span><span class="s2">&quot;204&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;result&quot;</span><span class="p">:</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;options&quot;</span><span class="p">:{</span>
+                <span class="s2">&quot;records&quot;</span><span class="p">:[</span><span class="s2">&quot;[{</span><span class="se">\&quot;</span><span class="s2">topic</span><span class="se">\&quot;</span><span class="s2">:</span><span class="se">\&quot;</span><span class="s2">topic1</span><span class="se">\&quot;</span><span class="s2">,</span><span class="se">\&quot;</span><span class="s2">payload</span><span class="se">\&quot;</span><span class="s2">:</span><span class="se">\&quot;</span><span class="s2">HelloOpenDXL-1</span><span class="se">\&quot;</span><span class="s2">},{</span><span class="se">\&quot;</span><span class="s2">topic</span><span class="se">\&quot;</span><span class="s2">:</span><span class="se">\&quot;</span><span class="s2">my-topic</span><span class="se">\&quot;</span><span class="s2">,</span><span class="se">\&quot;</span><span class="s2">payload</span><span class="se">\&quot;</span><span class="s2">:</span><span class="se">\&quot;</span><span class="s2">HelloOpenDXL-2</span><span class="se">\&quot;</span><span class="s2">,</span><span class="se">\&quot;</span><span class="s2">shardingKey</span><span class="se">\&quot;</span><span class="s2">:</span><span class="se">\&quot;</span><span class="s2">101418986</span><span class="se">\&quot;</span><span class="s2">,</span><span class="se">\&quot;</span><span class="s2">headers</span><span class="se">\&quot;</span><span class="s2">:{</span><span class="se">\&quot;</span><span class="s2">sourceId</span><span class="se">\&quot;</span><span class="s2">:</span><span class="se">\&quot;</span><span class="s2">D5452543-E2FB-4585-8BE5-A61C3636819C</span><span class="se">\&quot;</span><span class="s2">,</span><span class="se">\&quot;</span><span class="s2">anotherId</span><span class="se">\&quot;</span><span class="s2">:</span><span class="se">\&quot;</span><span class="s2">valueOfAnotherId</span><span class="se">\&quot;</span><span class="s2">}}]&quot;</span><span class="p">],</span>
+                <span class="s2">&quot;verify-cert-bundle&quot;</span><span class="p">:[</span><span class="s2">&quot;&quot;</span><span class="p">],</span>
+                <span class="s2">&quot;producer-prefix&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;/databus/cloudproxy/v1&quot;</span><span class="p">],</span>
+                <span class="s2">&quot;http-proxy&quot;</span><span class="p">:[</span><span class="s2">&quot;&quot;</span><span class="p">],</span>
+                <span class="s2">&quot;url&quot;</span><span class="p">:[</span><span class="s2">&quot;http://&lt;0.0.0.0&gt;:&lt;PORT&gt;/&quot;</span><span class="p">],</span>
+                <span class="s2">&quot;token&quot;</span><span class="p">:[</span><span class="o">&lt;</span><span class="n">TOKEN</span><span class="o">&gt;</span><span class="p">]</span>
+        <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
 </div>
 </div>
 
@@ -926,7 +1032,7 @@ subscriptions, consume or commit.</p>
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
       
-        <a href="Basic-Consume-(user-and-pass-authentication).html" class="btn btn-neutral" title="Basic Consume user-password-based authentication" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="Basic-Produce-and-Consume-(Token-based-authentication).html" class="btn btn-neutral" title="Basic Produce and Consume using token-based authentication" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

@@ -1,0 +1,378 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Basic Produce token-based authentication &mdash; OpenDXL Streaming Java Client Library 0.2.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Basic Produce and Consume using token-based authentication" href="Basic-Produce-and-Consume-(Token-based-authentication).html" />
+    <link rel="prev" title="Basic Consume user-password-based authentication" href="Basic-Consume-(user-and-pass-authentication).html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> OpenDXL Streaming Java Client Library
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.2.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="Prerequisites.html">Prerequisites</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Basic-Consume-(Token-based-authentication).html">Basic Consume token-based authentication</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Basic-Consume-(user-and-pass-authentication).html">Basic Consume user-password-based authentication</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Basic Produce token-based authentication</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#sample-code">Sample Code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#run-the-sample">Run the sample</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#prerequisites">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#setup">Setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#running">Running</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Basic-Produce-and-Consume-(Token-based-authentication).html">Basic Produce and Consume using token-based authentication</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Basic-Consume-(command-line-interface).html">CLI (Command Line Interface)</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">OpenDXL Streaming Java Client Library</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Basic Produce token-based authentication</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="basic-produce-token-based-authentication">
+<h1>Basic Produce token-based authentication<a class="headerlink" href="#basic-produce-token-based-authentication" title="Permalink to this headline">¶</a></h1>
+<p>This sample demonstrates how to produce records using a channel
+connection to the DXL streaming service. The sample repeatedly produces
+records and it logs a message for each successfully produced one. The
+channel connects to DXL streaming service using an identity token
+authentication mechanism. A producer record consists of four attributes:
+topic (mandatory), payload (mandatory), shardingKey (optional) and
+headers (optional).</p>
+<p>Code highlights are shown below:</p>
+<div class="section" id="sample-code">
+<h2>Sample Code<a class="headerlink" href="#sample-code" title="Permalink to this headline">¶</a></h2>
+<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">...</span>
+<span class="n">static</span> <span class="n">Logger</span> <span class="n">logger</span> <span class="o">=</span> <span class="n">Logger</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">ProduceRecordsWithToken</span><span class="o">.</span><span class="n">class</span><span class="p">);</span>
+<span class="n">String</span> <span class="n">channelUrl</span> <span class="o">=</span> <span class="s2">&quot;http://127.0.0.1:50080&quot;</span><span class="p">;</span>
+<span class="n">String</span> <span class="n">token</span> <span class="o">=</span> <span class="s2">&quot;TOKEN&quot;</span><span class="p">;</span>
+<span class="o">...</span>
+<span class="o">//</span> <span class="n">Create</span> <span class="n">a</span> <span class="n">new</span> <span class="n">Channel</span> <span class="nb">object</span> <span class="n">to</span> <span class="n">just</span> <span class="n">produce</span> <span class="n">records</span><span class="o">.</span>
+<span class="o">//</span> <span class="n">Since</span> <span class="n">produce</span> <span class="n">action</span> <span class="n">requires</span> <span class="n">less</span> <span class="n">parameters</span> <span class="n">than</span> <span class="n">consume</span> <span class="n">action</span><span class="p">,</span>
+<span class="o">//</span> <span class="n">many</span> <span class="n">Channel</span> <span class="n">parameters</span> <span class="n">can</span> <span class="n">be</span> <span class="nb">set</span> <span class="n">to</span> <span class="n">null</span><span class="o">.</span>
+<span class="n">Channel</span> <span class="n">channel</span> <span class="o">=</span> <span class="n">new</span> <span class="n">ChannelBuilder</span><span class="p">(</span><span class="n">channelUrl</span><span class="p">,</span> <span class="n">new</span> <span class="n">ChannelAuthToken</span><span class="p">(</span><span class="n">token</span><span class="p">),</span> <span class="n">null</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">withCertificateBundle</span><span class="p">(</span><span class="n">verifyCertificateBundle</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">withHttpProxy</span><span class="p">(</span><span class="n">new</span> <span class="n">HttpProxySettings</span><span class="p">(</span><span class="n">PROXY_ENABLED</span><span class="p">,</span>
+                        <span class="n">PROXY_HOST</span><span class="p">,</span>
+                        <span class="n">PROXY_PORT</span><span class="p">,</span>
+                        <span class="n">PROXY_USR</span><span class="p">,</span>
+                        <span class="n">PROXY_PWD</span><span class="p">))</span>
+                <span class="o">.</span><span class="n">build</span><span class="p">());</span>
+
+<span class="o">//</span> <span class="n">Set</span> <span class="n">up</span> <span class="n">a</span> <span class="n">flag</span> <span class="n">to</span> <span class="n">stop</span> <span class="n">producing</span> <span class="n">records</span> <span class="ow">and</span> <span class="n">to</span> <span class="n">quit</span> <span class="n">gracefully</span> <span class="n">when</span>
+<span class="o">//</span> <span class="n">the</span> <span class="n">produce</span> <span class="n">sample</span> <span class="n">app</span> <span class="ow">is</span> <span class="n">requested</span> <span class="n">to</span> <span class="n">end</span>
+<span class="n">final</span> <span class="n">AtomicBoolean</span> <span class="n">keepProducing</span> <span class="o">=</span> <span class="n">new</span> <span class="n">AtomicBoolean</span><span class="p">(</span><span class="n">true</span><span class="p">);</span>
+<span class="o">//</span> <span class="n">Set</span> <span class="n">up</span> <span class="n">a</span> <span class="n">record</span> <span class="n">counter</span> <span class="n">which</span> <span class="ow">is</span> <span class="n">appended</span> <span class="n">to</span> <span class="nb">all</span> <span class="n">record</span> <span class="n">payloads</span> <span class="n">to</span> <span class="n">easily</span>
+<span class="o">//</span> <span class="n">notice</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">logs</span> <span class="n">that</span> <span class="n">different</span> <span class="n">records</span> <span class="n">are</span> <span class="n">being</span> <span class="n">produced</span>
+<span class="nb">int</span> <span class="n">recordCounter</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+
+<span class="o">//</span> <span class="n">Produce</span> <span class="n">records</span> <span class="n">indefinitely</span>
+<span class="k">while</span> <span class="p">(</span><span class="n">keepProducing</span><span class="o">.</span><span class="n">get</span><span class="p">())</span> <span class="p">{</span>
+
+    <span class="o">//</span> <span class="n">Create</span> <span class="n">Produce</span> <span class="n">record</span>
+    <span class="n">final</span> <span class="n">ProducerRecords</span> <span class="n">producerRecords</span> <span class="o">=</span> <span class="n">new</span> <span class="n">ProducerRecords</span><span class="p">();</span>
+    <span class="n">producerRecords</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+            <span class="n">new</span> <span class="n">ProducerRecords</span><span class="o">.</span><span class="n">ProducerRecord</span>
+                    <span class="o">.</span><span class="n">Builder</span><span class="p">(</span><span class="s2">&quot;topic1&quot;</span><span class="p">,</span> <span class="s2">&quot;Hello from OpenDXL - &quot;</span> <span class="o">+</span> <span class="n">recordCounter</span><span class="p">)</span>
+                    <span class="o">.</span><span class="n">withHeaders</span><span class="p">(</span><span class="n">new</span> <span class="n">HashMap</span><span class="o">&lt;</span><span class="n">String</span><span class="p">,</span> <span class="n">String</span><span class="o">&gt;</span><span class="p">()</span> <span class="p">{{</span>
+                        <span class="n">put</span><span class="p">(</span><span class="s2">&quot;sourceId&quot;</span><span class="p">,</span> <span class="s2">&quot;D5452543-E2FB-4585-8BE5-A61C3636819C&quot;</span><span class="p">);</span>
+                    <span class="p">}})</span>
+                    <span class="o">.</span><span class="n">withShardingKey</span><span class="p">(</span><span class="s2">&quot;119159619&quot;</span><span class="p">)</span>
+                    <span class="o">.</span><span class="n">build</span><span class="p">()</span>
+    <span class="p">);</span>
+
+    <span class="o">//</span> <span class="n">produce</span> <span class="n">the</span> <span class="n">record</span>
+    <span class="n">channel</span><span class="o">.</span><span class="n">produce</span><span class="p">(</span><span class="n">producerRecords</span><span class="p">);</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;produced record - &quot;</span> <span class="o">+</span> <span class="n">recordCounter</span><span class="p">);</span>
+    <span class="n">recordCounter</span><span class="o">++</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>The first step is to create a <code class="docutils literal notranslate"><span class="pre">Channel</span></code> instance, which establishes a
+channel to the streaming service. The channel must include the host and
+port to connect to the streaming service, <code class="docutils literal notranslate"><span class="pre">channelUrl</span></code>, and TOKEN that
+the client uses to authenticate itself to the service,
+<code class="docutils literal notranslate"><span class="pre">new</span> <span class="pre">ChannelAuthToken(token)</span></code>. It may also specify a path to the
+streaming service, <code class="docutils literal notranslate"><span class="pre">producerPathPrefix</span></code>, an additional certificate,
+<code class="docutils literal notranslate"><span class="pre">verifyCertificateBundle</span></code> , and HTTP proxy settings
+<code class="docutils literal notranslate"><span class="pre">new</span> <span class="pre">HttpProxySettings(...)</span></code>. If <code class="docutils literal notranslate"><span class="pre">producerPathPrefix</span></code> is not
+specified, then its default value, <code class="docutils literal notranslate"><span class="pre">&quot;/databus/cloudproxy/v1&quot;</span></code> will be
+used instead.</p>
+<p>As records are produced by the sample, a log indicating the number of
+records produced up to now should be displayed to the output window. The
+output should appear similar to the following:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="p">(</span><span class="n">ProduceRecordsWithToken</span><span class="o">.</span><span class="n">java</span><span class="p">:</span><span class="mi">142</span><span class="p">)</span> <span class="o">-</span> <span class="n">produced</span> <span class="n">record</span> <span class="o">-</span> <span class="mi">1</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="p">(</span><span class="n">ProduceRecordsWithToken</span><span class="o">.</span><span class="n">java</span><span class="p">:</span><span class="mi">142</span><span class="p">)</span> <span class="o">-</span> <span class="n">produced</span> <span class="n">record</span> <span class="o">-</span> <span class="mi">2</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="p">(</span><span class="n">ProduceRecordsWithToken</span><span class="o">.</span><span class="n">java</span><span class="p">:</span><span class="mi">142</span><span class="p">)</span> <span class="o">-</span> <span class="n">produced</span> <span class="n">record</span> <span class="o">-</span> <span class="mi">3</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="p">(</span><span class="n">ProduceRecordsWithToken</span><span class="o">.</span><span class="n">java</span><span class="p">:</span><span class="mi">142</span><span class="p">)</span> <span class="o">-</span> <span class="n">produced</span> <span class="n">record</span> <span class="o">-</span> <span class="mi">4</span>
+<span class="o">...</span>
+</pre></div>
+</div>
+<p>Finally, when CTRL+C is pressed, then the example will end logging the
+following line:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">INFO</span> <span class="p">[</span><span class="n">Thread</span><span class="o">-</span><span class="mi">0</span><span class="p">]</span> <span class="p">(</span><span class="n">ProduceRecordsWithToken</span><span class="o">.</span><span class="n">java</span><span class="p">:</span><span class="mi">119</span><span class="p">)</span> <span class="o">-</span> <span class="n">Shutdown</span> <span class="n">app</span> <span class="n">requested</span><span class="o">.</span> <span class="n">Exiting</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="run-the-sample">
+<h2>Run the sample<a class="headerlink" href="#run-the-sample" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="prerequisites">
+<h3>Prerequisites<a class="headerlink" href="#prerequisites" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>A DXL streaming service is available for the sample to connect to.</li>
+<li>Credentials for a producer are available for use with the sample.</li>
+</ul>
+</div>
+<div class="section" id="setup">
+<h3>Setup<a class="headerlink" href="#setup" title="Permalink to this headline">¶</a></h3>
+<p>Modify the example to include the appropriate settings for the streaming
+service channel:</p>
+<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">private</span> <span class="n">static</span> <span class="n">final</span> <span class="n">String</span> <span class="n">CHANNEL_URL</span> <span class="o">=</span> <span class="s2">&quot;http://127.0.0.1:50080&quot;</span><span class="p">;</span>
+<span class="n">private</span> <span class="n">static</span> <span class="n">final</span> <span class="n">String</span> <span class="n">TOKEN</span> <span class="o">=</span> <span class="s2">&quot;Your_Token&quot;</span><span class="p">;</span>
+<span class="n">private</span> <span class="n">static</span> <span class="n">final</span> <span class="n">String</span> <span class="n">PRODUCER_TOPIC</span> <span class="o">=</span> <span class="s2">&quot;topic1&quot;</span><span class="p">;</span>
+<span class="n">private</span> <span class="n">static</span> <span class="n">final</span> <span class="n">String</span> <span class="n">VERIFY_CERTIFICATE_BUNDLE</span> <span class="o">=</span> <span class="s2">&quot;-----BEGIN CERTIFICATE-----&quot;</span>
+        <span class="o">+</span> <span class="s2">&quot;Your Certificate if nedeed&quot;</span>
+        <span class="o">+</span> <span class="s2">&quot;-----END CERTIFICATE-----&quot;</span><span class="p">;</span>
+
+<span class="n">private</span> <span class="n">static</span> <span class="n">final</span> <span class="n">boolean</span> <span class="n">PROXY_ENABLED</span> <span class="o">=</span> <span class="n">true</span><span class="p">;</span>
+<span class="n">private</span> <span class="n">static</span> <span class="n">final</span> <span class="n">String</span> <span class="n">PROXY_HOST</span> <span class="o">=</span> <span class="s2">&quot;10.20.30.40&quot;</span><span class="p">;</span>
+<span class="n">private</span> <span class="n">static</span> <span class="n">final</span> <span class="nb">int</span> <span class="n">PROXY_PORT</span> <span class="o">=</span> <span class="mi">8080</span><span class="p">;</span>
+<span class="n">private</span> <span class="n">static</span> <span class="n">final</span> <span class="n">String</span> <span class="n">PROXY_USR</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">;</span>
+<span class="n">private</span> <span class="n">static</span> <span class="n">final</span> <span class="n">String</span> <span class="n">PROXY_PWD</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="running">
+<h3>Running<a class="headerlink" href="#running" title="Permalink to this headline">¶</a></h3>
+<p>To run this sample execute the runsample script as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ ./runsample sample.ProduceRecordsWithToken
+</pre></div>
+</div>
+<p>As records are produced by the sample, a log line indicating the number
+of record being produced should be displayed to the output window.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span> <span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="p">(</span><span class="n">ProduceRecordsWithToken</span><span class="o">.</span><span class="n">java</span><span class="p">:</span><span class="mi">142</span><span class="p">)</span> <span class="o">-</span> <span class="n">produced</span> <span class="n">record</span> <span class="o">-</span> <span class="mi">1</span>
+ <span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="p">(</span><span class="n">ProduceRecordsWithToken</span><span class="o">.</span><span class="n">java</span><span class="p">:</span><span class="mi">142</span><span class="p">)</span> <span class="o">-</span> <span class="n">produced</span> <span class="n">record</span> <span class="o">-</span> <span class="mi">2</span>
+ <span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="p">(</span><span class="n">ProduceRecordsWithToken</span><span class="o">.</span><span class="n">java</span><span class="p">:</span><span class="mi">142</span><span class="p">)</span> <span class="o">-</span> <span class="n">produced</span> <span class="n">record</span> <span class="o">-</span> <span class="mi">3</span>
+ <span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="p">(</span><span class="n">ProduceRecordsWithToken</span><span class="o">.</span><span class="n">java</span><span class="p">:</span><span class="mi">142</span><span class="p">)</span> <span class="o">-</span> <span class="n">produced</span> <span class="n">record</span> <span class="o">-</span> <span class="mi">4</span>
+ <span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="p">(</span><span class="n">ProduceRecordsWithToken</span><span class="o">.</span><span class="n">java</span><span class="p">:</span><span class="mi">142</span><span class="p">)</span> <span class="o">-</span> <span class="n">produced</span> <span class="n">record</span> <span class="o">-</span> <span class="mi">5</span>
+ <span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="p">(</span><span class="n">ProduceRecordsWithToken</span><span class="o">.</span><span class="n">java</span><span class="p">:</span><span class="mi">142</span><span class="p">)</span> <span class="o">-</span> <span class="n">produced</span> <span class="n">record</span> <span class="o">-</span> <span class="mi">6</span>
+ <span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="p">(</span><span class="n">ProduceRecordsWithToken</span><span class="o">.</span><span class="n">java</span><span class="p">:</span><span class="mi">142</span><span class="p">)</span> <span class="o">-</span> <span class="n">produced</span> <span class="n">record</span> <span class="o">-</span> <span class="mi">7</span>
+ <span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="p">(</span><span class="n">ProduceRecordsWithToken</span><span class="o">.</span><span class="n">java</span><span class="p">:</span><span class="mi">142</span><span class="p">)</span> <span class="o">-</span> <span class="n">produced</span> <span class="n">record</span> <span class="o">-</span> <span class="mi">8</span>
+ <span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="p">(</span><span class="n">ProduceRecordsWithToken</span><span class="o">.</span><span class="n">java</span><span class="p">:</span><span class="mi">142</span><span class="p">)</span> <span class="o">-</span> <span class="n">produced</span> <span class="n">record</span> <span class="o">-</span> <span class="mi">9</span>
+ <span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="p">(</span><span class="n">ProduceRecordsWithToken</span><span class="o">.</span><span class="n">java</span><span class="p">:</span><span class="mi">142</span><span class="p">)</span> <span class="o">-</span> <span class="n">produced</span> <span class="n">record</span> <span class="o">-</span> <span class="mi">10</span>
+ <span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="p">(</span><span class="n">ProduceRecordsWithToken</span><span class="o">.</span><span class="n">java</span><span class="p">:</span><span class="mi">142</span><span class="p">)</span> <span class="o">-</span> <span class="n">produced</span> <span class="n">record</span> <span class="o">-</span> <span class="mi">11</span>
+ <span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="p">(</span><span class="n">ProduceRecordsWithToken</span><span class="o">.</span><span class="n">java</span><span class="p">:</span><span class="mi">142</span><span class="p">)</span> <span class="o">-</span> <span class="n">produced</span> <span class="n">record</span> <span class="o">-</span> <span class="mi">12</span>
+ <span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="p">(</span><span class="n">ProduceRecordsWithToken</span><span class="o">.</span><span class="n">java</span><span class="p">:</span><span class="mi">142</span><span class="p">)</span> <span class="o">-</span> <span class="n">produced</span> <span class="n">record</span> <span class="o">-</span> <span class="mi">13</span>
+ <span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="p">(</span><span class="n">ProduceRecordsWithToken</span><span class="o">.</span><span class="n">java</span><span class="p">:</span><span class="mi">142</span><span class="p">)</span> <span class="o">-</span> <span class="n">produced</span> <span class="n">record</span> <span class="o">-</span> <span class="mi">14</span>
+ <span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="p">(</span><span class="n">ProduceRecordsWithToken</span><span class="o">.</span><span class="n">java</span><span class="p">:</span><span class="mi">142</span><span class="p">)</span> <span class="o">-</span> <span class="n">produced</span> <span class="n">record</span> <span class="o">-</span> <span class="mi">15</span>
+ <span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="p">(</span><span class="n">ProduceRecordsWithToken</span><span class="o">.</span><span class="n">java</span><span class="p">:</span><span class="mi">142</span><span class="p">)</span> <span class="o">-</span> <span class="n">produced</span> <span class="n">record</span> <span class="o">-</span> <span class="mi">16</span>
+ <span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="p">(</span><span class="n">ProduceRecordsWithToken</span><span class="o">.</span><span class="n">java</span><span class="p">:</span><span class="mi">142</span><span class="p">)</span> <span class="o">-</span> <span class="n">produced</span> <span class="n">record</span> <span class="o">-</span> <span class="mi">17</span>
+ <span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="p">(</span><span class="n">ProduceRecordsWithToken</span><span class="o">.</span><span class="n">java</span><span class="p">:</span><span class="mi">142</span><span class="p">)</span> <span class="o">-</span> <span class="n">produced</span> <span class="n">record</span> <span class="o">-</span> <span class="mi">18</span>
+ <span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="p">(</span><span class="n">ProduceRecordsWithToken</span><span class="o">.</span><span class="n">java</span><span class="p">:</span><span class="mi">142</span><span class="p">)</span> <span class="o">-</span> <span class="n">produced</span> <span class="n">record</span> <span class="o">-</span> <span class="mi">19</span>
+<span class="o">...</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="Basic-Produce-and-Consume-(Token-based-authentication).html" class="btn btn-neutral float-right" title="Basic Produce and Consume using token-based authentication" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="Basic-Consume-(user-and-pass-authentication).html" class="btn btn-neutral" title="Basic Consume user-password-based authentication" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, McAfee LLC
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+    
+
+  
+
+  <script type="text/javascript" src="_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

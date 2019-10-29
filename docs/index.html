@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>OpenDXL Streaming Java Client Library &mdash; OpenDXL Streaming Java Client Library 0.1.0 documentation</title>
+  <title>OpenDXL Streaming Java Client Library &mdash; OpenDXL Streaming Java Client Library 0.2.0 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.1.0
+                0.2.0
               </div>
             
           
@@ -90,6 +90,12 @@
 </ul>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="Basic-Consume-(user-and-pass-authentication).html">Basic Consume user-password-based authentication</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Basic-Produce-(Token-based-authentication).html">Basic Produce token-based authentication</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Basic-Produce-and-Consume-(Token-based-authentication).html">Basic Produce and Consume using token-based authentication</a></li>
 </ul>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="Basic-Consume-(command-line-interface).html">CLI (Command Line Interface)</a></li>
@@ -162,11 +168,12 @@ Java Client Library and examples.</p>
 <div class="section" id="overview">
 <h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
 <p>The OpenDXL Streaming Java client library is used to consume records
-from a <a class="reference external" href="http://www.mcafee.com/us/solutions/data-exchange-layer.aspx">Data Exchange Layer</a>
+from as well as to produce records to a <a class="reference external" href="http://www.mcafee.com/us/solutions/data-exchange-layer.aspx">Data Exchange Layer</a>
 (DXL) Streaming Service.</p>
 <p>The DXL Streaming Service exposes a REST-based API that communicates
 with a back-end streaming platform. The streaming service
-performs authentication and authorization and exposes methods to retrieve records.</p>
+performs authentication and authorization and exposes methods to retrieve records
+and to send them.</p>
 <p>One concrete example of a DXL Streaming Service is the <a class="reference external" href="https://www.mcafee.com/enterprise/en-us/products/investigator.html">McAfee MVISION EDR</a> “Events feed”.</p>
 </div>
 <div class="section" id="installation">
@@ -196,14 +203,14 @@ systems (Maven, Gradle, SBT, Ivy, Grape, etc.).</p>
 <div><div class="highlight-xml notranslate"><div class="highlight"><pre><span></span><span class="nt">&lt;dependency&gt;</span>
   <span class="nt">&lt;groupId&gt;</span>com.opendxl.streaming<span class="nt">&lt;/groupId&gt;</span>
   <span class="nt">&lt;artifactId&gt;</span>opendxlstreamingclient-java-sdk<span class="nt">&lt;/artifactId&gt;</span>
-  <span class="nt">&lt;version&gt;</span>0.1.0<span class="nt">&lt;/version&gt;</span>
+  <span class="nt">&lt;version&gt;</span>0.2.0<span class="nt">&lt;/version&gt;</span>
 <span class="nt">&lt;/dependency&gt;</span>
 </pre></div>
 </div>
 </div></blockquote>
 <p>Gradle:</p>
 <blockquote>
-<div><div class="highlight-groovy notranslate"><div class="highlight"><pre><span></span><span class="n">compile</span> <span class="s1">&#39;com.opendxl.streaming:opendxlstreamingclient-java-sdk:0.1.0&#39;</span>
+<div><div class="highlight-groovy notranslate"><div class="highlight"><pre><span></span><span class="n">compile</span> <span class="s1">&#39;com.opendxl.streaming:opendxlstreamingclient-java-sdk:0.2.0&#39;</span>
 </pre></div>
 </div>
 </div></blockquote>
@@ -229,6 +236,16 @@ systems (Maven, Gradle, SBT, Ivy, Grape, etc.).</p>
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="Basic-Consume-(user-and-pass-authentication).html">Basic Consume user-password-based authentication</a></li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Basic-Produce-(Token-based-authentication).html">Basic Produce token-based authentication</a></li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Basic-Produce-and-Consume-(Token-based-authentication).html">Basic Produce and Consume using token-based authentication</a></li>
 </ul>
 </div>
 <div class="toctree-wrapper compound">

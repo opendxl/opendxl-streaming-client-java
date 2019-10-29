@@ -1,0 +1,593 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Basic Produce and Consume using token-based authentication &mdash; OpenDXL Streaming Java Client Library 0.2.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="CLI (Command Line Interface)" href="Basic-Consume-(command-line-interface).html" />
+    <link rel="prev" title="Basic Produce token-based authentication" href="Basic-Produce-(Token-based-authentication).html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> OpenDXL Streaming Java Client Library
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.2.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="Prerequisites.html">Prerequisites</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Basic-Consume-(Token-based-authentication).html">Basic Consume token-based authentication</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Basic-Consume-(user-and-pass-authentication).html">Basic Consume user-password-based authentication</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Basic-Produce-(Token-based-authentication).html">Basic Produce token-based authentication</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Basic Produce and Consume using token-based authentication</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#sample-code">Sample Code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#run-the-sample">Run the sample</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#prerequisites">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#setup">Setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#running">Running</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Basic-Consume-(command-line-interface).html">CLI (Command Line Interface)</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">OpenDXL Streaming Java Client Library</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Basic Produce and Consume using token-based authentication</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="basic-produce-and-consume-using-token-based-authentication">
+<h1>Basic Produce and Consume using token-based authentication<a class="headerlink" href="#basic-produce-and-consume-using-token-based-authentication" title="Permalink to this headline">¶</a></h1>
+<p>This sample demonstrates how to produce records to and to consume them
+from the DXL streaming service using <code class="docutils literal notranslate"><span class="pre">Producer</span></code> and <code class="docutils literal notranslate"><span class="pre">Consumer</span></code>
+objects respectively. Producer objects implement the <code class="docutils literal notranslate"><span class="pre">Producer</span></code>
+interface which exposes just the producer methods (e.g.: produce) of
+Channel class. Consumer objects implement the <code class="docutils literal notranslate"><span class="pre">Consumer</span></code> interface
+which exposes the Channel class consumer methods (e.g.: create,
+subscribe, subscriptions, consume, commit, delete). Two builders,
+<code class="docutils literal notranslate"><span class="pre">ProducerBuilder</span></code> and <code class="docutils literal notranslate"><span class="pre">ConsumerBuilder</span></code>, are available to
+respectively instantiate <code class="docutils literal notranslate"><span class="pre">Producer</span></code> and <code class="docutils literal notranslate"><span class="pre">Consumer</span></code> objects which
+internally are Channel objects initialized to either producer or
+consume.</p>
+<p>Rationale to use <code class="docutils literal notranslate"><span class="pre">Producer</span></code> and <code class="docutils literal notranslate"><span class="pre">Consumer</span></code> objects instead of
+<code class="docutils literal notranslate"><span class="pre">Channel</span></code> is to avoid trying to consume using a <code class="docutils literal notranslate"><span class="pre">Channel</span></code> object
+which was not properly set up. To discuss this in more detail, let’s
+assume a <code class="docutils literal notranslate"><span class="pre">Channel</span></code> object is instantiated to just produce, so
+<code class="docutils literal notranslate"><span class="pre">Channel</span></code> constructor just sets produce parameters, like
+<code class="docutils literal notranslate"><span class="pre">producerPathPrefix</span></code>, and no consumer ones. However, such <code class="docutils literal notranslate"><span class="pre">Channel</span></code>
+object also exposes its consume methods although it was not properly
+initialized to call them. If its <code class="docutils literal notranslate"><span class="pre">create()</span></code> method was called, then an
+error would be thrown because no consumer group had been set. If a
+<code class="docutils literal notranslate"><span class="pre">Producer</span></code> object is used instead of a <code class="docutils literal notranslate"><span class="pre">Channel</span></code> object, then such
+error will never take place because <code class="docutils literal notranslate"><span class="pre">Producer</span></code> does not expose
+<code class="docutils literal notranslate"><span class="pre">create()</span></code> nor other consume related API.</p>
+<p>Code highlights are shown below:</p>
+<div class="section" id="sample-code">
+<h2>Sample Code<a class="headerlink" href="#sample-code" title="Permalink to this headline">¶</a></h2>
+<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span>...
+// topics to consume from
+static final List&lt;String&gt; CONSUMER_TOPICS = Arrays.asList(&quot;case-mgmt-events&quot;,
+            &quot;my-topic&quot;,
+            &quot;topic-abc123&quot;,
+            &quot;topic1&quot;);
+// topics to produce to
+static final String PRODUCER_TOPIC_1 = &quot;my-topic&quot;;
+static final String PRODUCER_TOPIC_2 = &quot;topic1&quot;;
+// logger instance
+static Logger logger = Logger.getLogger(ProduceAndConsumeRecordsUsingInterfacesWithToken.class);
+...
+// 1st step
+// Create new Consumer object
+Consumer consumer = new ConsumerBuilder(channelUrl, new ChannelAuthToken(token), channelConsumerGroup)
+                .withRetryOnFail(true)
+                .withCertificateBundle(verifyCertificateBundle)
+                .withExtraConfigs(extraConfigs)
+                .withHttpProxy(new HttpProxySettings(PROXY_ENABLED,
+                        PROXY_HOST,
+                        PROXY_PORT,
+                        PROXY_USR,
+                        PROXY_PWD))
+                .build();
+
+// 2nd step
+// Create new Producer object
+Producer producer = new ProducerBuilder(channelUrl, new ChannelAuthToken(token))
+                .withCertificateBundle(verifyCertificateBundle)
+                .withHttpProxy(new HttpProxySettings(PROXY_ENABLED,
+                        PROXY_HOST,
+                        PROXY_PORT,
+                        PROXY_USR,
+                        PROXY_PWD))
+                .build();
+
+// 3rd step
+// Create object which processCallback() method will be called back upon by the run method (see below)
+// when records are received from the channel
+ConsumerRecordProcessor consumerRecordCallback = new ConsumerRecordProcessor() {
+
+    @Override
+    public boolean processCallback(ConsumerRecords consumerRecords, String consumerId) {
+        // Print the received payloads. &#39;payloads&#39; is a list of
+        // dictionary objects extracted from the records received
+        // from the channel.
+        logger.info(new StringBuilder(&quot;Received &quot;)
+                .append(consumerRecords.getRecords().size())
+                .append(&quot; records&quot;)
+                .toString());
+
+        for (ConsumerRecords.ConsumerRecord record : consumerRecords.getRecords()) {
+
+            logger.info(&quot;topic = &quot; + record.getTopic());
+            logger.info(&quot;partition = &quot; + record.getPartition());
+            logger.info(&quot;offset = &quot; + record.getOffset());
+            logger.info(&quot;sharding key = &quot; + record.getShardingKey());
+            logger.info(&quot;headers = &quot; + record.getHeaders());
+            logger.info(&quot;payload = &quot; + record.getPayload());
+            logger.info(&quot;decoded payload = &quot; + new String(record.getDecodedPayload()));
+            logger.info(&quot;&quot;);
+
+        }
+
+        // Return &#39;True&#39; in order for the &#39;run&#39; call to continue attempting to consume records.
+        logger.info(&quot;let commit records&quot;);
+        return true;
+    }
+};
+
+// 4th step
+// Create thread to produce records to selected topics. These records will be consumed and printed out
+// by the consumerRecordCallback once consumer.run() is called.
+final Thread produceThread = new Thread(new Runnable() {
+        @Override
+        public void run() {
+            // counter to append to produce record payloads so each payload will be unique
+            int recordCounter = 1;
+            while (!Thread.interrupted()) {
+                // Set up a ProducerRecords object containing two producer records.
+                // produce API can send many records, even to different topics, in a single call.
+                // Showing only record mandatory parameters, topic and payload.
+                final ProducerRecords producerRecords = new ProducerRecords();
+                producerRecords.add(
+                        new ProducerRecords.ProducerRecord
+                                .Builder(PRODUCER_TOPIC_1,
+                                &quot;Hello from OpenDXL - &quot; + recordCounter)
+                                .build()
+                );
+                producerRecords.add(
+                        new ProducerRecords.ProducerRecord
+                                .Builder(PRODUCER_TOPIC_2,
+                                &quot;Hello from OpenDXL - &quot; + (recordCounter + 1))
+                                .build()
+                );
+                try {
+                    logger.info(&quot;produce records &quot; + recordCounter + &quot; and &quot; + (recordCounter + 1));
+
+                    // produce records to DXL streaming service
+                    producer.produce(producerRecords);
+
+                    recordCounter += 2;
+                } catch (final PermanentError | TemporaryError e) {
+                    printError(e);
+                }
+        }
+    });
+
+// Finally let Producer and Consumer run
+// Produce records indefinitely
+produceThread.start();
+// Consume records indefinitely
+final int consumePollTimeoutMs = 500;
+consumer.run(consumerRecordCallback, channelTopicSubscriptions, consumePollTimeoutMs);
+</pre></div>
+</div>
+<p>The first step is to create a <code class="docutils literal notranslate"><span class="pre">Consumer</span></code> instance, which establishes a
+channel to the streaming service. The <code class="docutils literal notranslate"><span class="pre">Consumer</span></code> must include the host
+and port to connect to the streaming service, <code class="docutils literal notranslate"><span class="pre">channelUrl</span></code>, the TOKEN
+that the client uses to authenticate itself to the service,
+<code class="docutils literal notranslate"><span class="pre">new</span> <span class="pre">ChannelAuthToken(token)</span></code>, and the consumer group,
+<code class="docutils literal notranslate"><span class="pre">channelConsumerGroup</span></code>. It may also include a certificate,
+<code class="docutils literal notranslate"><span class="pre">verifyCertificateBundle</span></code>, additional consumer configuration
+parameters, <code class="docutils literal notranslate"><span class="pre">extraConfigs</span></code>, HTTP proxy settings
+<code class="docutils literal notranslate"><span class="pre">new</span> <span class="pre">HttpProxySettings(...)</span></code> and a path to the streaming service
+consumer API, <code class="docutils literal notranslate"><span class="pre">consumerPathPrefix</span></code>. If <code class="docutils literal notranslate"><span class="pre">consumerPathPrefix</span></code> is not
+specified, then its default value, <code class="docutils literal notranslate"><span class="pre">&quot;/databus/consumer-service/v1&quot;</span></code>,
+will be used instead.</p>
+<p>The second step is to create a <code class="docutils literal notranslate"><span class="pre">Producer</span></code> instance, which establishes
+another channel to the streaming service, this one to produce only. The
+channel must include the host and port to connect to the streaming
+service, <code class="docutils literal notranslate"><span class="pre">channelUrl</span></code>, and TOKEN that the client uses to authenticate
+itself to the service, <code class="docutils literal notranslate"><span class="pre">new</span> <span class="pre">ChannelAuthToken(token)</span></code>. It may also
+specify a path to the streaming service, <code class="docutils literal notranslate"><span class="pre">producerPathPrefix</span></code>, a
+certificate, <code class="docutils literal notranslate"><span class="pre">verifyCertificateBundle</span></code>, and HTTP proxy settings
+<code class="docutils literal notranslate"><span class="pre">new</span> <span class="pre">HttpProxySettings(...)</span></code>. If <code class="docutils literal notranslate"><span class="pre">producerPathPrefix</span></code> is not
+specified, then its default value, <code class="docutils literal notranslate"><span class="pre">&quot;/databus/cloudproxy/v1&quot;</span></code>, will be
+used instead.</p>
+<p>The third step is to define a <code class="docutils literal notranslate"><span class="pre">consumerRecordCallback</span></code> instance which
+is invoked with the <code class="docutils literal notranslate"><span class="pre">consumerRecords</span></code> extracted from records obtained
+by the <code class="docutils literal notranslate"><span class="pre">Consumer</span></code>. The <code class="docutils literal notranslate"><span class="pre">consumerRecordCallback</span></code> function outputs the
+contents of each record and its metadata and returns <code class="docutils literal notranslate"><span class="pre">true</span></code> to
+indicate that the channel should continue consuming records. Note that
+if the <code class="docutils literal notranslate"><span class="pre">consumerRecordCallback</span></code> function were to instead return
+<code class="docutils literal notranslate"><span class="pre">false</span></code>, the <code class="docutils literal notranslate"><span class="pre">run()</span></code> method would stop polling the service for new
+records and it would return.</p>
+<p>The fourth step is to define a <code class="docutils literal notranslate"><span class="pre">produceThread</span></code> thread which will
+continuously call <code class="docutils literal notranslate"><span class="pre">Producer</span></code> produce method to send records to the DXL
+streaming service. A <code class="docutils literal notranslate"><span class="pre">ProducerRecords</span></code> object is created and it is
+populated with two producer records, one with <code class="docutils literal notranslate"><span class="pre">&quot;my-topic&quot;</span></code> topic and
+another <code class="docutils literal notranslate"><span class="pre">&quot;topic1&quot;</span></code> topic. Then this <code class="docutils literal notranslate"><span class="pre">ProducerRecords</span></code> object is
+passed to <code class="docutils literal notranslate"><span class="pre">Producer</span></code> produce method, thus sending two records in a
+single API call.</p>
+<p>The final step is to start <code class="docutils literal notranslate"><span class="pre">producerThread</span></code> and <code class="docutils literal notranslate"><span class="pre">consumer</span></code>. Once
+<code class="docutils literal notranslate"><span class="pre">producerThread.start()</span></code> is called, records are continuously produced.
+Then, <code class="docutils literal notranslate"><span class="pre">consumer.run()</span></code> method establishes a consumer instance with the
+DXL streaming service, subscribes the consumer instance for records
+delivered to the <code class="docutils literal notranslate"><span class="pre">topics</span></code> included in the
+<code class="docutils literal notranslate"><span class="pre">channelTopicSubscriptions</span></code> variable, and continuously polls the
+streaming service for available records. The records returned by the
+poll to the streaming service are passed in a call to the
+<code class="docutils literal notranslate"><span class="pre">consumerRecordCallback</span></code> instance. Note that if no records are
+received from a poll attempt, an empty list of records is passed into
+the <code class="docutils literal notranslate"><span class="pre">consumerRecordCallback</span></code> function.</p>
+<p>As records are produced and received by the sample, the contents of the
+messages should be displayed to the output window. The output should
+appear similar to the following:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">...</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">Thread</span><span class="o">-</span><span class="mi">0</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">produce</span> <span class="n">records</span> <span class="mi">65</span> <span class="ow">and</span> <span class="mi">66</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">Thread</span><span class="o">-</span><span class="mi">0</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">produce</span> <span class="n">records</span> <span class="mi">67</span> <span class="ow">and</span> <span class="mi">68</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">Received</span> <span class="mi">3</span> <span class="n">records</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">topic</span> <span class="o">=</span> <span class="n">my</span><span class="o">-</span><span class="n">topic</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">partition</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">offset</span> <span class="o">=</span> <span class="mi">29</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">sharding</span> <span class="n">key</span> <span class="o">=</span> <span class="mi">29598919</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="n">sourceId</span><span class="o">=</span><span class="n">D5452543</span><span class="o">-</span><span class="n">E2FB</span><span class="o">-</span><span class="mi">4585</span><span class="o">-</span><span class="mi">8</span><span class="n">BE5</span><span class="o">-</span><span class="n">A61C3636819C</span><span class="p">,</span> <span class="n">scope</span><span class="o">=</span><span class="n">soc</span><span class="o">.</span><span class="n">etv</span><span class="o">.</span><span class="n">vi</span><span class="p">,</span> <span class="n">tenantId</span><span class="o">=</span><span class="mi">5</span><span class="n">ca969eb</span><span class="o">-</span><span class="mi">2757</span><span class="o">-</span><span class="mi">46</span><span class="n">ed</span><span class="o">-</span><span class="n">bc3f</span><span class="o">-</span><span class="n">f9266ccccea7</span><span class="p">,</span> <span class="n">zoneId</span><span class="o">=</span><span class="n">TMP</span><span class="o">.</span><span class="n">Identity</span><span class="o">.</span><span class="n">TRUCHATOR</span><span class="p">}</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">payload</span> <span class="o">=</span> <span class="n">SGVsbG8gZnJvbSBPcGVuRFhMIC0gNTk</span><span class="o">=</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">decoded</span> <span class="n">payload</span> <span class="o">=</span> <span class="n">Hello</span> <span class="kn">from</span> <span class="nn">OpenDXL</span> <span class="o">-</span> <span class="mi">59</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">topic</span> <span class="o">=</span> <span class="n">topic1</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">partition</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">offset</span> <span class="o">=</span> <span class="mi">28</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">sharding</span> <span class="n">key</span> <span class="o">=</span> <span class="mi">176927523</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="n">sourceId</span><span class="o">=</span><span class="n">F567D6A2</span><span class="o">-</span><span class="mf">500E-4</span><span class="n">D35</span><span class="o">-</span><span class="n">AE15</span><span class="o">-</span><span class="n">A707f165D4FA</span><span class="p">,</span> <span class="n">scope</span><span class="o">=</span><span class="n">soc</span><span class="o">.</span><span class="n">etv</span><span class="o">.</span><span class="n">vi</span><span class="p">,</span> <span class="n">tenantId</span><span class="o">=</span><span class="mi">5</span><span class="n">ca969eb</span><span class="o">-</span><span class="mi">2757</span><span class="o">-</span><span class="mi">46</span><span class="n">ed</span><span class="o">-</span><span class="n">bc3f</span><span class="o">-</span><span class="n">f9266ccccea7</span><span class="p">,</span> <span class="n">zoneId</span><span class="o">=</span><span class="n">TMP</span><span class="o">.</span><span class="n">Identity</span><span class="o">.</span><span class="n">TRUCHATOR</span><span class="p">}</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">payload</span> <span class="o">=</span> <span class="n">SGVsbG8gZnJvbSBPcGVuRFhMIC0gNTg</span><span class="o">=</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">decoded</span> <span class="n">payload</span> <span class="o">=</span> <span class="n">Hello</span> <span class="kn">from</span> <span class="nn">OpenDXL</span> <span class="o">-</span> <span class="mi">58</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">topic</span> <span class="o">=</span> <span class="n">my</span><span class="o">-</span><span class="n">topic</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">partition</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">offset</span> <span class="o">=</span> <span class="mi">29</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">sharding</span> <span class="n">key</span> <span class="o">=</span> <span class="mi">176927523</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="n">sourceId</span><span class="o">=</span><span class="n">F567D6A2</span><span class="o">-</span><span class="mf">500E-4</span><span class="n">D35</span><span class="o">-</span><span class="n">AE15</span><span class="o">-</span><span class="n">A707f165D4FA</span><span class="p">,</span> <span class="n">scope</span><span class="o">=</span><span class="n">soc</span><span class="o">.</span><span class="n">etv</span><span class="o">.</span><span class="n">vi</span><span class="p">,</span> <span class="n">tenantId</span><span class="o">=</span><span class="mi">5</span><span class="n">ca969eb</span><span class="o">-</span><span class="mi">2757</span><span class="o">-</span><span class="mi">46</span><span class="n">ed</span><span class="o">-</span><span class="n">bc3f</span><span class="o">-</span><span class="n">f9266ccccea7</span><span class="p">,</span> <span class="n">zoneId</span><span class="o">=</span><span class="n">TMP</span><span class="o">.</span><span class="n">Identity</span><span class="o">.</span><span class="n">TRUCHATOR</span><span class="p">}</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">payload</span> <span class="o">=</span> <span class="n">SGVsbG8gZnJvbSBPcGVuRFhMIC0gNjA</span><span class="o">=</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">decoded</span> <span class="n">payload</span> <span class="o">=</span> <span class="n">Hello</span> <span class="kn">from</span> <span class="nn">OpenDXL</span> <span class="o">-</span> <span class="mi">60</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">let</span> <span class="n">commit</span> <span class="n">records</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">Thread</span><span class="o">-</span><span class="mi">0</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">produce</span> <span class="n">records</span> <span class="mi">69</span> <span class="ow">and</span> <span class="mi">70</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">Thread</span><span class="o">-</span><span class="mi">0</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">produce</span> <span class="n">records</span> <span class="mi">71</span> <span class="ow">and</span> <span class="mi">72</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">Received</span> <span class="mi">5</span> <span class="n">records</span>
+<span class="o">...</span>
+</pre></div>
+</div>
+<p>Finally, when CTRL+C is pressed, then the example will end logging the
+following lines:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">INFO</span> <span class="p">[</span><span class="n">Thread</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="p">(</span><span class="n">ProduceAndConsumeRecordsUsingInterfacesWithToken</span><span class="o">.</span><span class="n">java</span><span class="p">:</span><span class="mi">175</span><span class="p">)</span> <span class="o">-</span> <span class="n">Shutdown</span> <span class="n">app</span> <span class="n">requested</span><span class="o">.</span> <span class="n">Exiting</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">Thread</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="p">(</span><span class="n">Channel</span><span class="o">.</span><span class="n">java</span><span class="p">:</span><span class="mi">844</span><span class="p">)</span> <span class="o">-</span> <span class="n">Channel</span> <span class="n">was</span> <span class="n">stopped</span><span class="o">.</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="run-the-sample">
+<h2>Run the sample<a class="headerlink" href="#run-the-sample" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="prerequisites">
+<h3>Prerequisites<a class="headerlink" href="#prerequisites" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>A DXL streaming service is available for the sample to connect to.</li>
+<li>Credentials for producer and consumer are available for use with the
+sample.</li>
+</ul>
+</div>
+<div class="section" id="setup">
+<h3>Setup<a class="headerlink" href="#setup" title="Permalink to this headline">¶</a></h3>
+<p>Modify the example to include the appropriate settings for the streaming
+service channel:</p>
+<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">private</span> <span class="n">static</span> <span class="n">final</span> <span class="n">String</span> <span class="n">CHANNEL_URL</span> <span class="o">=</span> <span class="s2">&quot;http://127.0.0.1:50080&quot;</span><span class="p">;</span>
+<span class="n">private</span> <span class="n">static</span> <span class="n">final</span> <span class="n">String</span> <span class="n">TOKEN</span> <span class="o">=</span> <span class="s2">&quot;Your_Token&quot;</span><span class="p">;</span>
+<span class="n">private</span> <span class="n">static</span> <span class="n">final</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span> <span class="n">CONSUMER_TOPICS</span> <span class="o">=</span> <span class="n">Arrays</span><span class="o">.</span><span class="n">asList</span><span class="p">(</span><span class="s2">&quot;topic1&quot;</span><span class="p">,</span> <span class="s2">&quot;my-topic&quot;</span><span class="p">);</span>
+<span class="n">private</span> <span class="n">static</span> <span class="n">final</span> <span class="n">String</span> <span class="n">CONSUMER_GROUP</span> <span class="o">=</span> <span class="s2">&quot;sample_consumer_group&quot;</span><span class="p">;</span>
+
+<span class="n">private</span> <span class="n">static</span> <span class="n">final</span> <span class="n">String</span> <span class="n">PRODUCER_TOPIC_1</span> <span class="o">=</span> <span class="s2">&quot;my-topic&quot;</span><span class="p">;</span>
+<span class="n">private</span> <span class="n">static</span> <span class="n">final</span> <span class="n">String</span> <span class="n">PRODUCER_TOPIC_2</span> <span class="o">=</span> <span class="s2">&quot;topic1&quot;</span><span class="p">;</span>
+
+<span class="n">private</span> <span class="n">static</span> <span class="n">final</span> <span class="n">String</span> <span class="n">VERIFY_CERTIFICATE_BUNDLE</span> <span class="o">=</span> <span class="s2">&quot;-----BEGIN CERTIFICATE-----&quot;</span>
+        <span class="o">+</span> <span class="s2">&quot;Your Certificate if nedeed&quot;</span>
+        <span class="o">+</span> <span class="s2">&quot;-----END CERTIFICATE-----&quot;</span><span class="p">;</span>
+
+<span class="n">private</span> <span class="n">static</span> <span class="n">final</span> <span class="n">boolean</span> <span class="n">PROXY_ENABLED</span> <span class="o">=</span> <span class="n">true</span><span class="p">;</span>
+<span class="n">private</span> <span class="n">static</span> <span class="n">final</span> <span class="n">String</span> <span class="n">PROXY_HOST</span> <span class="o">=</span> <span class="s2">&quot;10.20.30.40&quot;</span><span class="p">;</span>
+<span class="n">private</span> <span class="n">static</span> <span class="n">final</span> <span class="nb">int</span> <span class="n">PROXY_PORT</span> <span class="o">=</span> <span class="mi">8080</span><span class="p">;</span>
+<span class="n">private</span> <span class="n">static</span> <span class="n">final</span> <span class="n">String</span> <span class="n">PROXY_USR</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">;</span>
+<span class="n">private</span> <span class="n">static</span> <span class="n">final</span> <span class="n">String</span> <span class="n">PROXY_PWD</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="running">
+<h3>Running<a class="headerlink" href="#running" title="Permalink to this headline">¶</a></h3>
+<p>To run this sample execute the runsample script as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ ./runsample sample.ProduceAndConsumeRecordsUsingInterfacesWithToken
+</pre></div>
+</div>
+<p>The initial line in the output window should be similar to the
+following:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="p">(</span><span class="n">Channel</span><span class="o">.</span><span class="n">java</span><span class="p">:</span><span class="mi">745</span><span class="p">)</span> <span class="o">-</span> <span class="n">Channel</span> <span class="ow">is</span> <span class="n">running</span>
+</pre></div>
+</div>
+<p>As records are sent and received by the sample, the <code class="docutils literal notranslate"><span class="pre">Producer</span></code> and
+<code class="docutils literal notranslate"><span class="pre">Consumer</span></code> log lines and the contents of the message payloads should
+be displayed to the output window.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">INFO</span> <span class="p">[</span><span class="n">Thread</span><span class="o">-</span><span class="mi">0</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">produce</span> <span class="n">records</span> <span class="mi">1</span> <span class="ow">and</span> <span class="mi">2</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">Thread</span><span class="o">-</span><span class="mi">0</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">produce</span> <span class="n">records</span> <span class="mi">3</span> <span class="ow">and</span> <span class="mi">4</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">Thread</span><span class="o">-</span><span class="mi">0</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">produce</span> <span class="n">records</span> <span class="mi">5</span> <span class="ow">and</span> <span class="mi">6</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">Received</span> <span class="mi">2</span> <span class="n">records</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">topic</span> <span class="o">=</span> <span class="n">my</span><span class="o">-</span><span class="n">topic</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">partition</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">offset</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">sharding</span> <span class="n">key</span> <span class="o">=</span> <span class="mi">29598919</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="n">sourceId</span><span class="o">=</span><span class="n">D5452543</span><span class="o">-</span><span class="n">E2FB</span><span class="o">-</span><span class="mi">4585</span><span class="o">-</span><span class="mi">8</span><span class="n">BE5</span><span class="o">-</span><span class="n">A61C3636819C</span><span class="p">,</span> <span class="n">scope</span><span class="o">=</span><span class="n">soc</span><span class="o">.</span><span class="n">etv</span><span class="o">.</span><span class="n">vi</span><span class="p">,</span> <span class="n">tenantId</span><span class="o">=</span><span class="mi">5</span><span class="n">ca969eb</span><span class="o">-</span><span class="mi">2757</span><span class="o">-</span><span class="mi">46</span><span class="n">ed</span><span class="o">-</span><span class="n">bc3f</span><span class="o">-</span><span class="n">f9266ccccea7</span><span class="p">,</span> <span class="n">zoneId</span><span class="o">=</span><span class="n">TMP</span><span class="o">.</span><span class="n">Identity</span><span class="o">.</span><span class="n">TRUCHATOR</span><span class="p">}</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">payload</span> <span class="o">=</span> <span class="n">SGVsbG8gZnJvbSBPcGVuRFhMIC0gMQ</span><span class="o">==</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">decoded</span> <span class="n">payload</span> <span class="o">=</span> <span class="n">Hello</span> <span class="kn">from</span> <span class="nn">OpenDXL</span> <span class="o">-</span> <span class="mi">1</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">topic</span> <span class="o">=</span> <span class="n">topic1</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">partition</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">offset</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">sharding</span> <span class="n">key</span> <span class="o">=</span> <span class="mi">176927523</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="n">sourceId</span><span class="o">=</span><span class="n">F567D6A2</span><span class="o">-</span><span class="mf">500E-4</span><span class="n">D35</span><span class="o">-</span><span class="n">AE15</span><span class="o">-</span><span class="n">A707f165D4FA</span><span class="p">,</span> <span class="n">scope</span><span class="o">=</span><span class="n">soc</span><span class="o">.</span><span class="n">etv</span><span class="o">.</span><span class="n">vi</span><span class="p">,</span> <span class="n">tenantId</span><span class="o">=</span><span class="mi">5</span><span class="n">ca969eb</span><span class="o">-</span><span class="mi">2757</span><span class="o">-</span><span class="mi">46</span><span class="n">ed</span><span class="o">-</span><span class="n">bc3f</span><span class="o">-</span><span class="n">f9266ccccea7</span><span class="p">,</span> <span class="n">zoneId</span><span class="o">=</span><span class="n">TMP</span><span class="o">.</span><span class="n">Identity</span><span class="o">.</span><span class="n">TRUCHATOR</span><span class="p">}</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">payload</span> <span class="o">=</span> <span class="n">SGVsbG8gZnJvbSBPcGVuRFhMIC0gMg</span><span class="o">==</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">decoded</span> <span class="n">payload</span> <span class="o">=</span> <span class="n">Hello</span> <span class="kn">from</span> <span class="nn">OpenDXL</span> <span class="o">-</span> <span class="mi">2</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">let</span> <span class="n">commit</span> <span class="n">records</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">Thread</span><span class="o">-</span><span class="mi">0</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">produce</span> <span class="n">records</span> <span class="mi">7</span> <span class="ow">and</span> <span class="mi">8</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">Thread</span><span class="o">-</span><span class="mi">0</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">produce</span> <span class="n">records</span> <span class="mi">9</span> <span class="ow">and</span> <span class="mi">10</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">Received</span> <span class="mi">1</span> <span class="n">records</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">topic</span> <span class="o">=</span> <span class="n">my</span><span class="o">-</span><span class="n">topic</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">partition</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">offset</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">sharding</span> <span class="n">key</span> <span class="o">=</span> <span class="mi">29598919</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="n">sourceId</span><span class="o">=</span><span class="n">D5452543</span><span class="o">-</span><span class="n">E2FB</span><span class="o">-</span><span class="mi">4585</span><span class="o">-</span><span class="mi">8</span><span class="n">BE5</span><span class="o">-</span><span class="n">A61C3636819C</span><span class="p">,</span> <span class="n">scope</span><span class="o">=</span><span class="n">soc</span><span class="o">.</span><span class="n">etv</span><span class="o">.</span><span class="n">vi</span><span class="p">,</span> <span class="n">tenantId</span><span class="o">=</span><span class="mi">5</span><span class="n">ca969eb</span><span class="o">-</span><span class="mi">2757</span><span class="o">-</span><span class="mi">46</span><span class="n">ed</span><span class="o">-</span><span class="n">bc3f</span><span class="o">-</span><span class="n">f9266ccccea7</span><span class="p">,</span> <span class="n">zoneId</span><span class="o">=</span><span class="n">TMP</span><span class="o">.</span><span class="n">Identity</span><span class="o">.</span><span class="n">TRUCHATOR</span><span class="p">}</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">payload</span> <span class="o">=</span> <span class="n">SGVsbG8gZnJvbSBPcGVuRFhMIC0gMw</span><span class="o">==</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">decoded</span> <span class="n">payload</span> <span class="o">=</span> <span class="n">Hello</span> <span class="kn">from</span> <span class="nn">OpenDXL</span> <span class="o">-</span> <span class="mi">3</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">let</span> <span class="n">commit</span> <span class="n">records</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">Thread</span><span class="o">-</span><span class="mi">0</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">produce</span> <span class="n">records</span> <span class="mi">11</span> <span class="ow">and</span> <span class="mi">12</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">Thread</span><span class="o">-</span><span class="mi">0</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">produce</span> <span class="n">records</span> <span class="mi">13</span> <span class="ow">and</span> <span class="mi">14</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">Received</span> <span class="mi">4</span> <span class="n">records</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">topic</span> <span class="o">=</span> <span class="n">topic1</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">partition</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">offset</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">sharding</span> <span class="n">key</span> <span class="o">=</span> <span class="mi">29598919</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="n">sourceId</span><span class="o">=</span><span class="n">D5452543</span><span class="o">-</span><span class="n">E2FB</span><span class="o">-</span><span class="mi">4585</span><span class="o">-</span><span class="mi">8</span><span class="n">BE5</span><span class="o">-</span><span class="n">A61C3636819C</span><span class="p">,</span> <span class="n">scope</span><span class="o">=</span><span class="n">soc</span><span class="o">.</span><span class="n">etv</span><span class="o">.</span><span class="n">vi</span><span class="p">,</span> <span class="n">tenantId</span><span class="o">=</span><span class="mi">5</span><span class="n">ca969eb</span><span class="o">-</span><span class="mi">2757</span><span class="o">-</span><span class="mi">46</span><span class="n">ed</span><span class="o">-</span><span class="n">bc3f</span><span class="o">-</span><span class="n">f9266ccccea7</span><span class="p">,</span> <span class="n">zoneId</span><span class="o">=</span><span class="n">TMP</span><span class="o">.</span><span class="n">Identity</span><span class="o">.</span><span class="n">TRUCHATOR</span><span class="p">}</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">payload</span> <span class="o">=</span> <span class="n">SGVsbG8gZnJvbSBPcGVuRFhMIC0gNQ</span><span class="o">==</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">decoded</span> <span class="n">payload</span> <span class="o">=</span> <span class="n">Hello</span> <span class="kn">from</span> <span class="nn">OpenDXL</span> <span class="o">-</span> <span class="mi">5</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">topic</span> <span class="o">=</span> <span class="n">my</span><span class="o">-</span><span class="n">topic</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">partition</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">offset</span> <span class="o">=</span> <span class="mi">3</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">sharding</span> <span class="n">key</span> <span class="o">=</span> <span class="mi">29598919</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="n">sourceId</span><span class="o">=</span><span class="n">D5452543</span><span class="o">-</span><span class="n">E2FB</span><span class="o">-</span><span class="mi">4585</span><span class="o">-</span><span class="mi">8</span><span class="n">BE5</span><span class="o">-</span><span class="n">A61C3636819C</span><span class="p">,</span> <span class="n">scope</span><span class="o">=</span><span class="n">soc</span><span class="o">.</span><span class="n">etv</span><span class="o">.</span><span class="n">vi</span><span class="p">,</span> <span class="n">tenantId</span><span class="o">=</span><span class="mi">5</span><span class="n">ca969eb</span><span class="o">-</span><span class="mi">2757</span><span class="o">-</span><span class="mi">46</span><span class="n">ed</span><span class="o">-</span><span class="n">bc3f</span><span class="o">-</span><span class="n">f9266ccccea7</span><span class="p">,</span> <span class="n">zoneId</span><span class="o">=</span><span class="n">TMP</span><span class="o">.</span><span class="n">Identity</span><span class="o">.</span><span class="n">TRUCHATOR</span><span class="p">}</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">payload</span> <span class="o">=</span> <span class="n">SGVsbG8gZnJvbSBPcGVuRFhMIC0gNw</span><span class="o">==</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">decoded</span> <span class="n">payload</span> <span class="o">=</span> <span class="n">Hello</span> <span class="kn">from</span> <span class="nn">OpenDXL</span> <span class="o">-</span> <span class="mi">7</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">topic</span> <span class="o">=</span> <span class="n">topic1</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">partition</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">offset</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">sharding</span> <span class="n">key</span> <span class="o">=</span> <span class="mi">176927523</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="n">sourceId</span><span class="o">=</span><span class="n">F567D6A2</span><span class="o">-</span><span class="mf">500E-4</span><span class="n">D35</span><span class="o">-</span><span class="n">AE15</span><span class="o">-</span><span class="n">A707f165D4FA</span><span class="p">,</span> <span class="n">scope</span><span class="o">=</span><span class="n">soc</span><span class="o">.</span><span class="n">etv</span><span class="o">.</span><span class="n">vi</span><span class="p">,</span> <span class="n">tenantId</span><span class="o">=</span><span class="mi">5</span><span class="n">ca969eb</span><span class="o">-</span><span class="mi">2757</span><span class="o">-</span><span class="mi">46</span><span class="n">ed</span><span class="o">-</span><span class="n">bc3f</span><span class="o">-</span><span class="n">f9266ccccea7</span><span class="p">,</span> <span class="n">zoneId</span><span class="o">=</span><span class="n">TMP</span><span class="o">.</span><span class="n">Identity</span><span class="o">.</span><span class="n">TRUCHATOR</span><span class="p">}</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">payload</span> <span class="o">=</span> <span class="n">SGVsbG8gZnJvbSBPcGVuRFhMIC0gNA</span><span class="o">==</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">decoded</span> <span class="n">payload</span> <span class="o">=</span> <span class="n">Hello</span> <span class="kn">from</span> <span class="nn">OpenDXL</span> <span class="o">-</span> <span class="mi">4</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">topic</span> <span class="o">=</span> <span class="n">my</span><span class="o">-</span><span class="n">topic</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">partition</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">offset</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">sharding</span> <span class="n">key</span> <span class="o">=</span> <span class="mi">176927523</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="n">sourceId</span><span class="o">=</span><span class="n">F567D6A2</span><span class="o">-</span><span class="mf">500E-4</span><span class="n">D35</span><span class="o">-</span><span class="n">AE15</span><span class="o">-</span><span class="n">A707f165D4FA</span><span class="p">,</span> <span class="n">scope</span><span class="o">=</span><span class="n">soc</span><span class="o">.</span><span class="n">etv</span><span class="o">.</span><span class="n">vi</span><span class="p">,</span> <span class="n">tenantId</span><span class="o">=</span><span class="mi">5</span><span class="n">ca969eb</span><span class="o">-</span><span class="mi">2757</span><span class="o">-</span><span class="mi">46</span><span class="n">ed</span><span class="o">-</span><span class="n">bc3f</span><span class="o">-</span><span class="n">f9266ccccea7</span><span class="p">,</span> <span class="n">zoneId</span><span class="o">=</span><span class="n">TMP</span><span class="o">.</span><span class="n">Identity</span><span class="o">.</span><span class="n">TRUCHATOR</span><span class="p">}</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">payload</span> <span class="o">=</span> <span class="n">SGVsbG8gZnJvbSBPcGVuRFhMIC0gNg</span><span class="o">==</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">decoded</span> <span class="n">payload</span> <span class="o">=</span> <span class="n">Hello</span> <span class="kn">from</span> <span class="nn">OpenDXL</span> <span class="o">-</span> <span class="mi">6</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span>
+<span class="n">INFO</span> <span class="p">[</span><span class="n">main</span><span class="p">]</span> <span class="o">...</span> <span class="o">-</span> <span class="n">let</span> <span class="n">commit</span> <span class="n">records</span>
+<span class="o">...</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="Basic-Consume-(command-line-interface).html" class="btn btn-neutral float-right" title="CLI (Command Line Interface)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="Basic-Produce-(Token-based-authentication).html" class="btn btn-neutral" title="Basic Produce token-based authentication" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, McAfee LLC
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+    
+
+  
+
+  <script type="text/javascript" src="_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

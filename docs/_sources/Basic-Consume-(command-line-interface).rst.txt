@@ -31,10 +31,14 @@ arguments, will output the help:
                                            true,<0.0.0.0>,<PORT>,<USERNAME>,<PASSWORD>
                                            where <0.0.0.0> must be replaced by the HttpProxy
                                            IP Address or hostname
-    * --operation <String: operation>      Operations: login | create | subscribe
-                                             | consume | commit | subscription   
+    * --operation <String: operation>      Operations: login | create | subscribe | consume
+                                             | commit | subscriptions | delete | produce
     --password <String: password>          The password to send to authorization 
                                              service.                            
+    --producer-prefix <String: producer-   Producer path prefix. (default:
+      prefix>                                /databus/cloudproxy/v1)
+    --records <String: producer-records>   Array of records to be produced in a
+                                             simplified JSON format.
     --retry <String: retry>                Retry on fail. (default: true)        
     --token <String: token>                The authorized token.                 
     --topic <String: topic>                Comma-separated topic list to         
@@ -83,11 +87,19 @@ Operation Arguments
 +-----------------------+-----------------------------------------+
 | subscriptions         | get the list of topics subscribed to    |
 +-----------------------+-----------------------------------------+
+| produce               | send records to Streaming Service       |
++-----------------------+-----------------------------------------+
 
 The sequence invocation of CLI operations to get records assuming a
 token has already been received is: ``create`` -> ``subscribe`` ->
 ``consume`` . Because of the polling model, ``consume`` operation should
 be called repeatedly to read the following records.
+
+In order to send records to Streaming Service, the ``produce`` operation
+has to be used. Unlike ``consume`` operation, the ``produce`` operation
+can be called immediately since it is a stateless operation and it is
+completely independent of ``consume`` ones. Like all other operations, a
+token is also required.
 
 login
 ^^^^^
@@ -155,17 +167,20 @@ specific Consumer Group and will have specific configuration.
 | ``--cg``                         | Consumer Group name                        |
 +----------------------------------+--------------------------------------------+
 
-+---------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| Optional Arguments for create   | Description                                                                                                                                                                                                                                    |
-+=================================+================================================================================================================================================================================================================================================+
-| ``--config``                    | Consumer configuration, a string of comma separated values Kafka Consumer properties, e.g.: max.message.size=1000,min.message.size=200,auto.offset.reset=latest,session.timeout.ms=300000,request.timeout.ms=310000,enable.auto.commit=false   |
-+---------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``--consumer-prefix``           | Consumer prefix URL path. If not present, then its default value will be used instead. Default value: /databus/consumer-service/v1                                                                                                             |
-+---------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``--verify-cert-bundle``        | Certificate file name or certificate in String format to be able to hit Streaming Service                                                                                                                                                      |
-+---------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``--http-proxy``                | Http Proxy data: whether enabled, FQDN or IP Address, TCP Port. Optional username and password                                                                                                                                                 |
-+---------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
++---------------------------------+--------------------------------------------------------------------------------------------------------------------------------------+
+| Optional Arguments for create   | Description                                                                                                                          |
++=================================+======================================================================================================================================+
+| ``--config``                    | Consumer configuration, a string of comma separated values Kafka Consumer properties, e.g.:                                          |
+|                                 | max.message.size=1000,min.message.size=200,auto.offset.reset=latest,                                                                 |
+|                                 | session.timeout.ms=300000,request.timeout.ms=310000,                                                                                 |
+|                                 | enable.auto.commit=false                                                                                                             |
++---------------------------------+--------------------------------------------------------------------------------------------------------------------------------------+
+| ``--consumer-prefix``           | Consumer prefix URL path. If not present, then its default value will be used instead. Default value: /databus/consumer-service/v1   |
++---------------------------------+--------------------------------------------------------------------------------------------------------------------------------------+
+| ``--verify-cert-bundle``        | Certificate file name or certificate in String format to be able to hit Streaming Service                                            |
++---------------------------------+--------------------------------------------------------------------------------------------------------------------------------------+
+| ``--http-proxy``                | Http Proxy data: whether enabled, FQDN or IP Address, TCP Port. Optional username and password                                       |
++---------------------------------+--------------------------------------------------------------------------------------------------------------------------------------+
 
 example
 '''''''
@@ -289,15 +304,15 @@ HTTP 200 with a body showing the subscribed topics.
 | ``--token``                             | Identity token gotten by login operation              |
 +-----------------------------------------+-------------------------------------------------------+
 
-+------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------+
-| Optional Arguments for subscribe   | Description                                                                                                                          |
-+====================================+======================================================================================================================================+
-| ``--consumer-prefix``              | Consumer prefix URL path. If not present, then its default value will be used instead. Default value: /databus/consumer-service/v1   |
-+------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------+
-| ``--verify-cert-bundle``           | Certificate file name or certificate in String format to be able to hit Streaming Service                                            |
-+------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------+
-| ``--http-proxy``                   | Http Proxy data: whether enabled, FQDN or IP Address, TCP Port. Optional username and password                                       |
-+------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------+
++----------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------+
+| Optional Arguments for subscriptions   | Description                                                                                                                          |
++========================================+======================================================================================================================================+
+| ``--consumer-prefix``                  | Consumer prefix URL path. If not present, then its default value will be used instead. Default value: /databus/consumer-service/v1   |
++----------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------+
+| ``--verify-cert-bundle``               | Certificate file name or certificate in String format to be able to hit Streaming Service                                            |
++----------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------+
+| ``--http-proxy``                       | Http Proxy data: whether enabled, FQDN or IP Address, TCP Port. Optional username and password                                       |
++----------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------+
 
 example
 '''''''
@@ -558,3 +573,63 @@ example
         }
     }
 
+produce
+^^^^^^^
+
+It is an operation argument to send records to the Streaming Service.
+Successfully sent records will be available at the Streaming Service for
+consumption.
+
+A record consists of four attributes: topic, payload, shardingKey and
+headers. Since the ``produce`` operation can send many records in a
+single call, its ``--records`` parameter takes an array of records. CLI
+expects these records in a simplified JSON format. Then, the ``produce``
+operation reshapes them into the suitable data type expected by the
+Streaming Service. Topic and payload are mandatory parameters for
+Streaming Service, while shardingKey and headers are optional.
+
++-----------------------------------+---------------------------------------------+
+| Mandatory Arguments for produce   | Description                                 |
++===================================+=============================================+
+| ``--url``                         | Streaming Service base URL                  |
++-----------------------------------+---------------------------------------------+
+| ``--token``                       | Identity token gotten by login operation    |
++-----------------------------------+---------------------------------------------+
+| ``--records``                     | JSON array of simplified Producer Records   |
++-----------------------------------+---------------------------------------------+
+
++----------------------------------+---------------------------------------------------------------------------------------------------------------------------------+
+| Optional Arguments for produce   | Description                                                                                                                     |
++==================================+=================================================================================================================================+
+| ``--producer-prefix``            | Producer prefix URL path. If not present, then its default value will be used instead. Default value: /databus/cloud proxy/v1   |
++----------------------------------+---------------------------------------------------------------------------------------------------------------------------------+
+| ``--verify-cert-bundle``         | Certificate file name or certificate in String format to be able to hit Streaming Service                                       |
++----------------------------------+---------------------------------------------------------------------------------------------------------------------------------+
+| ``--http-proxy``                 | Http Proxy data: whether enabled, FQDN or IP Address, TCP Port. Optional username and password                                  |
++----------------------------------+---------------------------------------------------------------------------------------------------------------------------------+
+
+example
+'''''''
+
+::
+
+    java -jar opendxlstreamingclient-java-sdk-<VERSION>.jar \
+    --operation produce \
+    --url http://<0.0.0.0>:<PORT>/ \
+    --token <TOKEN> \
+    --records '[{"topic":"topic1","payload":"HelloOpenDXL-1"},{"topic":"my-topic","payload":"HelloOpenDXL-2","shardingKey":"101418986","headers":{"sourceId":"D5452543-E2FB-4585-8BE5-A61C3636819C","anotherId":"valueOfAnotherId"}}]'
+
+.. code:: json
+
+    {
+            "code":"204",
+            "result":"",
+            "options":{
+                    "records":["[{\"topic\":\"topic1\",\"payload\":\"HelloOpenDXL-1\"},{\"topic\":\"my-topic\",\"payload\":\"HelloOpenDXL-2\",\"shardingKey\":\"101418986\",\"headers\":{\"sourceId\":\"D5452543-E2FB-4585-8BE5-A61C3636819C\",\"anotherId\":\"valueOfAnotherId\"}}]"],
+                    "verify-cert-bundle":[""],
+                    "producer-prefix": ["/databus/cloudproxy/v1"],
+                    "http-proxy":[""],
+                    "url":["http://<0.0.0.0>:<PORT>/"],
+                    "token":[<TOKEN>]
+            }
+    }

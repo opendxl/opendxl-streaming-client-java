@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Basic Consume user-password-based authentication &mdash; OpenDXL Streaming Java Client Library 0.1.0 documentation</title>
+  <title>Basic Consume user-password-based authentication &mdash; OpenDXL Streaming Java Client Library 0.2.0 documentation</title>
   
 
   
@@ -29,7 +29,7 @@
   <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="CLI (Command Line Interface)" href="Basic-Consume-(command-line-interface).html" />
+    <link rel="next" title="Basic Produce token-based authentication" href="Basic-Produce-(Token-based-authentication).html" />
     <link rel="prev" title="Basic Consume token-based authentication" href="Basic-Consume-(Token-based-authentication).html" /> 
 
   
@@ -59,7 +59,7 @@
             
             
               <div class="version">
-                0.1.0
+                0.2.0
               </div>
             
           
@@ -100,6 +100,12 @@
 </li>
 </ul>
 </li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Basic-Produce-(Token-based-authentication).html">Basic Produce token-based authentication</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Basic-Produce-and-Consume-(Token-based-authentication).html">Basic Produce and Consume using token-based authentication</a></li>
 </ul>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="Basic-Consume-(command-line-interface).html">CLI (Command Line Interface)</a></li>
@@ -178,6 +184,7 @@ group.</p>
 <div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">...</span>
 <span class="n">final</span> <span class="n">String</span> <span class="n">channelUsername</span> <span class="o">=</span> <span class="s2">&quot;me&quot;</span><span class="p">;</span>
 <span class="n">final</span> <span class="n">String</span> <span class="n">channelPassword</span> <span class="o">=</span> <span class="s2">&quot;secret&quot;</span><span class="p">;</span>
+<span class="n">static</span> <span class="n">Logger</span> <span class="n">logger</span> <span class="o">=</span> <span class="n">Logger</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">ConsumeRecordsWithUserPass</span><span class="o">.</span><span class="n">class</span><span class="p">);</span>
 <span class="o">...</span>
 <span class="o">//</span> <span class="n">Gather</span> <span class="n">the</span> <span class="n">Http</span> <span class="n">Proxy</span> <span class="n">attributes</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="n">g</span><span class="o">.</span><span class="p">:</span> <span class="n">FQDN</span> <span class="ow">or</span> <span class="n">IP</span> <span class="n">Address</span><span class="p">,</span> <span class="n">TCP</span> <span class="n">port</span><span class="p">,</span> <span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="p">,</span>
 <span class="o">//</span> <span class="ow">in</span> <span class="n">a</span> <span class="n">single</span> <span class="n">plain</span> <span class="n">Java</span> <span class="nb">object</span>
@@ -188,21 +195,19 @@ group.</p>
         <span class="n">PROXY_PWD</span><span class="p">);</span>
 
 <span class="o">//</span> <span class="n">Create</span> <span class="n">a</span> <span class="n">new</span> <span class="n">Channel</span> <span class="nb">object</span>
-<span class="n">Channel</span> <span class="n">channel</span> <span class="o">=</span> <span class="n">new</span> <span class="n">Channel</span><span class="p">(</span><span class="n">channelUrl</span><span class="p">,</span>
-        <span class="n">new</span> <span class="n">ChannelAuthUserPass</span><span class="p">(</span><span class="n">channelUrl</span><span class="p">,</span>
-                <span class="n">channelUsername</span><span class="p">,</span>
-                <span class="n">channelPassword</span><span class="p">,</span>
-                <span class="n">null</span><span class="p">,</span>
-                <span class="n">verifyCertificateBundle</span><span class="p">,</span>
-                <span class="n">httpProxySettings</span><span class="p">),</span>
-        <span class="n">channelConsumerGroup</span><span class="p">,</span>
-        <span class="n">null</span><span class="p">,</span>
-        <span class="n">null</span><span class="p">,</span>
-        <span class="n">true</span><span class="p">,</span>
-        <span class="n">verifyCertificateBundle</span><span class="p">,</span>
-        <span class="n">extraConfigs</span><span class="p">,</span>
-        <span class="n">httpProxySettings</span><span class="p">)</span>
-
+<span class="n">Channel</span> <span class="n">channel</span> <span class="o">=</span> <span class="n">new</span> <span class="n">ChannelBuilder</span><span class="p">(</span><span class="n">channelUrl</span><span class="p">,</span>
+                        <span class="n">new</span> <span class="n">ChannelAuthUserPass</span><span class="p">(</span><span class="n">channelUrl</span><span class="p">,</span>
+                                <span class="n">channelUsername</span><span class="p">,</span>
+                                <span class="n">channelPassword</span><span class="p">,</span>
+                                <span class="n">null</span><span class="p">,</span>
+                                <span class="n">verifyCertificateBundle</span><span class="p">,</span>
+                                <span class="n">httpProxySettings</span><span class="p">),</span>
+                        <span class="n">channelConsumerGroup</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">withExtraConfigs</span><span class="p">(</span><span class="n">extraConfigs</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">withRetryOnFail</span><span class="p">(</span><span class="n">true</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">withCertificateBundle</span><span class="p">(</span><span class="n">verifyCertificateBundle</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">withHttpProxy</span><span class="p">(</span><span class="n">httpProxySettings</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">build</span><span class="p">();</span>
 
 <span class="o">//</span> <span class="n">Create</span> <span class="nb">object</span> <span class="n">which</span> <span class="n">processCallback</span><span class="p">()</span> <span class="n">method</span> <span class="n">will</span> <span class="n">be</span> <span class="n">called</span> <span class="n">back</span> <span class="n">upon</span> <span class="n">by</span> <span class="n">the</span> <span class="n">run</span> <span class="n">method</span> <span class="p">(</span><span class="n">see</span> <span class="n">below</span><span class="p">)</span>
 <span class="o">//</span> <span class="n">when</span> <span class="n">records</span> <span class="n">are</span> <span class="n">received</span> <span class="kn">from</span> <span class="nn">the</span> <span class="n">channel</span>
@@ -213,26 +218,26 @@ group.</p>
         <span class="o">//</span> <span class="n">Print</span> <span class="n">the</span> <span class="n">received</span> <span class="n">payloads</span><span class="o">.</span> <span class="s1">&#39;payloads&#39;</span> <span class="ow">is</span> <span class="n">a</span> <span class="nb">list</span> <span class="n">of</span>
         <span class="o">//</span> <span class="n">dictionary</span> <span class="n">objects</span> <span class="n">extracted</span> <span class="kn">from</span> <span class="nn">the</span> <span class="n">records</span> <span class="n">received</span>
         <span class="o">//</span> <span class="kn">from</span> <span class="nn">the</span> <span class="n">channel</span><span class="o">.</span>
-        <span class="n">System</span><span class="o">.</span><span class="n">out</span><span class="o">.</span><span class="n">println</span><span class="p">(</span><span class="n">new</span> <span class="n">StringBuilder</span><span class="p">(</span><span class="s2">&quot;Received &quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">new</span> <span class="n">StringBuilder</span><span class="p">(</span><span class="s2">&quot;Received &quot;</span><span class="p">)</span>
                 <span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">consumerRecords</span><span class="o">.</span><span class="n">getRecords</span><span class="p">()</span><span class="o">.</span><span class="n">size</span><span class="p">())</span>
                 <span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot; records&quot;</span><span class="p">)</span>
                 <span class="o">.</span><span class="n">toString</span><span class="p">());</span>
 
         <span class="k">for</span> <span class="p">(</span><span class="n">ConsumerRecords</span><span class="o">.</span><span class="n">ConsumerRecord</span> <span class="n">record</span> <span class="p">:</span> <span class="n">consumerRecords</span><span class="o">.</span><span class="n">getRecords</span><span class="p">())</span> <span class="p">{</span>
 
-            <span class="n">System</span><span class="o">.</span><span class="n">out</span><span class="o">.</span><span class="n">println</span><span class="p">(</span><span class="s2">&quot;topic = &quot;</span> <span class="o">+</span> <span class="n">record</span><span class="o">.</span><span class="n">getTopic</span><span class="p">());</span>
-            <span class="n">System</span><span class="o">.</span><span class="n">out</span><span class="o">.</span><span class="n">println</span><span class="p">(</span><span class="s2">&quot;partition = &quot;</span> <span class="o">+</span> <span class="n">record</span><span class="o">.</span><span class="n">getPartition</span><span class="p">());</span>
-            <span class="n">System</span><span class="o">.</span><span class="n">out</span><span class="o">.</span><span class="n">println</span><span class="p">(</span><span class="s2">&quot;offset = &quot;</span> <span class="o">+</span> <span class="n">record</span><span class="o">.</span><span class="n">getOffset</span><span class="p">());</span>
-            <span class="n">System</span><span class="o">.</span><span class="n">out</span><span class="o">.</span><span class="n">println</span><span class="p">(</span><span class="s2">&quot;sharding key = &quot;</span> <span class="o">+</span> <span class="n">record</span><span class="o">.</span><span class="n">getShardingKey</span><span class="p">());</span>
-            <span class="n">System</span><span class="o">.</span><span class="n">out</span><span class="o">.</span><span class="n">println</span><span class="p">(</span><span class="s2">&quot;headers = &quot;</span> <span class="o">+</span> <span class="n">record</span><span class="o">.</span><span class="n">getHeaders</span><span class="p">());</span>
-            <span class="n">System</span><span class="o">.</span><span class="n">out</span><span class="o">.</span><span class="n">println</span><span class="p">(</span><span class="s2">&quot;payload = &quot;</span> <span class="o">+</span> <span class="n">record</span><span class="o">.</span><span class="n">getPayload</span><span class="p">());</span>
-            <span class="n">System</span><span class="o">.</span><span class="n">out</span><span class="o">.</span><span class="n">println</span><span class="p">(</span><span class="s2">&quot;decoded payload = &quot;</span> <span class="o">+</span> <span class="n">new</span> <span class="n">String</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">getDecodedPayload</span><span class="p">()));</span>
-            <span class="n">System</span><span class="o">.</span><span class="n">out</span><span class="o">.</span><span class="n">println</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">);</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;topic = &quot;</span> <span class="o">+</span> <span class="n">record</span><span class="o">.</span><span class="n">getTopic</span><span class="p">());</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;partition = &quot;</span> <span class="o">+</span> <span class="n">record</span><span class="o">.</span><span class="n">getPartition</span><span class="p">());</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;offset = &quot;</span> <span class="o">+</span> <span class="n">record</span><span class="o">.</span><span class="n">getOffset</span><span class="p">());</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;sharding key = &quot;</span> <span class="o">+</span> <span class="n">record</span><span class="o">.</span><span class="n">getShardingKey</span><span class="p">());</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;headers = &quot;</span> <span class="o">+</span> <span class="n">record</span><span class="o">.</span><span class="n">getHeaders</span><span class="p">());</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;payload = &quot;</span> <span class="o">+</span> <span class="n">record</span><span class="o">.</span><span class="n">getPayload</span><span class="p">());</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;decoded payload = &quot;</span> <span class="o">+</span> <span class="n">new</span> <span class="n">String</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">getDecodedPayload</span><span class="p">()));</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">);</span>
 
         <span class="p">}</span>
 
         <span class="o">//</span> <span class="n">Return</span> <span class="s1">&#39;True&#39;</span> <span class="ow">in</span> <span class="n">order</span> <span class="k">for</span> <span class="n">the</span> <span class="s1">&#39;run&#39;</span> <span class="n">call</span> <span class="n">to</span> <span class="k">continue</span> <span class="n">attempting</span> <span class="n">to</span> <span class="n">consume</span> <span class="n">records</span><span class="o">.</span>
-        <span class="n">System</span><span class="o">.</span><span class="n">out</span><span class="o">.</span><span class="n">println</span><span class="p">(</span><span class="s2">&quot;let commit records&quot;</span><span class="p">);</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;let commit records&quot;</span><span class="p">);</span>
         <span class="k">return</span> <span class="n">true</span><span class="p">;</span>
     <span class="p">}</span>
 <span class="p">};</span>
@@ -268,7 +273,7 @@ the <code class="docutils literal notranslate"><span class="pre">consumerRecordC
 <p>As records are received by the sample, the contents of the messages
 should be displayed to the output window. The output should appear
 similar to the following:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">topic</span> <span class="o">=</span> <span class="n">topic1</span><span class="o">-</span><span class="mi">5</span><span class="n">ca969eb</span><span class="o">-</span><span class="mi">2757</span><span class="o">-</span><span class="mi">46</span><span class="n">ed</span><span class="o">-</span><span class="n">bc3f</span><span class="o">-</span><span class="n">f9266ccccea7</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">topic</span> <span class="o">=</span> <span class="n">topic1</span>
 <span class="n">partition</span> <span class="o">=</span> <span class="mi">0</span>
 <span class="n">offset</span> <span class="o">=</span> <span class="mi">4</span>
 <span class="n">sharding</span> <span class="n">key</span> <span class="o">=</span> <span class="n">pool</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="n">thread</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">0</span><span class="o">-</span><span class="mi">0</span>
@@ -276,7 +281,7 @@ similar to the following:</p>
 <span class="n">payload</span> <span class="o">=</span> <span class="n">SGVsbG8gV29ybGQgYXQ6MjAxOS0wNS0wN1QxNjowMjoxOC42NjcgRXh0cmE6IEI0ODlNOTNTSFVEME5VTVYzWlZKTU43NkJSNE5HUEE4NFIzSVI1R1NDME05WTFYT1FISjMyNzhMSzY2UFpYNTg4QU42WjEyMjlKRUE4Nlg2MDhLSUxDSDczSFRSSkQyUlNKTkQ</span><span class="o">=</span>
 <span class="n">decoded</span> <span class="n">payload</span> <span class="o">=</span> <span class="n">Hello</span> <span class="n">World</span> <span class="n">at</span><span class="p">:</span><span class="mi">2019</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">07</span><span class="n">T16</span><span class="p">:</span><span class="mi">02</span><span class="p">:</span><span class="mf">18.667</span> <span class="n">Extra</span><span class="p">:</span> <span class="n">B489M93SHUD0NUMV3ZVJMN76BR4NGPA84R3IR5GSC0M9Y1XOQHJ3278LK66PZX588AN6Z1229JEA86X608KILCH73HTRJD2RSJND</span>
 
-<span class="n">topic</span> <span class="o">=</span> <span class="n">topic1</span><span class="o">-</span><span class="mi">5</span><span class="n">ca969eb</span><span class="o">-</span><span class="mi">2757</span><span class="o">-</span><span class="mi">46</span><span class="n">ed</span><span class="o">-</span><span class="n">bc3f</span><span class="o">-</span><span class="n">f9266ccccea7</span>
+<span class="n">topic</span> <span class="o">=</span> <span class="n">topic1</span>
 <span class="n">partition</span> <span class="o">=</span> <span class="mi">0</span>
 <span class="n">offset</span> <span class="o">=</span> <span class="mi">5</span>
 <span class="n">sharding</span> <span class="n">key</span> <span class="o">=</span> <span class="n">pool</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="n">thread</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">0</span><span class="o">-</span><span class="mi">0</span>
@@ -328,7 +333,7 @@ following:</p>
 <p>As records are received by the sample, the contents of the message
 payloads should be displayed to the output window.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Received</span> <span class="mi">15</span> <span class="n">records</span>
-<span class="n">topic</span> <span class="o">=</span> <span class="n">BusinessEvents</span>
+<span class="n">topic</span> <span class="o">=</span> <span class="n">topic1</span>
 <span class="n">partition</span> <span class="o">=</span> <span class="mi">5</span>
 <span class="n">offset</span> <span class="o">=</span> <span class="mi">13</span>
 <span class="n">sharding</span> <span class="n">key</span> <span class="o">=</span> <span class="mi">123</span>
@@ -336,7 +341,7 @@ payloads should be displayed to the output window.</p>
 <span class="n">payload</span> <span class="o">=</span> <span class="n">SGVsbG8sIFdvcmxkLg</span><span class="o">==</span>
 <span class="n">decoded</span> <span class="n">payload</span> <span class="o">=</span> <span class="n">Hello</span><span class="p">,</span> <span class="n">World</span><span class="o">.</span>
 
-<span class="n">topic</span> <span class="o">=</span> <span class="n">BusinessEvents</span>
+<span class="n">topic</span> <span class="o">=</span> <span class="n">topic1</span>
 <span class="n">partition</span> <span class="o">=</span> <span class="mi">5</span>
 <span class="n">offset</span> <span class="o">=</span> <span class="mi">14</span>
 <span class="n">sharding</span> <span class="n">key</span> <span class="o">=</span> <span class="mi">123</span>
@@ -344,7 +349,7 @@ payloads should be displayed to the output window.</p>
 <span class="n">payload</span> <span class="o">=</span> <span class="n">SGVsbG8sIFdvcmxkLg</span><span class="o">==</span>
 <span class="n">decoded</span> <span class="n">payload</span> <span class="o">=</span> <span class="n">Hello</span><span class="p">,</span> <span class="n">World</span><span class="o">.</span>
 
-<span class="n">topic</span> <span class="o">=</span> <span class="n">BusinessEvents</span>
+<span class="n">topic</span> <span class="o">=</span> <span class="n">topic1</span>
 <span class="n">partition</span> <span class="o">=</span> <span class="mi">5</span>
 <span class="n">offset</span> <span class="o">=</span> <span class="mi">15</span>
 <span class="n">sharding</span> <span class="n">key</span> <span class="o">=</span> <span class="mi">123</span>
@@ -352,7 +357,7 @@ payloads should be displayed to the output window.</p>
 <span class="n">payload</span> <span class="o">=</span> <span class="n">SGVsbG8sIFdvcmxkLg</span><span class="o">==</span>
 <span class="n">decoded</span> <span class="n">payload</span> <span class="o">=</span> <span class="n">Hello</span><span class="p">,</span> <span class="n">World</span><span class="o">.</span>
 
-<span class="n">topic</span> <span class="o">=</span> <span class="n">BusinessEvents</span>
+<span class="n">topic</span> <span class="o">=</span> <span class="n">topic1</span>
 <span class="n">partition</span> <span class="o">=</span> <span class="mi">5</span>
 <span class="n">offset</span> <span class="o">=</span> <span class="mi">16</span>
 <span class="n">sharding</span> <span class="n">key</span> <span class="o">=</span> <span class="mi">123</span>
@@ -373,7 +378,7 @@ payloads should be displayed to the output window.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="Basic-Consume-(command-line-interface).html" class="btn btn-neutral float-right" title="CLI (Command Line Interface)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="Basic-Produce-(Token-based-authentication).html" class="btn btn-neutral float-right" title="Basic Produce token-based authentication" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="Basic-Consume-(Token-based-authentication).html" class="btn btn-neutral" title="Basic Consume token-based authentication" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
