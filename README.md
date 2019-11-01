@@ -9,7 +9,7 @@ from as well as to produce records to a
 
 The DXL Streaming Service exposes a REST-based API that communicates with a
 back-end streaming platform (Kafka, Kinesis, etc.). The streaming service
-performs authentication and authorization and exposes methods to retrieve records.
+performs authentication and authorization and exposes methods to retrieve records and to send them.
 
 One concrete example of a DXL Streaming Service is the
 [McAfee MVISION EDR](https://www.mcafee.com/enterprise/en-us/products/investigator.html)
