@@ -3,7 +3,7 @@
 ## Overview
 
 The OpenDXL Streaming Java client library is used to consume records
-from a
+from as well as to produce records to a
 [Data Exchange Layer](http://www.mcafee.com/us/solutions/data-exchange-layer.aspx)
 (DXL) Streaming Service.
 
