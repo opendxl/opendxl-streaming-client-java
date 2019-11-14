@@ -1,5 +1,8 @@
 # OpenDXL Streaming Java Client Library
 
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Build Status](https://github.com/opendxl/opendxl-streaming-client-java/workflows/build/badge.svg?branch=master)](https://github.com/opendxl/opendxl-streaming-client-java/actions)
+
 ## Overview
 
 The OpenDXL Streaming Java client library is used to consume records
