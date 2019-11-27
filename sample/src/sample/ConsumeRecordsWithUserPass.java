@@ -14,7 +14,8 @@ import com.opendxl.streaming.client.exception.PermanentError;
 import com.opendxl.streaming.client.exception.StopError;
 import com.opendxl.streaming.client.exception.TemporaryError;
 
-import org.apache.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 
 import java.util.Arrays;
 import java.util.List;
@@ -48,7 +49,7 @@ public class ConsumeRecordsWithUserPass {
     /**
      * The logger
      */
-    private static Logger logger = Logger.getLogger(ConsumeRecordsWithUserPass.class);
+    private static Logger logger = LoggerFactory.getLogger(ConsumeRecordsWithUserPass.class);
 
     private ConsumeRecordsWithUserPass() { }
 

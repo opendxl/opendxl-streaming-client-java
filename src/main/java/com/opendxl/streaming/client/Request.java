@@ -17,7 +17,8 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.util.EntityUtils;
-import org.apache.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 
 import com.google.gson.Gson;
 
@@ -44,7 +45,7 @@ public class Request implements AutoCloseable {
     /**
      * The logger
      */
-    private static Logger logger = Logger.getLogger(Request.class);
+    private static Logger logger = LoggerFactory.getLogger(Request.class);
 
     /**
      * @param base scheme (http or https) and host parts of target URLs. It will be prepended to uri parameter of
