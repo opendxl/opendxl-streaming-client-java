@@ -5,6 +5,9 @@ buildscript {
         }
         mavenCentral()
     }
+    dependencies {
+        classpath 'org.owasp:dependency-check-gradle:5.2.1'
+    }
 }
  
 
@@ -16,6 +19,9 @@ plugins {
     id 'signing'
     id "com.github.johnrengelman.shadow" version "4.0.3"
     id "kr.motd.sphinx" version "2.3.1"
+    id "jacoco"
+    id "org.owasp.dependencycheck" version "5.2.1"
+
 }
 
 apply plugin: 'base'
@@ -24,14 +30,33 @@ apply plugin: 'groovy'
 apply plugin: 'maven-publish'
 apply plugin: 'signing'
 apply plugin: "com.github.johnrengelman.shadow"
+apply plugin: 'org.owasp.dependencycheck'
 
 
-group 'com.opendxl.streaming'
+
+group 'com.opendxl'
 
 sourceCompatibility = 1.8
 
 repositories {
     mavenCentral()
+}
+
+dependencyCheck {
+    suppressionFile = file("${projectDir}/config/dependency-check/owasp-suppression.xml")
+}
+
+jacoco {
+    toolVersion = "0.8.4"
+    reportsDir = file("$buildDir/reports/coverage")
+}
+
+jacocoTestReport {
+    reports {
+        xml.enabled false
+        csv.enabled false
+        html.destination file("$buildDir/reports/coverage")
+    }
 }
 
 dependencies {
@@ -41,9 +66,9 @@ dependencies {
     testImplementation 'org.mockito:mockito-all:1.10.19'
     implementation 'com.e-movimento.tinytools:privilegedaccessor:1.2.2'
     implementation 'net.sf.jopt-simple:jopt-simple:5.0.4'
-    implementation 'org.apache.httpcomponents:httpclient:4.5.5'
-    implementation 'com.google.code.gson:gson:2.8.5'
-    implementation 'log4j:log4j:1.2.17'
+    implementation 'org.apache.httpcomponents:httpclient:4.5.10'
+    implementation 'com.google.code.gson:gson:2.8.6'
+    implementation 'org.slf4j:slf4j-api:1.7.30'
 }
 
 // Jar Manifest info
@@ -59,15 +84,12 @@ jar {
 task sourceJar(type: Jar, dependsOn: classes) {
     classifier = 'sources'
     from sourceSets.main.allSource
-    baseName = rootProject.name
-
 }
 
 // Task for creating a jar with JavaDoc
 task javadocJar(type: Jar, dependsOn: javadoc) {
     classifier = 'javadoc'
     from javadoc.destinationDir
-    baseName = rootProject.name
 }
 
 javadoc {
@@ -84,7 +106,7 @@ artifacts {
 // Set up the distribution zip
 distributions {
     main {
-        baseName = 'opendxlstreamingclient-java-sdk'
+        baseName = 'dxlstreamingclient-java-sdk'
         contents {
             from(jar) {
                 into('lib')
@@ -154,6 +176,12 @@ task versionFile()  {
     }
 }
 
+checkstyle {
+    sourceSets = []
+    toolVersion '8.23'
+
+}
+
 publishing {
     publications {
         maven(MavenPublication) {
@@ -219,17 +247,17 @@ task replaceVersionInREADME() {
             fileset(dir: 'docs', includes: 'index.rst')
         }
         // Gradle
-        ant.replaceregexp(match: "com\\.opendxl\\.streaming\\:opendxlstreamingclient-java-sdk\\:(.+)", replace: "com.opendxl.streaming:opendxlstreamingclient-java-sdk:${version}'", flags: 'g', byline: true) {
+        ant.replaceregexp(match: "com\\.opendxl\\.:dxlstreamingclient\\:(.+)", replace: "com.opendxl:dxlstreamingclient:${version}'", flags: 'g', byline: true) {
             fileset(dir: '.', includes: 'README.md')
         }
-        ant.replaceregexp(match: "com\\.opendxl\\.streaming\\:opendxlstreamingclient-java-sdk\\:(.+)", replace: "com.opendxl.streaming:opendxlstreamingclient-java-sdk:${version}'", flags: 'g', byline: true) {
+        ant.replaceregexp(match: "com\\.opendxl\\:dxlstreamingclient\\:(.+)", replace: "com.opendxl:dxlstreamingclient:${version}'", flags: 'g', byline: true) {
             fileset(dir: 'docs', includes: 'index.rst')
         }
     }
 }
 
 signing {sign publishing.publications.maven}
-
+check.dependsOn dependencyCheckAnalyze
 distZip.dependsOn javadocJar
 distZip.dependsOn sourceJar
 sphinx.dependsOn(versionFile)

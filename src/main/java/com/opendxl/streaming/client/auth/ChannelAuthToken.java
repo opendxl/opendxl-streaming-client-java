@@ -7,7 +7,9 @@ package com.opendxl.streaming.client.auth;
 import com.opendxl.streaming.client.ChannelAuth;
 
 import org.apache.http.HttpRequest;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 /**
  * Authentication class where a given fixed token is used in Authorization headers of channel requests.
@@ -17,7 +19,7 @@ public class ChannelAuthToken implements ChannelAuth {
     /**
      * The logger
      */
-    private Logger logger = Logger.getLogger(ChannelAuthToken.class);
+    private Logger logger = LoggerFactory.getLogger(ChannelAuthUserPass.class);
 
     private String token;
 

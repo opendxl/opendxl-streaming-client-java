@@ -49,14 +49,14 @@ Maven:
 
 ```xml
 <dependency>
-  <groupId>com.opendxl.streaming</groupId>
-  <artifactId>opendxlstreamingclient-java-sdk</artifactId>
-  <version>0.2.0</version>
+  <groupId>com.opendxl</groupId>
+  <artifactId>dxlstreamingclient</artifactId>
+  <version>1.0.0</version>
 </dependency>
 ```
 or Gradle:
 ```groovy
-compile 'com.opendxl.streaming:opendxlstreamingclient-java-sdk:0.2.0'
+compile 'com.opendxl:dxlstreamingclient:1.0.0'
 ```
 
 ## Bugs and Feedback

@@ -44,7 +44,7 @@ public interface Consumer extends AutoCloseable {
      * @throws PermanentError if no topics were specified.
      * @throws TemporaryError if the subscription attempt fails.
      */
-    void subscribe(final List<String> topics) throws ConsumerError, PermanentError, TemporaryError;
+    void subscribe(List<String> topics) throws ConsumerError, PermanentError, TemporaryError;
 
     /**
      * <p>List the topic names to which the consumer is subscribed</p>
@@ -83,7 +83,7 @@ public interface Consumer extends AutoCloseable {
      * @throws PermanentError if the channel has not been subscribed to any topics.
      * @throws TemporaryError if the consume attempt fails.
      */
-    ConsumerRecords consume(final int timeout) throws ConsumerError, PermanentError, TemporaryError;
+    ConsumerRecords consume(int timeout) throws ConsumerError, PermanentError, TemporaryError;
 
     /**
      * <p>Commits the record offsets to the channel.</p>
@@ -116,7 +116,7 @@ public interface Consumer extends AutoCloseable {
      *                         callback to deliver records was not specified
      * @throws TemporaryError consume or commit attempts failed with errors other than ConsumerError.
      */
-    void run(final ConsumerRecordProcessor processCallback, final List<String> topics)
+    void run(ConsumerRecordProcessor processCallback, List<String> topics)
             throws PermanentError, TemporaryError;
 
     /**
@@ -140,7 +140,7 @@ public interface Consumer extends AutoCloseable {
      *                         callback to deliver records was not specified
      * @throws TemporaryError consume or commit attempts failed with errors other than ConsumerError.
      */
-    void run(final ConsumerRecordProcessor processCallback, final List<String> topics, final int timeout)
+    void run(ConsumerRecordProcessor processCallback, List<String> topics, int timeout)
             throws PermanentError, TemporaryError;
 
     /**
@@ -163,7 +163,7 @@ public interface Consumer extends AutoCloseable {
      *                         callback to deliver records was not specified
      * @throws TemporaryError consume or commit attempts failed with errors other than ConsumerError.
      */
-    void run(final ConsumerRecordProcessor processCallback, final String topic)
+    void run(ConsumerRecordProcessor processCallback, String topic)
             throws PermanentError, TemporaryError;
 
     /**
@@ -187,7 +187,7 @@ public interface Consumer extends AutoCloseable {
      *                         callback to deliver records was not specified
      * @throws TemporaryError consume or commit attempts failed with errors other than ConsumerError.
      */
-    void run(final ConsumerRecordProcessor processCallback, final String topic, final int timeout)
+    void run(ConsumerRecordProcessor processCallback, String topic, int timeout)
             throws PermanentError, TemporaryError;
 
     /**

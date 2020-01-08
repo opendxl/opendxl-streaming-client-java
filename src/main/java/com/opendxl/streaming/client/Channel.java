@@ -18,7 +18,8 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonIOException;
 import com.google.gson.JsonSyntaxException;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -226,7 +227,7 @@ public class Channel implements Consumer, Producer, AutoCloseable {
     /**
      * The logger
      */
-    private static Logger logger = Logger.getLogger(Channel.class);
+    private static Logger logger = LoggerFactory.getLogger(Channel.class);
 
     /**
      * @param base Base URL at which the streaming service resides.
