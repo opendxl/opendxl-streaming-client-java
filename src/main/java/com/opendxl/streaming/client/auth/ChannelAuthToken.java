@@ -7,8 +7,8 @@ package com.opendxl.streaming.client.auth;
 import com.opendxl.streaming.client.ChannelAuth;
 
 import org.apache.http.HttpRequest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 
 /**
@@ -19,7 +19,7 @@ public class ChannelAuthToken implements ChannelAuth {
     /**
      * The logger
      */
-    private Logger logger = LoggerFactory.getLogger(ChannelAuthUserPass.class);
+    private Logger logger = LogManager.getLogger(ChannelAuthUserPass.class);
 
     private String token;
 
@@ -40,7 +40,9 @@ public class ChannelAuthToken implements ChannelAuth {
     public void authenticate(HttpRequest httpRequest) {
 
         if (token != null) {
-            httpRequest.addHeader("Authorization", "Bearer " + token);
+            httpRequest.addHeader("Authorization", "Bearer" + token);
+            httpRequest.addHeader("X-Tenant-Id", "5ca969eb-2757-46ed-bc3f-f9266ccccea7");
+            httpRequest.addHeader("X-CloudLink-scope", "soc.evt.vi");
             if (logger.isDebugEnabled()) {
                 logger.debug("Added Authorization header: Bearer " + token);
             }
