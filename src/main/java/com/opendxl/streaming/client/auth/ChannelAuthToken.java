@@ -40,9 +40,7 @@ public class ChannelAuthToken implements ChannelAuth {
     public void authenticate(HttpRequest httpRequest) {
 
         if (token != null) {
-            httpRequest.addHeader("Authorization", "Bearer" + token);
-            httpRequest.addHeader("X-Tenant-Id", "5ca969eb-2757-46ed-bc3f-f9266ccccea7");
-            httpRequest.addHeader("X-CloudLink-scope", "soc.evt.vi");
+            httpRequest.addHeader("Authorization", "Bearer " + token);
             if (logger.isDebugEnabled()) {
                 logger.debug("Added Authorization header: Bearer " + token);
             }
