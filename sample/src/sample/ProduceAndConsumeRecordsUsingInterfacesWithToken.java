@@ -16,8 +16,8 @@ import com.opendxl.streaming.client.entity.ProducerRecords;
 import com.opendxl.streaming.client.exception.PermanentError;
 import com.opendxl.streaming.client.exception.StopError;
 import com.opendxl.streaming.client.exception.TemporaryError;
-
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -74,7 +74,8 @@ public class ProduceAndConsumeRecordsUsingInterfacesWithToken {
     /**
      * The logger
      */
-    private static Logger logger = Logger.getLogger(ProduceAndConsumeRecordsUsingInterfacesWithToken.class);
+    private static Logger logger = LogManager.getLogger(ProduceAndConsumeRecordsUsingInterfacesWithToken.class);
+
 
     private ProduceAndConsumeRecordsUsingInterfacesWithToken() { }
 

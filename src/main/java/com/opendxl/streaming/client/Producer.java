@@ -32,7 +32,7 @@ public interface Producer extends AutoCloseable {
      * @throws TemporaryError if produce request was temporarily not authorized or there was an internal RESTful error
      *                        while serving the request.
      */
-    void produce(final ProducerRecords producerRecords) throws PermanentError, TemporaryError;
+    void produce(ProducerRecords producerRecords) throws PermanentError, TemporaryError;
 
     /**
      * <p>Produce records to the channel.</p>
@@ -43,7 +43,7 @@ public interface Producer extends AutoCloseable {
      * @throws TemporaryError if produce request was temporarily not authorized or there was an internal RESTful error
      *                        while serving the request.
      */
-    void produce(final String jsonProducerRecords) throws PermanentError, TemporaryError;
+    void produce(String jsonProducerRecords) throws PermanentError, TemporaryError;
 
     /**
      * <p>Closes the Producer channel.</p>

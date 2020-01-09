@@ -22,7 +22,7 @@ public interface ChannelAuth {
      * @throws PermanentError if the request fails due to the user not being authenticated successfully or if the user
      * is unauthorized to make the request or if a non-recoverable authentication error occurs for the request.
      */
-    void authenticate(final HttpRequest httpRequest) throws PermanentError, TemporaryError;
+    void authenticate(HttpRequest httpRequest) throws PermanentError, TemporaryError;
 
     /**
      * Purge any credentials cached from a previous authentication.

@@ -13,8 +13,8 @@ import com.opendxl.streaming.client.entity.ConsumerRecords;
 import com.opendxl.streaming.client.exception.PermanentError;
 import com.opendxl.streaming.client.exception.StopError;
 import com.opendxl.streaming.client.exception.TemporaryError;
-
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.Arrays;
 import java.util.List;
@@ -66,7 +66,7 @@ public class ConsumeRecordsWithToken {
     /**
      * The logger
      */
-    private static Logger logger = Logger.getLogger(ConsumeRecordsWithToken.class);
+    private static Logger logger = LogManager.getLogger(ConsumeRecordsWithToken.class);
 
 
     private ConsumeRecordsWithToken() { }

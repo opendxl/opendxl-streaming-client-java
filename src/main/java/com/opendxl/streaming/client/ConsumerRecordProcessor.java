@@ -33,7 +33,7 @@ public interface ConsumerRecordProcessor {
      *                        ones. Receiver should raise this exception upon finding unrecoverable errors in consumer
      *                        records.
      */
-    boolean processCallback(final ConsumerRecords consumerRecords, final String consumerId)
+    boolean processCallback(ConsumerRecords consumerRecords, String consumerId)
             throws ConsumerError, PermanentError;
 
 }

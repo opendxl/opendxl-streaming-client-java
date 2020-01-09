@@ -18,7 +18,8 @@ import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.util.EntityUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.nio.charset.Charset;
 import java.util.Base64;
@@ -32,7 +33,7 @@ public class ChannelAuthUserPass implements ChannelAuth {
     /**
      * The logger
      */
-    private Logger logger = Logger.getLogger(ChannelAuthUserPass.class);
+    private Logger logger = LogManager.getLogger(ChannelAuthUserPass.class);
 
     private final String base;
     private final String username;
