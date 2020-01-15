@@ -51,7 +51,7 @@ Gradle:
 
 API Documentation
 -----------------
-* `JavaDoc API Documentation <https://opendxl.github.io/opendxl-streaming-client-java/docs/javadoc/index.html>`_
+* `JavaDoc API Documentation <javadoc/index.html>`_
 
 Table of content
 ----------------
