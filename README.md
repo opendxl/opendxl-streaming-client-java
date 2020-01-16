@@ -56,7 +56,7 @@ Maven:
 ```
 or Gradle:
 ```groovy
-compile 'com.opendxl:dxlstreamingclient:1.0.0'
+compile 'com.opendxl:dxlstreamingclient:0.1.0'
 ```
 
 ## Bugs and Feedback
