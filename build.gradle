@@ -47,7 +47,7 @@ dependencyCheck {
 }
 
 jacoco {
-    toolVersion = "0.8.4"
+    toolVersion = "0.8.6"
     reportsDir = file("$buildDir/reports/coverage")
 }
 
@@ -66,7 +66,7 @@ dependencies {
     testImplementation 'org.mockito:mockito-all:1.10.19'
     implementation 'com.e-movimento.tinytools:privilegedaccessor:1.2.2'
     implementation 'net.sf.jopt-simple:jopt-simple:5.0.4'
-    implementation 'org.apache.httpcomponents:httpclient:4.5.10'
+    implementation 'org.apache.httpcomponents:httpclient:4.5.13'
     implementation 'com.google.code.gson:gson:2.8.6'
     implementation 'org.apache.logging.log4j:log4j-api:2.13.2'
     implementation 'org.apache.logging.log4j:log4j-core:2.13.2'
@@ -179,7 +179,7 @@ task versionFile()  {
 
 checkstyle {
     sourceSets = []
-    toolVersion '8.23'
+    toolVersion '8.39'
 
 }
 
