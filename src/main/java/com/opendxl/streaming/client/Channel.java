@@ -219,6 +219,12 @@ public class Channel implements Consumer, Producer, AutoCloseable {
     private final HttpProxySettings httpProxySettings;
 
     /**
+     * Flag that is set to true if the consumer group and topics to read are Multi
+     * tenant. Default value is true
+     */
+    private boolean isMultiTenant;
+
+    /**
      * JSON serializer and deserializer. It is used by {@link Channel#produce(ProducerRecords)} to serialize
      * {@link ProducerRecords} in order to produce them
      */
@@ -334,7 +340,11 @@ public class Channel implements Consumer, Producer, AutoCloseable {
 
         this.running = new AtomicBoolean(false);
         this.stopRequested = new AtomicBoolean(false);
+        this.isMultiTenant = true;
+    }
 
+    public void setMultiTenant(final boolean multiTenant) {
+        this.isMultiTenant = multiTenant;
     }
 
     /**
@@ -376,8 +386,12 @@ public class Channel implements Consumer, Producer, AutoCloseable {
             byte[] body = gson.toJson(consumerConfig).getBytes();
 
             try {
-
-                String responseEntityString = request.post(consumerPathPrefix + "/consumers", body, CREATE_ERROR_MAP);
+                final StringBuilder api = new StringBuilder(consumerPathPrefix)
+                .append("/consumers");
+                if (!this.isMultiTenant) {
+                    api.append("?multi_tenant=false");
+                }
+                String responseEntityString = request.post(api.toString(), body, CREATE_ERROR_MAP);
 
                 if (responseEntityString != null) {
                     ConsumerId consumer = gson.fromJson(responseEntityString, ConsumerId.class);
@@ -441,16 +455,19 @@ public class Channel implements Consumer, Producer, AutoCloseable {
             Gson gson = new Gson();
             byte[] body = gson.toJson(topicsToBeSubscribed).getBytes();
 
-            String api = new StringBuilder(consumerPathPrefix)
+            StringBuilder api = new StringBuilder(consumerPathPrefix)
                     .append("/consumers/")
                     .append(consumerId)
-                    .append("/subscription").toString();
+                    .append("/subscription");
+            if (!this.isMultiTenant) {
+                api.append("?multi_tenant=false");
+            }
 
             final String logMessage = new StringBuilder(logConsumerId())
                     .append(" to ").append(topics).append(" topics.").toString();
             try {
 
-                request.post(api, body, SUBSCRIBE_ERROR_MAP);
+                request.post(api.toString(), body, SUBSCRIBE_ERROR_MAP);
                 if (logger.isDebugEnabled()) {
                     logger.debug("Subscribed " + logMessage);
                 }
@@ -482,16 +499,19 @@ public class Channel implements Consumer, Producer, AutoCloseable {
         acquireAndEnsureChannelIsActive();
         try {
             final Gson gson = new Gson();
-            final String api =  new StringBuilder(consumerPathPrefix)
+            final StringBuilder api =  new StringBuilder(consumerPathPrefix)
                     .append("/consumers/")
                     .append(consumerId)
-                    .append("/subscription").toString();
+                    .append("/subscription");
+            if (!this.isMultiTenant) {
+                api.append("?multi_tenant=false");
+            }
 
             final List<String> list = new ArrayList<>();
 
             try {
 
-                String responseEntity = request.get(api, GET_SUBSCRIPTIONS_ERROR_MAP);
+                String responseEntity = request.get(api.toString(), GET_SUBSCRIPTIONS_ERROR_MAP);
 
                 if (responseEntity != null) {
                     list.addAll(gson.fromJson(responseEntity, List.class));
@@ -597,12 +617,27 @@ public class Channel implements Consumer, Producer, AutoCloseable {
                     .append("/consumers/")
                     .append(consumerId)
                     .append("/records");
+
+            final StringBuilder qryParam = new StringBuilder();
+            if (!this.isMultiTenant) {
+                qryParam.append("multi_tenant=false");
+            }
             if (timeout > 0) {
-                builder.append("?timeout=");
-                builder.append(timeout);
+                if (qryParam.length() > 0) {
+                    qryParam.append("&");
+                }
+                qryParam.append("timeout=");
+                qryParam.append(timeout);
+            }
+
+            if (qryParam.length() > 0) {
+                builder.append("?").append(qryParam);
             }
 
             final String api = builder.toString();
+            if (qryParam.length() > 0) {
+                builder.append("?").append(qryParam);
+            }
 
             try {
 
@@ -1243,4 +1278,5 @@ class ConsumerConfig {
         this.consumerGroup = consumerGroup;
         this.configs = configs;
     }
+
 }
