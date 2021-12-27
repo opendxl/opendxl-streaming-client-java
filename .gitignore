@@ -11,6 +11,6 @@ secring.gpg
 *.ipr
 *.iws
 out
-
+/bin
 # Version
 /VERSION
