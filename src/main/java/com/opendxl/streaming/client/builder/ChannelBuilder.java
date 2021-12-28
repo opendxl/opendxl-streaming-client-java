@@ -78,6 +78,11 @@ public class ChannelBuilder {
     private HttpProxySettings httpProxySettings;
 
     /**
+     * Boolean indicating tenant specific channel or non tenant specific.
+     */
+    private boolean multiTenant;
+
+    /**
      * <p>Constructor for {@link ChannelBuilder}</p>
      *
      * <p>Its parameters are mandatory parameters to create a {@link Channel} instance.
@@ -91,6 +96,7 @@ public class ChannelBuilder {
         this.base = base;
         this.auth = auth;
         this.consumerGroup = consumerGroup;
+        this.multiTenant = true;
     }
 
     /**
@@ -191,6 +197,11 @@ public class ChannelBuilder {
         return this;
     }
 
+    public ChannelBuilder withMultiTenant(final boolean multiTenant) {
+        this.multiTenant = multiTenant;
+        return this;
+    }
+
     /**
      * <p>Build a {@link Channel} object using the previously set parameters.</p>
      *
@@ -200,7 +211,7 @@ public class ChannelBuilder {
      */
     public Channel build() throws TemporaryError {
         return new Channel(base, auth, consumerGroup, pathPrefix, consumerPathPrefix, producerPathPrefix, retryOnFail,
-                verifyCertBundle, extraConfigs, httpProxySettings);
+                verifyCertBundle, extraConfigs, httpProxySettings, multiTenant);
     }
 
 }

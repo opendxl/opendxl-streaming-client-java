@@ -292,10 +292,19 @@ public class Channel implements Consumer, Producer, AutoCloseable {
      * @param httpProxySettings contains http proxy hostname, port, username and password.
      * @throws TemporaryError if http client request object failed to be created.
      */
-    public Channel(final String base, final ChannelAuth auth, final String consumerGroup, final String pathPrefix,
+     public Channel(final String base, final ChannelAuth auth, final String consumerGroup, final String pathPrefix,
                    final String consumerPathPrefix, final String producerPathPrefix, final boolean retryOnFail,
                    final String verifyCertBundle, final Properties extraConfigs,
                    final HttpProxySettings httpProxySettings)
+            throws TemporaryError {
+        this(base, auth, consumerGroup, pathPrefix, consumerPathPrefix, producerPathPrefix, retryOnFail,
+        verifyCertBundle, extraConfigs, httpProxySettings, true);
+     }
+
+     public Channel(final String base, final ChannelAuth auth, final String consumerGroup, final String pathPrefix,
+                   final String consumerPathPrefix, final String producerPathPrefix, final boolean retryOnFail,
+                   final String verifyCertBundle, final Properties extraConfigs,
+                   final HttpProxySettings httpProxySettings, final boolean multiTenant)
             throws TemporaryError {
 
         this.base = base;
@@ -340,12 +349,9 @@ public class Channel implements Consumer, Producer, AutoCloseable {
 
         this.running = new AtomicBoolean(false);
         this.stopRequested = new AtomicBoolean(false);
-        this.isMultiTenant = true;
-    }
-
-    public void setMultiTenant(final boolean multiTenant) {
         this.isMultiTenant = multiTenant;
     }
+
 
     /**
      * Resets local consumer data stored for the channel.
