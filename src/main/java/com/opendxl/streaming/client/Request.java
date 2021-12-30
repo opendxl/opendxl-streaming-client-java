@@ -23,6 +23,7 @@ import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Map.Entry;
 
 /**
  * <p>Request class is used to set up and send HTTP Post, Get and Delete requests to a given URI.</p>
@@ -33,6 +34,7 @@ public class Request implements AutoCloseable {
 
     private final String base;
     private final ChannelAuth auth;
+    private Map<String, String> requestHeaders;
 
     /**
      * Helper object which provides SSL connections and Http Proxy support for sending HTTP requests. SSL connection
@@ -61,10 +63,12 @@ public class Request implements AutoCloseable {
      * @throws TemporaryError if attempt to create and configure the HttpClient instance fails
      */
     public Request(final String base, final ChannelAuth auth, final String verifyCertBundle, boolean isHttps,
-                   final HttpProxySettings httpProxySettings) throws TemporaryError {
+                   final HttpProxySettings httpProxySettings, Map<String, String> requestHeaders)
+                   throws TemporaryError {
 
         this.base = base;
         this.auth = auth;
+        this.requestHeaders = requestHeaders;
 
         try {
 
@@ -101,8 +105,17 @@ public class Request implements AutoCloseable {
             httpRequest.setEntity(new ByteArrayEntity(body));
         }
 
-        return request(httpRequest, httpStatusMapping);
+        addConfiguredHeaders(httpRequest);
 
+        return request(httpRequest, httpStatusMapping);
+    }
+
+    private void addConfiguredHeaders(HttpPost httpRequest) {
+        if (requestHeaders.size() > 0) {
+            for (Entry<String, String> entry : requestHeaders.entrySet()) {
+                httpRequest.addHeader(entry.getKey(), entry.getValue());
+            }
+        }
     }
 
     /**

@@ -23,6 +23,7 @@ import org.apache.logging.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -224,6 +225,8 @@ public class Channel implements Consumer, Producer, AutoCloseable {
      */
     private boolean isMultiTenant;
 
+    private Map<String, String> requestHeaders;
+
     /**
      * JSON serializer and deserializer. It is used by {@link Channel#produce(ProducerRecords)} to serialize
      * {@link ProducerRecords} in order to produce them
@@ -298,13 +301,14 @@ public class Channel implements Consumer, Producer, AutoCloseable {
                    final HttpProxySettings httpProxySettings)
             throws TemporaryError {
         this(base, auth, consumerGroup, pathPrefix, consumerPathPrefix, producerPathPrefix, retryOnFail,
-        verifyCertBundle, extraConfigs, httpProxySettings, true);
+        verifyCertBundle, extraConfigs, httpProxySettings, true, Collections.EMPTY_MAP);
      }
 
      public Channel(final String base, final ChannelAuth auth, final String consumerGroup, final String pathPrefix,
                    final String consumerPathPrefix, final String producerPathPrefix, final boolean retryOnFail,
                    final String verifyCertBundle, final Properties extraConfigs,
-                   final HttpProxySettings httpProxySettings, final boolean multiTenant)
+                   final HttpProxySettings httpProxySettings, final boolean multiTenant,
+                   final Map<String, String> requestHeaders)
             throws TemporaryError {
 
         this.base = base;
@@ -340,7 +344,8 @@ public class Channel implements Consumer, Producer, AutoCloseable {
         // Create a custom Request object so that we can store cookies across requests
         this.isHttps = base.toLowerCase().startsWith("https");
         this.httpProxySettings = httpProxySettings;
-        this.request = new Request(base, auth, this.verifyCertBundle, this.isHttps, this.httpProxySettings);
+        this.request = new Request(base, auth, this.verifyCertBundle, this.isHttps, this.httpProxySettings,
+        requestHeaders);
 
         this.retryOnFail = retryOnFail;
 
@@ -350,6 +355,7 @@ public class Channel implements Consumer, Producer, AutoCloseable {
         this.running = new AtomicBoolean(false);
         this.stopRequested = new AtomicBoolean(false);
         this.isMultiTenant = multiTenant;
+        this.requestHeaders = requestHeaders;
     }
 
 
@@ -1084,10 +1090,13 @@ public class Channel implements Consumer, Producer, AutoCloseable {
 
         acquireAndEnsureChannelIsActive();
         try {
-            final String api = new StringBuilder(producerPathPrefix)
-                    .append("/produce").toString();
+            final StringBuilder api = new StringBuilder(producerPathPrefix)
+                    .append("/produce");
+            if (!this.isMultiTenant) {
+                api.append("?multi_tenant=false");
+            }
 
-            request.post(api, jsonProducerRecords.getBytes(), PRODUCE_RECORDS_ERROR_MAP);
+            request.post(api.toString(), jsonProducerRecords.getBytes(), PRODUCE_RECORDS_ERROR_MAP);
             if (logger.isDebugEnabled()) {
                 logger.debug("produced records.");
             }
@@ -1121,7 +1130,7 @@ public class Channel implements Consumer, Producer, AutoCloseable {
         }
         delete();
         request.close();
-        request = new Request(base, auth, verifyCertBundle, isHttps, httpProxySettings);
+        request = new Request(base, auth, verifyCertBundle, isHttps, httpProxySettings, requestHeaders);
         create();
 
     }
