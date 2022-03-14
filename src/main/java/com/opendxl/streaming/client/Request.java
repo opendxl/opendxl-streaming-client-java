@@ -111,7 +111,7 @@ public class Request implements AutoCloseable {
     }
 
     private void addConfiguredHeaders(HttpPost httpRequest) {
-        if (requestHeaders.size() > 0) {
+        if (requestHeaders != null && requestHeaders.size() > 0) {
             for (Entry<String, String> entry : requestHeaders.entrySet()) {
                 httpRequest.addHeader(entry.getKey(), entry.getValue());
             }
