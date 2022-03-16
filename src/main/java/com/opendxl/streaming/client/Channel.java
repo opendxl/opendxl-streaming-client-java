@@ -439,7 +439,7 @@ public class Channel implements Consumer, Producer, AutoCloseable {
      * @throws TemporaryError if the subscription attempt fails.
      */
     public void subscribe(final List<String> topics) throws ConsumerError, PermanentError, TemporaryError {
-        subscribe(topics, Collections.emptyMap());
+        subscribe(topics, Collections.emptyMap(), false);
     }
     /**
      * Subscribes the consumer to a list of topics
@@ -449,8 +449,8 @@ public class Channel implements Consumer, Producer, AutoCloseable {
      * @throws PermanentError if no topics were specified.
      * @throws TemporaryError if the subscription attempt fails.
      */
-    public void subscribe(final List<String> topics, final Map<String, Object> filter)
-        throws ConsumerError, PermanentError, TemporaryError {
+    public void subscribe(final List<String> topics, final Map<String, Object> filter,
+        final boolean payloadLookupForFilter) throws ConsumerError, PermanentError, TemporaryError {
         acquireAndEnsureChannelIsActive();
         try {
             if (topics == null) {
@@ -481,7 +481,7 @@ public class Channel implements Consumer, Producer, AutoCloseable {
                 Topics topicsToBeSubscribed = new Topics(topics);
                 body = gson.toJson(topicsToBeSubscribed).getBytes();
             } else {
-                SubscribePayload payload = new SubscribePayload(topics, filter);
+                SubscribePayload payload = new SubscribePayload(topics, filter, payloadLookupForFilter);
                 body = gson.toJson(payload).getBytes();
             }
 
@@ -810,7 +810,7 @@ public class Channel implements Consumer, Producer, AutoCloseable {
      */
     public void run(final ConsumerRecordProcessor processCallback, final List<String> topics, final int timeout)
             throws PermanentError, TemporaryError {
-        run(processCallback, topics, Collections.emptyMap(), timeout);
+        run(processCallback, topics, Collections.emptyMap(), false, timeout);
     }
     /**
      * <p>Repeatedly consume records from the subscribed topics.</p>
@@ -834,7 +834,7 @@ public class Channel implements Consumer, Producer, AutoCloseable {
      * @throws TemporaryError consume or commit attempts failed with errors other than ConsumerError.
      */
     public void run(final ConsumerRecordProcessor processCallback, final List<String> topics,
-    final Map<String, Object> filter, final int timeout)
+    final Map<String, Object> filter, final boolean payloadLookupForFilter, final int timeout)
             throws PermanentError, TemporaryError {
 
         acquireAndEnsureChannelIsActive();
@@ -858,7 +858,7 @@ public class Channel implements Consumer, Producer, AutoCloseable {
                 logger.info("Channel is running");
 
                 while (!stopRequested.get()) {
-                    consumeLoop(processCallback, topicsOfInterest, filter, timeout);
+                    consumeLoop(processCallback, topicsOfInterest, filter, payloadLookupForFilter, timeout);
                 }
 
                 if (logger.isDebugEnabled()) {
@@ -1054,18 +1054,17 @@ public class Channel implements Consumer, Producer, AutoCloseable {
      * @throws PermanentError the callback asks to stop consuming records.
      */
     private void consumeLoop(final ConsumerRecordProcessor processCallback, final List<String> topics,
-        final Map<String, Object> filter, final int timeout)
+        final Map<String, Object> filter, final boolean payloadLookupForFilter, final int timeout)
         throws PermanentError, TemporaryError {
 
         boolean continueRunning = true;
         boolean subscribed = false;
 
         while (continueRunning) {
-
             try {
                 // if consumer is not subscribed yet, then subscribe it
                 if (!subscribed) {
-                    subscribe(topics, filter);
+                    subscribe(topics, filter, payloadLookupForFilter);
                     subscribed = true;
                     if (logger.isDebugEnabled()) {
                         // show topics consumer is subscribed to

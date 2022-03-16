@@ -12,11 +12,15 @@ public class SubscribePayload {
 
     private Map<String, Object> filter;
 
+    private boolean payloadLookupForFilter;
+
     /**
      * @param topics list of topic names
      */
-    public SubscribePayload(final List<String> topics, final Map<String, Object> filter) {
+    public SubscribePayload(final List<String> topics, final Map<String, Object> filter,
+        final boolean payloadLookupForFilter) {
         this.topics = topics;
         this.filter = filter;
+        this.payloadLookupForFilter = payloadLookupForFilter;
     }
 }
