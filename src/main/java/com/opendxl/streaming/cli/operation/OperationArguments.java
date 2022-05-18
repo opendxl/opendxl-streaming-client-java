@@ -10,6 +10,7 @@ package com.opendxl.streaming.cli.operation;
 public enum OperationArguments {
 
     LOGIN("login"),
+    TOKEN("token"),
     CREATE("create"),
     SUBSCRIBE("subscribe"),
     CONSUME("consume"),

@@ -26,6 +26,8 @@ public class OperationFactory {
         this.options = options;
         operationArgumentsFactoryMap.put(OperationArguments.LOGIN,
                 new LoginOperation(optionSpecMap, options));
+        operationArgumentsFactoryMap.put(OperationArguments.TOKEN,
+                new TokenOperation(optionSpecMap, options));
         operationArgumentsFactoryMap.put(OperationArguments.CREATE,
                 new CreateOperation(optionSpecMap, options));
         operationArgumentsFactoryMap.put(OperationArguments.SUBSCRIBE,
