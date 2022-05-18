@@ -87,10 +87,14 @@ public class TokenOperation implements CommandLineOperation {
      *     "code": "200",
      *     "result": "myToken",
      *     "options": {
-     *         "password": ["secret"],
-     *         "auth-url": ["https://my-host.my-domain.net/identity/v1/login"],
+     *         "client-secret": ["client-secret"],
+     *         "auth-url": ["https://my-host.my-domain.net/iam/v1.4/token"],
      *         "verify-cert-bundle": ["1234"],
-     *         "user": ["me"]
+     *         "client-id": ["me"]
+     *         "audience": ["mcafee"]
+     *         "grant-type": ["client_credentials"]
+     *         "scope": ["scope1 scope2 scope3"]
+     *         "http-proxy": [""]
      *     }
      * }
      *         </pre>

@@ -144,8 +144,11 @@ public class ChannelAuthClientCredentialSecret implements ChannelAuth {
      * Make a login request to the supplied login url.
      *
      * @param uri              Base URL at which to make the request.
-     * @param clientId         User name to supply for request authentication.
-     * @param clientSecret         Password to supply for request authentication.
+     * @param clientId         Client Id to supply for request authentication.
+     * @param clientSecret     Client Secret to supply for request authentication.
+     * @param audience         audience to supply for request authentication, eg. "IAM+AuthZ", "mcafee"
+     * @param grantType        grant type to supply for request authentication, eg. "client_credentials"
+     * @param scope            scope to supply for request authentication, Its a space separated list of scopes.
      * @param pathFragment     Path to append to the base URL for the request.
      * @param verifyCertBundle CA Bundle chain certificates. This string shall be
      *                         either the certificates themselves or
