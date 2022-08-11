@@ -359,6 +359,12 @@ public class Channel implements Consumer, Producer, AutoCloseable {
         this.requestHeaders = requestHeaders;
     }
 
+    /**
+     * set multi_tenant attribute.
+     */
+    public void setMultiTenant(final boolean multiTenant) {
+        this.isMultiTenant = multiTenant;
+    }
 
     /**
      * Resets local consumer data stored for the channel.
