@@ -182,6 +182,14 @@ public class ChannelAuthUserPass implements ChannelAuth {
             entityString = EntityUtils.toString(response.getEntity());
         } catch (final Throwable e) {
             throw new TemporaryError("Unexpected error: " + e.getMessage(), e);
+        } finally {
+            try {
+                if (httpConnection != null) {
+                    httpConnection.close();
+                }
+            } catch (Exception e) {
+                //Eat it
+            }
         }
 
         int statusCode = response.getStatusLine().getStatusCode();

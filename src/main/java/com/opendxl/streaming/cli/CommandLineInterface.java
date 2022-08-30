@@ -52,12 +52,12 @@ public class CommandLineInterface {
 
         // operation option spec represented as --operation command line
         final ArgumentAcceptingOptionSpec<String> operationsOpt =
-                parser.accepts("operation", "Operations: login | create | subscribe | consume | commit | subscriptions"
-                        + " | delete | produce")
-                        .withRequiredArg()
-                        .describedAs("operation")
-                        .ofType(String.class)
-                        .required();
+                parser.accepts("operation", "Operations: login | token | create | subscribe | consume "
+                + "| commit | subscriptions | delete | produce")
+                .withRequiredArg()
+                .describedAs("operation")
+                .ofType(String.class)
+                .required();
 
         // topic option spec represented as --topic command line
         final ArgumentAcceptingOptionSpec<String> topicIdOpt =
@@ -75,18 +75,25 @@ public class CommandLineInterface {
                         .ofType(String.class);
 
         // User name option spec represented as --user command line
-        final ArgumentAcceptingOptionSpec<String> userOpt =
-                parser.accepts("user", "The user name to send to authorization service.")
-                        .withRequiredArg()
-                        .describedAs("user")
-                        .ofType(String.class);
+        final ArgumentAcceptingOptionSpec<String> userOpt = getUserOpt();
 
         // password option spec represented as --password command line
-        final ArgumentAcceptingOptionSpec<String> passwordOpt =
-                parser.accepts("password", "The password to send to authorization service.")
-                        .withRequiredArg()
-                        .describedAs("password")
-                        .ofType(String.class);
+        final ArgumentAcceptingOptionSpec<String> passwordOpt = getPasswordOpt();
+
+        // Client Id option spec represented as --clientId command line
+        final ArgumentAcceptingOptionSpec<String> clientIdOpt = getClientIdOpt();
+
+        // password option spec represented as --password command line
+        final ArgumentAcceptingOptionSpec<String> clientSecretOpt = getClientSecretOpt();
+
+        // audience option spec represented as --password command line
+        final ArgumentAcceptingOptionSpec<String> audienceOpt = getAudienceOpt();
+
+        // grant_type option spec represented as --password command line
+        final ArgumentAcceptingOptionSpec<String> grantTypeOpt = getGrantTypeOpt();
+
+        // audience option spec represented as --password command line
+        final ArgumentAcceptingOptionSpec<String> scopeOpt = getScopeOpt();
 
         // Verify Cert Bundle option spec represented as --verify-cert-bundle command line
         final ArgumentAcceptingOptionSpec<String> verifyCertBundleOpt =
@@ -215,6 +222,11 @@ public class CommandLineInterface {
         optionSpecMap.put(Options.AUTH_URL, authURLOpt);
         optionSpecMap.put(Options.USER, userOpt);
         optionSpecMap.put(Options.PASSWORD, passwordOpt);
+        optionSpecMap.put(Options.CLIENT_ID, clientIdOpt);
+        optionSpecMap.put(Options.CLIENT_SECRET, clientSecretOpt);
+        optionSpecMap.put(Options.AUDIENCE, audienceOpt);
+        optionSpecMap.put(Options.GRANT_TYPE, grantTypeOpt);
+        optionSpecMap.put(Options.SCOPE, scopeOpt);
         optionSpecMap.put(Options.VERIFY_CERT_BUNDLE, verifyCertBundleOpt);
         optionSpecMap.put(Options.URL, uRLOpt);
         optionSpecMap.put(Options.TOKEN, tokenOpt);
@@ -234,6 +246,55 @@ public class CommandLineInterface {
         CliUtils.validateMandatoryOperationArgs(operation, parser, options);
     }
 
+private ArgumentAcceptingOptionSpec<String> getScopeOpt() {
+        return parser.accepts("scope", "The scope to send to authorization service.")
+                .withRequiredArg()
+                .describedAs("scope")
+                .ofType(String.class);
+}
+
+private ArgumentAcceptingOptionSpec<String> getGrantTypeOpt() {
+        return parser.accepts("grant-type", "The grantType to send to authorization service.")
+                .withRequiredArg()
+                .describedAs("grant-type")
+                .ofType(String.class);
+}
+
+private ArgumentAcceptingOptionSpec<String> getAudienceOpt() {
+        return parser.accepts("audience", "The audience to send to authorization service.")
+                .withRequiredArg()
+                .describedAs("audience")
+                .ofType(String.class);
+}
+
+private ArgumentAcceptingOptionSpec<String> getClientSecretOpt() {
+        return parser.accepts("client-secret", "The client secret to send to authorization service.")
+                .withRequiredArg()
+                .describedAs("clientSecret")
+                .ofType(String.class);
+}
+
+private ArgumentAcceptingOptionSpec<String> getClientIdOpt() {
+        return parser.accepts("client-id", "The client Id to send to authorization service.")
+                .withRequiredArg()
+                .describedAs("clientId")
+                .ofType(String.class);
+}
+
+private ArgumentAcceptingOptionSpec<String> getPasswordOpt() {
+        return parser.accepts("password", "The password to send to authorization service.")
+                .withRequiredArg()
+                .describedAs("password")
+                .ofType(String.class);
+}
+
+    private ArgumentAcceptingOptionSpec<String> getUserOpt() {
+                return parser.accepts("user", "The user name to send to authorization service.")
+                        .withRequiredArg()
+                        .describedAs("user")
+                        .ofType(String.class);
+    }
+
     /**
      * It parses command line options and their arguments values. If they do not meet spec requirements, it shows
      * the usage and exists with a error.
@@ -248,7 +309,6 @@ public class CommandLineInterface {
         } catch (Exception e) {
             CliUtils.printUsageAndFinish(parser, e.getMessage());
         }
-
     }
 
     /**
@@ -272,7 +332,6 @@ public class CommandLineInterface {
     public ExecutionResult execute() {
         return operation.execute();
     }
-
 
     /**
      * Entry point
