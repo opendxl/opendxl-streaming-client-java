@@ -43,6 +43,7 @@ public class ChannelAuthUserPass implements ChannelAuth {
     private final HttpProxySettings httpProxySettings;
     private final boolean isHttps;
     private String token;
+    private final boolean skipAuth;
 
     /**
      * @param base Base URL to forward authentication requests to. Its value will be prepended to pathFragment.
@@ -60,17 +61,26 @@ public class ChannelAuthUserPass implements ChannelAuth {
     public ChannelAuthUserPass(final String base, final String username, final String password, String pathFragment,
                                final String verifyCertBundle, final HttpProxySettings httpProxySettings)
             throws PermanentError {
-
-        if (base == null || base.isEmpty()) {
-            throw new PermanentError("Base URL may not be null or empty");
+            this(base, username, password, pathFragment, verifyCertBundle, httpProxySettings, false);
         }
 
-        if (username == null || username.isEmpty()) {
-            throw new PermanentError("username may not be null or empty");
-        }
+    public ChannelAuthUserPass(final String base, final String username, final String password, String pathFragment,
+                               final String verifyCertBundle, final HttpProxySettings httpProxySettings,
+                               final boolean skipAuth)
+            throws PermanentError {
 
-        if (password == null) {
-            throw new PermanentError("password may not be null");
+        if (!skipAuth) {
+            if (base == null || base.isEmpty()) {
+                throw new PermanentError("Base URL may not be null or empty");
+            }
+
+            if (username == null || username.isEmpty()) {
+                throw new PermanentError("username may not be null or empty");
+            }
+
+            if (password == null) {
+                throw new PermanentError("password may not be null");
+            }
         }
 
         this.base = base;
@@ -81,6 +91,7 @@ public class ChannelAuthUserPass implements ChannelAuth {
         this.isHttps = base.toLowerCase().startsWith("https");
         this.httpProxySettings = httpProxySettings;
         token = null;
+        this.skipAuth = skipAuth;
 
     }
 
@@ -100,6 +111,13 @@ public class ChannelAuthUserPass implements ChannelAuth {
     @Override
     public void authenticate(final HttpRequest httpRequest)
             throws PermanentError, TemporaryError {
+
+        if (this.skipAuth) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Skipping Authentication");
+            }
+            return;
+        }
 
         if (token == null) {
             // Ask for the token

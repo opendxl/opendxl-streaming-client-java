@@ -11,7 +11,9 @@ import com.opendxl.streaming.client.HttpProxySettings;
 import com.opendxl.streaming.client.HttpConnection;
 import com.opendxl.streaming.client.exception.TemporaryError;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 /**
@@ -78,6 +80,16 @@ public class ChannelBuilder {
     private HttpProxySettings httpProxySettings;
 
     /**
+     * Boolean indicating tenant specific channel or non tenant specific.
+     */
+    private boolean multiTenant;
+
+    /**
+     * Map of request headers.
+     */
+    private Map<String, String> requestHeaders;
+
+    /**
      * <p>Constructor for {@link ChannelBuilder}</p>
      *
      * <p>Its parameters are mandatory parameters to create a {@link Channel} instance.
@@ -91,6 +103,8 @@ public class ChannelBuilder {
         this.base = base;
         this.auth = auth;
         this.consumerGroup = consumerGroup;
+        this.multiTenant = true;
+        this.requestHeaders = Collections.emptyMap();
     }
 
     /**
@@ -191,6 +205,16 @@ public class ChannelBuilder {
         return this;
     }
 
+    public ChannelBuilder withMultiTenant(final boolean multiTenant) {
+        this.multiTenant = multiTenant;
+        return this;
+    }
+
+    public ChannelBuilder withRequestHeaders(final Map<String, String> headers) {
+        this.requestHeaders = headers;
+        return this;
+    }
+
     /**
      * <p>Build a {@link Channel} object using the previously set parameters.</p>
      *
@@ -200,7 +224,7 @@ public class ChannelBuilder {
      */
     public Channel build() throws TemporaryError {
         return new Channel(base, auth, consumerGroup, pathPrefix, consumerPathPrefix, producerPathPrefix, retryOnFail,
-                verifyCertBundle, extraConfigs, httpProxySettings);
+                verifyCertBundle, extraConfigs, httpProxySettings, multiTenant, requestHeaders);
     }
 
 }

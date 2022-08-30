@@ -6,6 +6,7 @@ package com.opendxl.streaming.client;
 
 import com.opendxl.streaming.client.entity.ConsumerRecords;
 import com.opendxl.streaming.client.entity.ProducerRecords;
+import com.opendxl.streaming.client.entity.SubscribePayload;
 import com.opendxl.streaming.client.entity.Topics;
 import com.opendxl.streaming.client.exception.ClientError;
 import com.opendxl.streaming.client.exception.ConsumerError;
@@ -23,6 +24,7 @@ import org.apache.logging.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -219,6 +221,14 @@ public class Channel implements Consumer, Producer, AutoCloseable {
     private final HttpProxySettings httpProxySettings;
 
     /**
+     * Flag that is set to true if the consumer group and topics to read are Multi
+     * tenant. Default value is true
+     */
+    private boolean isMultiTenant;
+
+    private Map<String, String> requestHeaders;
+
+    /**
      * JSON serializer and deserializer. It is used by {@link Channel#produce(ProducerRecords)} to serialize
      * {@link ProducerRecords} in order to produce them
      */
@@ -286,10 +296,20 @@ public class Channel implements Consumer, Producer, AutoCloseable {
      * @param httpProxySettings contains http proxy hostname, port, username and password.
      * @throws TemporaryError if http client request object failed to be created.
      */
-    public Channel(final String base, final ChannelAuth auth, final String consumerGroup, final String pathPrefix,
+     public Channel(final String base, final ChannelAuth auth, final String consumerGroup, final String pathPrefix,
                    final String consumerPathPrefix, final String producerPathPrefix, final boolean retryOnFail,
                    final String verifyCertBundle, final Properties extraConfigs,
                    final HttpProxySettings httpProxySettings)
+            throws TemporaryError {
+        this(base, auth, consumerGroup, pathPrefix, consumerPathPrefix, producerPathPrefix, retryOnFail,
+        verifyCertBundle, extraConfigs, httpProxySettings, true, Collections.EMPTY_MAP);
+     }
+
+     public Channel(final String base, final ChannelAuth auth, final String consumerGroup, final String pathPrefix,
+                   final String consumerPathPrefix, final String producerPathPrefix, final boolean retryOnFail,
+                   final String verifyCertBundle, final Properties extraConfigs,
+                   final HttpProxySettings httpProxySettings, final boolean multiTenant,
+                   final Map<String, String> requestHeaders)
             throws TemporaryError {
 
         this.base = base;
@@ -325,7 +345,8 @@ public class Channel implements Consumer, Producer, AutoCloseable {
         // Create a custom Request object so that we can store cookies across requests
         this.isHttps = base.toLowerCase().startsWith("https");
         this.httpProxySettings = httpProxySettings;
-        this.request = new Request(base, auth, this.verifyCertBundle, this.isHttps, this.httpProxySettings);
+        this.request = new Request(base, auth, this.verifyCertBundle, this.isHttps, this.httpProxySettings,
+        requestHeaders);
 
         this.retryOnFail = retryOnFail;
 
@@ -334,7 +355,15 @@ public class Channel implements Consumer, Producer, AutoCloseable {
 
         this.running = new AtomicBoolean(false);
         this.stopRequested = new AtomicBoolean(false);
+        this.isMultiTenant = multiTenant;
+        this.requestHeaders = requestHeaders;
+    }
 
+    /**
+     * set multi_tenant attribute.
+     */
+    public void setMultiTenant(final boolean multiTenant) {
+        this.isMultiTenant = multiTenant;
     }
 
     /**
@@ -376,8 +405,12 @@ public class Channel implements Consumer, Producer, AutoCloseable {
             byte[] body = gson.toJson(consumerConfig).getBytes();
 
             try {
-
-                String responseEntityString = request.post(consumerPathPrefix + "/consumers", body, CREATE_ERROR_MAP);
+                final StringBuilder api = new StringBuilder(consumerPathPrefix)
+                .append("/consumers");
+                if (!this.isMultiTenant) {
+                    api.append("?multi_tenant=false");
+                }
+                String responseEntityString = request.post(api.toString(), body, CREATE_ERROR_MAP);
 
                 if (responseEntityString != null) {
                     ConsumerId consumer = gson.fromJson(responseEntityString, ConsumerId.class);
@@ -412,7 +445,18 @@ public class Channel implements Consumer, Producer, AutoCloseable {
      * @throws TemporaryError if the subscription attempt fails.
      */
     public void subscribe(final List<String> topics) throws ConsumerError, PermanentError, TemporaryError {
-
+        subscribe(topics, Collections.emptyMap(), false);
+    }
+    /**
+     * Subscribes the consumer to a list of topics
+     *
+     * @param topics Topic list.
+     * @throws ConsumerError if the consumer associated with the channel does not exist on the server.
+     * @throws PermanentError if no topics were specified.
+     * @throws TemporaryError if the subscription attempt fails.
+     */
+    public void subscribe(final List<String> topics, final Map<String, Object> filter,
+        final boolean payloadLookupForFilter) throws ConsumerError, PermanentError, TemporaryError {
         acquireAndEnsureChannelIsActive();
         try {
             if (topics == null) {
@@ -437,20 +481,29 @@ public class Channel implements Consumer, Producer, AutoCloseable {
                 create();
             }
 
-            Topics topicsToBeSubscribed = new Topics(topics);
             Gson gson = new Gson();
-            byte[] body = gson.toJson(topicsToBeSubscribed).getBytes();
+            byte[] body = null;
+            if (null == filter || filter.isEmpty()) {
+                Topics topicsToBeSubscribed = new Topics(topics);
+                body = gson.toJson(topicsToBeSubscribed).getBytes();
+            } else {
+                SubscribePayload payload = new SubscribePayload(topics, filter, payloadLookupForFilter);
+                body = gson.toJson(payload).getBytes();
+            }
 
-            String api = new StringBuilder(consumerPathPrefix)
+            StringBuilder api = new StringBuilder(consumerPathPrefix)
                     .append("/consumers/")
                     .append(consumerId)
-                    .append("/subscription").toString();
+                    .append("/subscription");
+            if (!this.isMultiTenant) {
+                api.append("?multi_tenant=false");
+            }
 
             final String logMessage = new StringBuilder(logConsumerId())
                     .append(" to ").append(topics).append(" topics.").toString();
             try {
 
-                request.post(api, body, SUBSCRIBE_ERROR_MAP);
+                request.post(api.toString(), body, SUBSCRIBE_ERROR_MAP);
                 if (logger.isDebugEnabled()) {
                     logger.debug("Subscribed " + logMessage);
                 }
@@ -482,16 +535,19 @@ public class Channel implements Consumer, Producer, AutoCloseable {
         acquireAndEnsureChannelIsActive();
         try {
             final Gson gson = new Gson();
-            final String api =  new StringBuilder(consumerPathPrefix)
+            final StringBuilder api =  new StringBuilder(consumerPathPrefix)
                     .append("/consumers/")
                     .append(consumerId)
-                    .append("/subscription").toString();
+                    .append("/subscription");
+            if (!this.isMultiTenant) {
+                api.append("?multi_tenant=false");
+            }
 
             final List<String> list = new ArrayList<>();
 
             try {
 
-                String responseEntity = request.get(api, GET_SUBSCRIPTIONS_ERROR_MAP);
+                String responseEntity = request.get(api.toString(), GET_SUBSCRIPTIONS_ERROR_MAP);
 
                 if (responseEntity != null) {
                     list.addAll(gson.fromJson(responseEntity, List.class));
@@ -584,6 +640,20 @@ public class Channel implements Consumer, Producer, AutoCloseable {
      * @throws TemporaryError if the consume attempt fails.
      */
     public ConsumerRecords consume(final int timeout) throws ConsumerError, PermanentError, TemporaryError {
+        return consume(timeout, false);
+    }
+
+    /**
+     * Consumes records from all the subscribed topics
+     *
+     * @param timeout Timeout in milliseconds to wait for records before returning
+     * @return {@link ConsumerRecords} a list of the consumer record objects from the records returned by the server.
+     * @throws ConsumerError if the consumer associated with the channel does not exist on the server.
+     * @throws PermanentError if the channel has not been subscribed to any topics.
+     * @throws TemporaryError if the consume attempt fails.
+     */
+    public ConsumerRecords consume(final int timeout, final boolean filter)
+        throws ConsumerError, PermanentError, TemporaryError {
 
         acquireAndEnsureChannelIsActive();
         try {
@@ -597,12 +667,34 @@ public class Channel implements Consumer, Producer, AutoCloseable {
                     .append("/consumers/")
                     .append(consumerId)
                     .append("/records");
+
+            final StringBuilder qryParam = new StringBuilder();
+            if (!this.isMultiTenant) {
+                qryParam.append("multi_tenant=false");
+            }
             if (timeout > 0) {
-                builder.append("?timeout=");
-                builder.append(timeout);
+                if (qryParam.length() > 0) {
+                    qryParam.append("&");
+                }
+                qryParam.append("timeout=");
+                qryParam.append(timeout);
+            }
+
+            if (filter) {
+                if (qryParam.length() > 0) {
+                    qryParam.append("&");
+                }
+                qryParam.append("filter=true");
+            }
+
+            if (qryParam.length() > 0) {
+                builder.append("?").append(qryParam);
             }
 
             final String api = builder.toString();
+            if (qryParam.length() > 0) {
+                builder.append("?").append(qryParam);
+            }
 
             try {
 
@@ -724,6 +816,32 @@ public class Channel implements Consumer, Producer, AutoCloseable {
      */
     public void run(final ConsumerRecordProcessor processCallback, final List<String> topics, final int timeout)
             throws PermanentError, TemporaryError {
+        run(processCallback, topics, Collections.emptyMap(), false, timeout);
+    }
+    /**
+     * <p>Repeatedly consume records from the subscribed topics.</p>
+     *
+     * <p>The supplied
+     * {@link ConsumerRecordProcessor#processCallback(ConsumerRecords, String)} method is invoked with a list containing
+     * each consumer record.</p>
+     *
+     * <p>{@link ConsumerRecordProcessor#processCallback(ConsumerRecords, String)} return value is <b>currently
+     * ignored</b>. It is <b>reserved for future use</b>.</p>
+     *
+     * <p>The {@link Channel#stop()} method can also be called to halt an execution of this method.</p>
+     *
+     * @param processCallback Callable which is invoked with a list of records which have been consumed.
+     * @param topics If set to a non-empty value, the channel will be subscribed to the specified topics.
+     *              If set to an empty value, the channel will use topics previously subscribed via a call to the
+     *              subscribe method.
+     * @param timeout Timeout in milliseconds to wait for records before returning
+     * @throws PermanentError if a prior run is already in progress or no consumer group value was specified or
+     *                         callback to deliver records was not specified
+     * @throws TemporaryError consume or commit attempts failed with errors other than ConsumerError.
+     */
+    public void run(final ConsumerRecordProcessor processCallback, final List<String> topics,
+    final Map<String, Object> filter, final boolean payloadLookupForFilter, final int timeout)
+            throws PermanentError, TemporaryError {
 
         acquireAndEnsureChannelIsActive();
         try {
@@ -746,7 +864,7 @@ public class Channel implements Consumer, Producer, AutoCloseable {
                 logger.info("Channel is running");
 
                 while (!stopRequested.get()) {
-                    consumeLoop(processCallback, topicsOfInterest, timeout);
+                    consumeLoop(processCallback, topicsOfInterest, filter, payloadLookupForFilter, timeout);
                 }
 
                 if (logger.isDebugEnabled()) {
@@ -941,18 +1059,18 @@ public class Channel implements Consumer, Producer, AutoCloseable {
      * @throws TemporaryError the consume or commit attempt failed with an error other than ConsumerError.
      * @throws PermanentError the callback asks to stop consuming records.
      */
-    private void consumeLoop(final ConsumerRecordProcessor processCallback, List<String> topics, final int timeout)
-            throws PermanentError, TemporaryError {
+    private void consumeLoop(final ConsumerRecordProcessor processCallback, final List<String> topics,
+        final Map<String, Object> filter, final boolean payloadLookupForFilter, final int timeout)
+        throws PermanentError, TemporaryError {
 
         boolean continueRunning = true;
         boolean subscribed = false;
 
         while (continueRunning) {
-
             try {
                 // if consumer is not subscribed yet, then subscribe it
                 if (!subscribed) {
-                    subscribe(topics);
+                    subscribe(topics, filter, payloadLookupForFilter);
                     subscribed = true;
                     if (logger.isDebugEnabled()) {
                         // show topics consumer is subscribed to
@@ -961,7 +1079,7 @@ public class Channel implements Consumer, Producer, AutoCloseable {
                 }
 
                 // consume records
-                ConsumerRecords records = consume(timeout);
+                ConsumerRecords records = consume(timeout, filter != null && !filter.isEmpty());
 
                 // invoke callback
                 continueRunning = processCallback.processCallback(records, consumerId);
@@ -1043,10 +1161,13 @@ public class Channel implements Consumer, Producer, AutoCloseable {
 
         acquireAndEnsureChannelIsActive();
         try {
-            final String api = new StringBuilder(producerPathPrefix)
-                    .append("/produce").toString();
+            final StringBuilder api = new StringBuilder(producerPathPrefix)
+                    .append("/produce");
+            if (!this.isMultiTenant) {
+                api.append("?multi_tenant=false");
+            }
 
-            request.post(api, jsonProducerRecords.getBytes(), PRODUCE_RECORDS_ERROR_MAP);
+            request.post(api.toString(), jsonProducerRecords.getBytes(), PRODUCE_RECORDS_ERROR_MAP);
             if (logger.isDebugEnabled()) {
                 logger.debug("produced records.");
             }
@@ -1080,7 +1201,7 @@ public class Channel implements Consumer, Producer, AutoCloseable {
         }
         delete();
         request.close();
-        request = new Request(base, auth, verifyCertBundle, isHttps, httpProxySettings);
+        request = new Request(base, auth, verifyCertBundle, isHttps, httpProxySettings, requestHeaders);
         create();
 
     }
@@ -1243,4 +1364,5 @@ class ConsumerConfig {
         this.consumerGroup = consumerGroup;
         this.configs = configs;
     }
+
 }
