@@ -51,12 +51,12 @@ Maven:
 <dependency>
   <groupId>com.opendxl</groupId>
   <artifactId>dxlstreamingclient</artifactId>
-  <version>0.1.6</version>
+  <version>0.1.7</version>
 </dependency>
 ```
 or Gradle:
 ```groovy
-compile 'com.opendxl:dxlstreamingclient:0.1.6'
+compile 'com.opendxl:dxlstreamingclient:0.1.7'
 ```
 
 ## Bugs and Feedback
