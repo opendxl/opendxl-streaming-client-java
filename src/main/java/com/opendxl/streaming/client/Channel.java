@@ -1445,6 +1445,75 @@ public class Channel implements Consumer, Producer, AutoCloseable {
 
     }
 
+    public String callConsumerGroupDescribe(final String consumerGroupName)
+            throws PermanentError, TemporaryError {
+
+        acquireAndEnsureChannelIsActive();
+        String response = null;
+
+        if (consumerGroupName == null || consumerGroupName.isEmpty()) {
+            String error = "No value specified for 'consumerGroup' during channel init";
+            logger.error(error);
+            throw new PermanentError(error);
+        }
+
+        response = consumeLoopToDescribeConsumerGroup(consumerGroupName);
+        logger.info("Final response {}", response);
+        return response;
+    }
+
+    private String consumeLoopToDescribeConsumerGroup(final String consumerGroup)
+            throws PermanentError, TemporaryError {
+
+        String response = null;
+        try {
+            response = callConsumerLagApi(consumerGroup);
+        } catch (ConsumerError e) {
+            logger.error("Exception ex {}", e);
+        }
+        return response;
+
+    }
+
+    /**
+     * Call consumer lag api to get lag details using consumer-group
+     *
+     * @param consumerGroup Cosnumer-group.
+     * @throws ConsumerError  if the consumer associated with the channel does not
+     *                        exist on the server.
+     * @throws PermanentError if no topics were specified.
+     * @throws TemporaryError if the subscription attempt fails.
+     */
+    public String callConsumerLagApi(final String consumerGroup) throws ConsumerError, PermanentError, TemporaryError {
+        acquireAndEnsureChannelIsActive();
+        String consumerGroupResponse = null;
+        StringBuilder api = new StringBuilder()
+                .append("/v1/streaming/consumergroup/topic-wise-lag/")
+                .append(consumerGroup);
+        try {
+            logger.error("Request url :", api.toString());
+            consumerGroupResponse = request.get(api.toString(), CREATE_ERROR_MAP);
+            logger.error("consumerGroupResponse {}", consumerGroupResponse);
+            if (logger.isDebugEnabled()) {
+                logger.debug("consumer group call with callConsumerLagApi" + api.toString());
+            }
+
+        } catch (final ConsumerError error) {
+            error.setApi("consumerGroupLag");
+            logger.error("Failed to consumer-group " + consumerGroup, error);
+            throw error;
+        } catch (final PermanentError error) {
+            error.setApi("consumerGroupLag");
+            logger.error("Failed to consumer-group " + consumerGroup, error);
+            throw error;
+        } catch (final TemporaryError error) {
+            error.setApi("consumerGroupLag");
+            logger.error("Failed to consumer-group " + consumerGroup, error);
+            throw error;
+        }
+        return consumerGroupResponse;
+    }
+
 
     /**
      * Mapping of HTTP Status Code errors to {@link ErrorType} for {@link Channel#create()} API
