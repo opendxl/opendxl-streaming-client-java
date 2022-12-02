@@ -1258,66 +1258,59 @@ public class Channel implements Consumer, Producer, AutoCloseable {
     public void updateFilterSubscribe(final List<String> topics, final Map<String, Map<String, Object>> filter,
             final boolean payloadLookupForFilter) throws ConsumerError, PermanentError, TemporaryError {
         acquireAndEnsureChannelIsActive();
+        if (topics == null) {
+
+            String error = "Non-empty value must be specified for topics.";
+            logger.error(error);
+            throw new PermanentError(error);
+
+        }
+
+        // Remove any null or empty topic from list
+        if (topics.isEmpty()) {
+
+            String error = "Non-empty value must be specified for topics";
+            logger.error(error);
+            throw new PermanentError(error);
+
+        }
+
+        if (consumerId == null || consumerId.isEmpty()) {
+            // Auto-create consumer group if none present
+            create();
+        }
+
+        Gson gson = new Gson();
+        byte[] body = null;
+        if (null == filter || filter.isEmpty()) {
+            Topics topicsToBeSubscribed = new Topics(topics);
+            body = gson.toJson(topicsToBeSubscribed).getBytes();
+        } else {
+            SubscribePayload payload = new SubscribePayload(topics, filter, payloadLookupForFilter);
+            body = gson.toJson(payload).getBytes();
+        }
+
+        StringBuilder api = new StringBuilder(consumerPathPrefix)
+                .append("/consumers/")
+                .append(consumerId)
+                .append("/updateFilter");
+        if (!this.isMultiTenant) {
+            api.append("?multi_tenant=false");
+        }
+
+        final String logMessage = new StringBuilder(logConsumerId())
+                .append(" to ").append(topics).append(" topics.").toString();
         try {
-            if (topics == null) {
 
-                String error = "Non-empty value must be specified for topics.";
-                logger.error(error);
-                throw new PermanentError(error);
-
+            request.post(api.toString(), body, SUBSCRIBE_ERROR_MAP);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Subscribed call with updateFilter " + logMessage);
             }
 
-            // Remove any null or empty topic from list
-            if (topics.isEmpty()) {
-
-                String error = "Non-empty value must be specified for topics";
-                logger.error(error);
-                throw new PermanentError(error);
-
-            }
-
-            if (consumerId == null || consumerId.isEmpty()) {
-                // Auto-create consumer group if none present
-                create();
-            }
-
-            Gson gson = new Gson();
-            byte[] body = null;
-            if (null == filter || filter.isEmpty()) {
-                Topics topicsToBeSubscribed = new Topics(topics);
-                body = gson.toJson(topicsToBeSubscribed).getBytes();
-            } else {
-                SubscribePayload payload = new SubscribePayload(topics, filter, payloadLookupForFilter);
-                body = gson.toJson(payload).getBytes();
-            }
-
-            StringBuilder api = new StringBuilder(consumerPathPrefix)
-                    .append("/consumers/")
-                    .append(consumerId)
-                    .append("/updateFilter");
-            if (!this.isMultiTenant) {
-                api.append("?multi_tenant=false");
-            }
-
-            final String logMessage = new StringBuilder(logConsumerId())
-                    .append(" to ").append(topics).append(" topics.").toString();
-            try {
-
-                request.post(api.toString(), body, SUBSCRIBE_ERROR_MAP);
-                if (logger.isDebugEnabled()) {
-                    logger.debug("Subscribed call with updateFilter " + logMessage);
-                }
-
-                subscriptions.clear();
-                subscriptions.addAll(topics);
-
-            } catch (final ClientError error) {
-                error.setApi("subscribe");
-                logger.error("Failed to subscribe " + logMessage, error);
-                throw error;
-            }
-        } finally {
-            release();
+        } catch (final ClientError error) {
+            error.setApi("subscribe");
+            logger.error("Failed to subscribe " + logMessage, error);
+            throw error;
         }
 
     }
@@ -1345,8 +1338,6 @@ public class Channel implements Consumer, Producer, AutoCloseable {
      * this method.
      * </p>
      *
-     * @param processCallback Callable which is invoked with a list of records which
-     *                        have been consumed.
      * @param topics          If set to a non-empty value, the channel will be
      *                        subscribed to the specified topics.
      *                        If set to an empty value, the channel will use topics
@@ -1360,44 +1351,26 @@ public class Channel implements Consumer, Producer, AutoCloseable {
      * @throws TemporaryError consume or commit attempts failed with errors other
      *                        than ConsumerError.
      */
-    public void updateFilter(final ConsumerRecordProcessor processCallback, final List<String> topics,
-            final Map<String, Map<String, Object>> filter, final boolean payloadLookupForFilter, final int timeout)
+    public void updateFilter(final List<String> topics, final Map<String, Map<String, Object>> filter,
+            final boolean payloadLookupForFilter, final int timeout)
             throws PermanentError, TemporaryError {
 
         acquireAndEnsureChannelIsActive();
-        try {
-            if (consumerGroup == null || consumerGroup.isEmpty()) {
-                String error = "No value specified for 'consumerGroup' during channel init";
-                logger.error(error);
-                throw new PermanentError(error);
+
+        List<String> topicsOfInterest = topics != null && !topics.isEmpty() ? topics : subscriptions;
+
+        if (running.compareAndSet(false, true)) {
+
+            logger.info("Channel is running");
+
+            while (!stopRequested.get()) {
+                consumeLoopToFilter(topicsOfInterest, filter, payloadLookupForFilter, timeout);
             }
 
-            if (processCallback == null) {
-                String error = "processCallback not provided";
-                logger.error(error);
-                throw new PermanentError(error);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Exiting run method.");
             }
-
-            List<String> topicsOfInterest = topics != null && !topics.isEmpty() ? topics : subscriptions;
-
-            if (running.compareAndSet(false, true)) {
-
-                logger.info("Channel is running");
-
-                while (!stopRequested.get()) {
-                    consumeLoopToFilter(processCallback, topicsOfInterest, filter, payloadLookupForFilter, timeout);
-                }
-
-                if (logger.isDebugEnabled()) {
-                    logger.debug("Exiting run method.");
-                }
-            }
-
-        } finally {
-            running.set(false);
-            release();
         }
-
     }
 
     /**
@@ -1405,8 +1378,6 @@ public class Channel implements Consumer, Producer, AutoCloseable {
      * Calls consume to update filter
      * </p>
      *
-     * @param processCallback Callable which is invoked with a list of records which
-     *                        have been consumed.
      * @param topics          the channel will be subscribed to the specified
      *                        topics.
      * @param timeout         Timeout in milliseconds to wait for records before
@@ -1415,8 +1386,8 @@ public class Channel implements Consumer, Producer, AutoCloseable {
      *                        other than ConsumerError.
      * @throws PermanentError the callback asks to stop consuming records.
      */
-    private void consumeLoopToFilter(final ConsumerRecordProcessor processCallback, final List<String> topics,
-            final Map<String, Map<String, Object>> filter, final boolean payloadLookupForFilter, final int timeout)
+    private void consumeLoopToFilter(final List<String> topics, final Map<String, Map<String, Object>> filter,
+            final boolean payloadLookupForFilter, final int timeout)
             throws PermanentError, TemporaryError {
 
         boolean continueRunning = true;
