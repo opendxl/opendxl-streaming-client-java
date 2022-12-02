@@ -840,7 +840,7 @@ public class Channel implements Consumer, Producer, AutoCloseable {
      * @throws TemporaryError consume or commit attempts failed with errors other than ConsumerError.
      */
     public void run(final ConsumerRecordProcessor processCallback, final List<String> topics,
-                    final Map<String, Map<String, Object>> filter, final boolean payloadLookupForFilter, final int timeout)
+            final Map<String, Map<String, Object>> filter, final boolean payloadLookupForFilter, final int timeout)
             throws PermanentError, TemporaryError {
 
         acquireAndEnsureChannelIsActive();
@@ -1060,7 +1060,7 @@ public class Channel implements Consumer, Producer, AutoCloseable {
      * @throws PermanentError the callback asks to stop consuming records.
      */
     private void consumeLoop(final ConsumerRecordProcessor processCallback, final List<String> topics,
-                             final Map<String, Map<String, Object>> filter, final boolean payloadLookupForFilter, final int timeout)
+            final Map<String, Map<String, Object>> filter, final boolean payloadLookupForFilter, final int timeout)
             throws PermanentError, TemporaryError {
 
         boolean continueRunning = true;
@@ -1245,7 +1245,7 @@ public class Channel implements Consumer, Producer, AutoCloseable {
     private String logConsumerId() {
         return "consumer " + consumerId;
     }
-    
+
     /**
      * Update consumer filter with updated filter values
      *
