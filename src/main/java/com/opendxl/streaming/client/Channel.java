@@ -1484,7 +1484,7 @@ public class Channel implements Consumer, Producer, AutoCloseable {
         acquireAndEnsureChannelIsActive();
         String consumerGroupResponse = null;
         StringBuilder api = new StringBuilder()
-                .append("/v1/streaming/consumergroup/topic-wise-lag/")
+                .append("/v1/consumers/consumergroup/topic-wise-lag/")
                 .append(consumerGroup);
         try {
             logger.error("Request url :", api.toString());
