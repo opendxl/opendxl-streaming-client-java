@@ -1255,8 +1255,9 @@ public class Channel implements Consumer, Producer, AutoCloseable {
      * @throws PermanentError if no topics were specified.
      * @throws TemporaryError if the subscription attempt fails.
      */
-    public void updateFilterSubscribe(final List<String> topics, final Map<String, Map<String, Object>> filter,
-            final boolean payloadLookupForFilter) throws ConsumerError, PermanentError, TemporaryError {
+    public void updateFilter(final List<String> topics, final Map<String, Map<String, Object>> filter,
+            final boolean payloadLookupForFilter, final int timeout)
+            throws PermanentError, TemporaryError, ClientError {
         acquireAndEnsureChannelIsActive();
         if (topics == null) {
 
@@ -1276,8 +1277,9 @@ public class Channel implements Consumer, Producer, AutoCloseable {
         }
 
         if (consumerId == null || consumerId.isEmpty()) {
-            // Auto-create consumer group if none present
-            create();
+            String error = "Consumer instance id can not be null or empty";
+            logger.error(error);
+            throw new PermanentError(error);
         }
 
         Gson gson = new Gson();
@@ -1311,132 +1313,6 @@ public class Channel implements Consumer, Producer, AutoCloseable {
             error.setApi("subscribe");
             logger.error("Failed to subscribe " + logMessage, error);
             throw error;
-        }
-
-    }
-
-    /**
-     * <p>
-     * Update consumer filter for the subscribed topics.
-     * </p>
-     *
-     * <p>
-     * The supplied
-     * {@link ConsumerRecordProcessor#processCallback(ConsumerRecords, String)}
-     * method is invoked with a list containing
-     * each consumer record.
-     * </p>
-     *
-     * <p>
-     * {@link ConsumerRecordProcessor#processCallback(ConsumerRecords, String)}
-     * return value is <b>currently
-     * ignored</b>. It is <b>reserved for future use</b>.
-     * </p>
-     *
-     * <p>
-     * The {@link Channel#stop()} method can also be called to halt an execution of
-     * this method.
-     * </p>
-     *
-     * @param topics          If set to a non-empty value, the channel will be
-     *                        subscribed to the specified topics.
-     *                        If set to an empty value, the channel will use topics
-     *                        previously subscribed via a call to the
-     *                        subscribe method.
-     * @param timeout         Timeout in milliseconds to wait for records before
-     *                        returning
-     * @throws PermanentError if a prior run is already in progress or no consumer
-     *                        group value was specified or
-     *                        callback to deliver records was not specified
-     * @throws TemporaryError consume or commit attempts failed with errors other
-     *                        than ConsumerError.
-     */
-    public void updateFilter(final List<String> topics, final Map<String, Map<String, Object>> filter,
-            final boolean payloadLookupForFilter, final int timeout)
-            throws PermanentError, TemporaryError {
-
-        acquireAndEnsureChannelIsActive();
-
-        List<String> topicsOfInterest = topics != null && !topics.isEmpty() ? topics : subscriptions;
-
-        if (running.compareAndSet(false, true)) {
-
-            logger.info("Channel is running");
-
-            while (!stopRequested.get()) {
-                consumeLoopToFilter(topicsOfInterest, filter, payloadLookupForFilter, timeout);
-            }
-
-            if (logger.isDebugEnabled()) {
-                logger.debug("Exiting run method.");
-            }
-        }
-    }
-
-    /**
-     * <p>
-     * Calls consume to update filter
-     * </p>
-     *
-     * @param topics          the channel will be subscribed to the specified
-     *                        topics.
-     * @param timeout         Timeout in milliseconds to wait for records before
-     *                        returning
-     * @throws TemporaryError the consume or commit attempt failed with an error
-     *                        other than ConsumerError.
-     * @throws PermanentError the callback asks to stop consuming records.
-     */
-    private void consumeLoopToFilter(final List<String> topics, final Map<String, Map<String, Object>> filter,
-            final boolean payloadLookupForFilter, final int timeout)
-            throws PermanentError, TemporaryError {
-
-        boolean continueRunning = true;
-        boolean subscribed = false;
-
-        while (continueRunning) {
-            try {
-                // if consumer is not subscribed yet, then subscribe it
-                if (!subscribed) {
-                    updateFilterSubscribe(topics, filter, payloadLookupForFilter);
-                    subscribed = true;
-                    if (logger.isDebugEnabled()) {
-                        // show topics consumer is subscribed to
-                        subscriptions();
-                    }
-                }
-
-            } catch (final ConsumerError error) {
-                // ConsumerError exception can be raised if the consumer has been removed or if
-                // callback found errors
-                // in records and it wants them to be consumed again.
-                // Then, current consumer is deleted and a brand new one is created to resume
-                // consuming from
-                // last commit.
-                logger.info("Creating a new consumer to resume consuming.");
-                logger.error("Consumer error was: ", error);
-                subscribed = false;
-                recreateConsumer(topics, error);
-
-                if (!retryOnFail) {
-                    continueRunning = false;
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("Exiting run method because retryOnFail is " + retryOnFail);
-                    }
-                }
-
-            } catch (final PermanentError | TemporaryError error) {
-                // Delete consumer instance.
-                delete();
-                error.setApi("run");
-                logger.error("Exiting run method due to error", error);
-                throw error;
-            } finally {
-                // Check if there is a request to stop consuming records
-                if (stopRequested.get()) {
-                    // Exit consume loop immediately
-                    continueRunning = false;
-                }
-            }
         }
 
     }
