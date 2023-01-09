@@ -1263,22 +1263,20 @@ public class Channel implements Consumer, Producer, AutoCloseable {
             logger.error(error);
             throw new PermanentError(error);
         }
-
         Gson gson = new Gson();
         byte[] body = null;
         if (null == filter || filter.isEmpty()) {
-            Topics topicsToBeSubscribed = new Topics(null);
-            body = gson.toJson(topicsToBeSubscribed).getBytes();
+            String error = "Filter value can not be null or empty";
+            logger.error(error);
+            throw new PermanentError(error);
         } else {
             UpdateFilterRequest payload = new UpdateFilterRequest(filter);
             body = gson.toJson(payload).getBytes();
         }
-
         StringBuilder api = new StringBuilder(consumerPathPrefix)
                 .append("/consumers/")
                 .append(consumerId)
                 .append("/updateFilter");
-
         final String logMessage = new StringBuilder(logConsumerId())
                 .append(" to ").toString();
         try {
@@ -1293,21 +1291,17 @@ public class Channel implements Consumer, Producer, AutoCloseable {
             logger.error("Failed to update filter " + logMessage, error);
             throw error;
         }
-
     }
 
     public String callConsumerGroupDescribe(final String consumerGroupName)
             throws PermanentError, TemporaryError {
-
         acquireAndEnsureChannelIsActive();
         String response = null;
-
         if (consumerGroupName == null || consumerGroupName.isEmpty()) {
             String error = "No value specified for 'consumerGroup' during channel init";
             logger.error(error);
             throw new PermanentError(error);
         }
-
         response = consumeLoopToDescribeConsumerGroup(consumerGroupName);
         logger.info("Final response {}", response);
         return response;
@@ -1315,7 +1309,6 @@ public class Channel implements Consumer, Producer, AutoCloseable {
 
     private String consumeLoopToDescribeConsumerGroup(final String consumerGroup)
             throws PermanentError, TemporaryError {
-
         String response = null;
         try {
             response = callConsumerLagApi(consumerGroup);
@@ -1323,7 +1316,6 @@ public class Channel implements Consumer, Producer, AutoCloseable {
             logger.error("Exception ex {}", e);
         }
         return response;
-
     }
 
     /**
@@ -1342,24 +1334,23 @@ public class Channel implements Consumer, Producer, AutoCloseable {
                 .append("/v1/consumers/consumergroup/topic-wise-lag/")
                 .append(consumerGroup);
         try {
-            logger.error("Request url :", api.toString());
+            logger.debug("Request url :", api.toString());
             consumerGroupResponse = request.get(api.toString(), CREATE_ERROR_MAP);
             logger.error("consumerGroupResponse {}", consumerGroupResponse);
             if (logger.isDebugEnabled()) {
                 logger.debug("consumer group call with callConsumerLagApi" + api.toString());
             }
-
         } catch (final ConsumerError error) {
             error.setApi("consumerGroupLag");
-            logger.error("Failed to consumer-group " + consumerGroup, error);
+            logger.error("Failed to fetch the lag for consumer group " + consumerGroup, error);
             throw error;
         } catch (final PermanentError error) {
             error.setApi("consumerGroupLag");
-            logger.error("Failed to consumer-group " + consumerGroup, error);
+            logger.error("Failed to fetch the lag for consumer group " + consumerGroup, error);
             throw error;
         } catch (final TemporaryError error) {
             error.setApi("consumerGroupLag");
-            logger.error("Failed to consumer-group " + consumerGroup, error);
+            logger.error("Failed to fetch the lag for consumer group " + consumerGroup, error);
             throw error;
         }
         return consumerGroupResponse;
