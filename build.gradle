@@ -20,7 +20,7 @@ plugins {
     id "com.github.johnrengelman.shadow" version "4.0.3"
     id "kr.motd.sphinx" version "2.3.1"
     id "jacoco"
-    id "org.owasp.dependencycheck" version "7.1.2"
+    id "org.owasp.dependencycheck" version "7.4.4"
 
 }
 

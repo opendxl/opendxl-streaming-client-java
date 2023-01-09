@@ -8,6 +8,7 @@ import com.opendxl.streaming.client.entity.ConsumerRecords;
 import com.opendxl.streaming.client.entity.ProducerRecords;
 import com.opendxl.streaming.client.entity.SubscribePayload;
 import com.opendxl.streaming.client.entity.Topics;
+import com.opendxl.streaming.client.entity.UpdateFilterRequest;
 import com.opendxl.streaming.client.exception.ClientError;
 import com.opendxl.streaming.client.exception.ConsumerError;
 import com.opendxl.streaming.client.exception.ErrorType;
@@ -1252,30 +1253,11 @@ public class Channel implements Consumer, Producer, AutoCloseable {
      * @param topics Topic list.
      * @throws ConsumerError  if the consumer associated with the channel does not
      *                        exist on the server.
-     * @throws PermanentError if no topics were specified.
+     * @throws PermanentError if no consumer instance-id was specified.
      * @throws TemporaryError if the subscription attempt fails.
      */
-    public void updateFilter(final List<String> topics, final Map<String, Map<String, Object>> filter,
-            final boolean payloadLookupForFilter, final int timeout)
+    public void updateFilter(final Map<String, Map<String, Object>> filter)
             throws PermanentError, TemporaryError, ClientError {
-        acquireAndEnsureChannelIsActive();
-        if (topics == null) {
-
-            String error = "Non-empty value must be specified for topics.";
-            logger.error(error);
-            throw new PermanentError(error);
-
-        }
-
-        // Remove any null or empty topic from list
-        if (topics.isEmpty()) {
-
-            String error = "Non-empty value must be specified for topics";
-            logger.error(error);
-            throw new PermanentError(error);
-
-        }
-
         if (consumerId == null || consumerId.isEmpty()) {
             String error = "Consumer instance id can not be null or empty";
             logger.error(error);
@@ -1285,10 +1267,10 @@ public class Channel implements Consumer, Producer, AutoCloseable {
         Gson gson = new Gson();
         byte[] body = null;
         if (null == filter || filter.isEmpty()) {
-            Topics topicsToBeSubscribed = new Topics(topics);
+            Topics topicsToBeSubscribed = new Topics(null);
             body = gson.toJson(topicsToBeSubscribed).getBytes();
         } else {
-            SubscribePayload payload = new SubscribePayload(topics, filter, payloadLookupForFilter);
+            UpdateFilterRequest payload = new UpdateFilterRequest(filter);
             body = gson.toJson(payload).getBytes();
         }
 
@@ -1296,22 +1278,19 @@ public class Channel implements Consumer, Producer, AutoCloseable {
                 .append("/consumers/")
                 .append(consumerId)
                 .append("/updateFilter");
-        if (!this.isMultiTenant) {
-            api.append("?multi_tenant=false");
-        }
 
         final String logMessage = new StringBuilder(logConsumerId())
-                .append(" to ").append(topics).append(" topics.").toString();
+                .append(" to ").toString();
         try {
 
-            request.post(api.toString(), body, SUBSCRIBE_ERROR_MAP);
+            request.post(api.toString(), body, UPDATE_FILTER_ERROR_MAP);
             if (logger.isDebugEnabled()) {
-                logger.debug("Subscribed call with updateFilter " + logMessage);
+                logger.debug("Update filter call " + logMessage);
             }
 
         } catch (final ClientError error) {
-            error.setApi("subscribe");
-            logger.error("Failed to subscribe " + logMessage, error);
+            error.setApi("update-filter");
+            logger.error("Failed to update filter " + logMessage, error);
             throw error;
         }
 
@@ -1466,6 +1445,17 @@ public class Channel implements Consumer, Producer, AutoCloseable {
         put(HttpStatusCodes.UNAUTHORIZED, ErrorType.TEMPORARY_ERROR);
         put(HttpStatusCodes.FORBIDDEN, ErrorType.TEMPORARY_ERROR);
         put(HttpStatusCodes.NOT_FOUND, ErrorType.PERMANENT_ERROR);
+        put(HttpStatusCodes.CONFLICT, ErrorType.TEMPORARY_ERROR);
+        put(HttpStatusCodes.INTERNAL_SERVER_ERROR, ErrorType.TEMPORARY_ERROR);
+    }};
+
+    /**
+     * Mapping of HTTP Status Code errors to {@link ErrorType} for {@link Channel#updateFilter(filter)} API
+     */
+    private static final Map<Integer, ErrorType> UPDATE_FILTER_ERROR_MAP = new HashMap() {{
+        put(HttpStatusCodes.BAD_REQUEST, ErrorType.PERMANENT_ERROR);
+        put(HttpStatusCodes.FORBIDDEN, ErrorType.TEMPORARY_ERROR);
+        put(HttpStatusCodes.NOT_FOUND, ErrorType.CONSUMER_ERROR);
         put(HttpStatusCodes.CONFLICT, ErrorType.TEMPORARY_ERROR);
         put(HttpStatusCodes.INTERNAL_SERVER_ERROR, ErrorType.TEMPORARY_ERROR);
     }};
