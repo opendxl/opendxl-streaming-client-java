@@ -1280,12 +1280,10 @@ public class Channel implements Consumer, Producer, AutoCloseable {
         final String logMessage = new StringBuilder(logConsumerId())
                 .append(" to ").toString();
         try {
-
             request.post(api.toString(), body, UPDATE_FILTER_ERROR_MAP);
             if (logger.isDebugEnabled()) {
                 logger.debug("Update filter call " + logMessage);
             }
-
         } catch (final ClientError error) {
             error.setApi("update-filter");
             logger.error("Failed to update filter " + logMessage, error);
