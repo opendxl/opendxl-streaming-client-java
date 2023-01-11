@@ -40,14 +40,14 @@ Maven:
         <dependency>
           <groupId>com.opendxl</groupId>
           <artifactId>dxlstreamingclient</artifactId>
-          <version>0.1.7</version>
+          <version>0.1.8</version>
         </dependency>
 
 Gradle:
 
     .. code-block:: groovy
 
-        compile 'com.opendxl:dxlstreamingclient:0.1.7'
+        compile 'com.opendxl:dxlstreamingclient:0.1.8'
 
 API Documentation
 -----------------
