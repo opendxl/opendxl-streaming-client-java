@@ -8,6 +8,7 @@ import com.opendxl.streaming.client.entity.ConsumerRecords;
 import com.opendxl.streaming.client.entity.ProducerRecords;
 import com.opendxl.streaming.client.entity.SubscribePayload;
 import com.opendxl.streaming.client.entity.Topics;
+import com.opendxl.streaming.client.entity.UpdateFilterRequest;
 import com.opendxl.streaming.client.exception.ClientError;
 import com.opendxl.streaming.client.exception.ConsumerError;
 import com.opendxl.streaming.client.exception.ErrorType;
@@ -455,8 +456,8 @@ public class Channel implements Consumer, Producer, AutoCloseable {
      * @throws PermanentError if no topics were specified.
      * @throws TemporaryError if the subscription attempt fails.
      */
-    public void subscribe(final List<String> topics, final Map<String, Object> filter,
-        final boolean payloadLookupForFilter) throws ConsumerError, PermanentError, TemporaryError {
+    public void subscribe(final List<String> topics, final Map<String, Map<String, Object>> filter,
+                          final boolean payloadLookupForFilter) throws ConsumerError, PermanentError, TemporaryError {
         acquireAndEnsureChannelIsActive();
         try {
             if (topics == null) {
@@ -840,7 +841,7 @@ public class Channel implements Consumer, Producer, AutoCloseable {
      * @throws TemporaryError consume or commit attempts failed with errors other than ConsumerError.
      */
     public void run(final ConsumerRecordProcessor processCallback, final List<String> topics,
-    final Map<String, Object> filter, final boolean payloadLookupForFilter, final int timeout)
+            final Map<String, Map<String, Object>> filter, final boolean payloadLookupForFilter, final int timeout)
             throws PermanentError, TemporaryError {
 
         acquireAndEnsureChannelIsActive();
@@ -1060,8 +1061,8 @@ public class Channel implements Consumer, Producer, AutoCloseable {
      * @throws PermanentError the callback asks to stop consuming records.
      */
     private void consumeLoop(final ConsumerRecordProcessor processCallback, final List<String> topics,
-        final Map<String, Object> filter, final boolean payloadLookupForFilter, final int timeout)
-        throws PermanentError, TemporaryError {
+            final Map<String, Map<String, Object>> filter, final boolean payloadLookupForFilter, final int timeout)
+            throws PermanentError, TemporaryError {
 
         boolean continueRunning = true;
         boolean subscribed = false;
@@ -1246,6 +1247,113 @@ public class Channel implements Consumer, Producer, AutoCloseable {
         return "consumer " + consumerId;
     }
 
+    /**
+     * Update consumer filter with updated filter values
+     *
+     * @param topics Topic list.
+     * @throws ConsumerError  if the consumer associated with the channel does not
+     *                        exist on the server.
+     * @throws PermanentError if no consumer instance-id was specified.
+     * @throws TemporaryError if the subscription attempt fails.
+     */
+    public void updateFilter(final Map<String, Map<String, Object>> filter)
+            throws PermanentError, TemporaryError, ClientError {
+        if (consumerId == null || consumerId.isEmpty()) {
+            String error = "Consumer instance id can not be null or empty";
+            logger.error(error);
+            throw new PermanentError(error);
+        }
+        Gson gson = new Gson();
+        byte[] body = null;
+        if (null == filter || filter.isEmpty()) {
+            String error = "Filter value can not be null or empty";
+            logger.error(error);
+            throw new PermanentError(error);
+        } else {
+            UpdateFilterRequest payload = new UpdateFilterRequest(filter);
+            body = gson.toJson(payload).getBytes();
+        }
+        StringBuilder api = new StringBuilder(consumerPathPrefix)
+                .append("/consumers/")
+                .append(consumerId)
+                .append("/updateFilter");
+        final String logMessage = new StringBuilder(logConsumerId())
+                .append(" to ").toString();
+        try {
+            request.post(api.toString(), body, UPDATE_FILTER_ERROR_MAP);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Update filter call " + logMessage);
+            }
+        } catch (final ClientError error) {
+            error.setApi("update-filter");
+            logger.error("Failed to update filter " + logMessage, error);
+            throw error;
+        }
+    }
+
+    public String callConsumerGroupDescribe(final String consumerGroupName)
+            throws PermanentError, TemporaryError {
+        acquireAndEnsureChannelIsActive();
+        String response = null;
+        if (consumerGroupName == null || consumerGroupName.isEmpty()) {
+            String error = "No value specified for 'consumerGroup' during channel init";
+            logger.error(error);
+            throw new PermanentError(error);
+        }
+        response = consumeLoopToDescribeConsumerGroup(consumerGroupName);
+        logger.info("Final response {}", response);
+        return response;
+    }
+
+    private String consumeLoopToDescribeConsumerGroup(final String consumerGroup)
+            throws PermanentError, TemporaryError {
+        String response = null;
+        try {
+            response = callConsumerLagApi(consumerGroup);
+        } catch (ConsumerError e) {
+            logger.error("Exception ex {}", e);
+        }
+        return response;
+    }
+
+    /**
+     * Call consumer lag api to get lag details using consumer-group
+     *
+     * @param consumerGroup Cosnumer-group.
+     * @throws ConsumerError  if the consumer associated with the channel does not
+     *                        exist on the server.
+     * @throws PermanentError if no topics were specified.
+     * @throws TemporaryError if the subscription attempt fails.
+     */
+    public String callConsumerLagApi(final String consumerGroup) throws ConsumerError, PermanentError, TemporaryError {
+        acquireAndEnsureChannelIsActive();
+        String consumerGroupResponse = null;
+        StringBuilder api = new StringBuilder()
+                .append("/v1/consumers/consumergroup/topic-wise-lag/")
+                .append(consumerGroup);
+        try {
+            logger.debug("Request url :", api.toString());
+            consumerGroupResponse = request.get(api.toString(), CREATE_ERROR_MAP);
+            logger.error("consumerGroupResponse {}", consumerGroupResponse);
+            if (logger.isDebugEnabled()) {
+                logger.debug("consumer group call with callConsumerLagApi" + api.toString());
+            }
+        } catch (final ConsumerError error) {
+            error.setApi("consumerGroupLag");
+            logger.error("Failed to fetch the lag for consumer group " + consumerGroup, error);
+            throw error;
+        } catch (final PermanentError error) {
+            error.setApi("consumerGroupLag");
+            logger.error("Failed to fetch the lag for consumer group " + consumerGroup, error);
+            throw error;
+        } catch (final TemporaryError error) {
+            error.setApi("consumerGroupLag");
+            logger.error("Failed to fetch the lag for consumer group " + consumerGroup, error);
+            throw error;
+        }
+        return consumerGroupResponse;
+    }
+
 
     /**
      * Mapping of HTTP Status Code errors to {@link ErrorType} for {@link Channel#create()} API
@@ -1326,6 +1434,17 @@ public class Channel implements Consumer, Producer, AutoCloseable {
         put(HttpStatusCodes.UNAUTHORIZED, ErrorType.TEMPORARY_ERROR);
         put(HttpStatusCodes.FORBIDDEN, ErrorType.TEMPORARY_ERROR);
         put(HttpStatusCodes.NOT_FOUND, ErrorType.PERMANENT_ERROR);
+        put(HttpStatusCodes.CONFLICT, ErrorType.TEMPORARY_ERROR);
+        put(HttpStatusCodes.INTERNAL_SERVER_ERROR, ErrorType.TEMPORARY_ERROR);
+    }};
+
+    /**
+     * Mapping of HTTP Status Code errors to {@link ErrorType} for {@link Channel#updateFilter(filter)} API
+     */
+    private static final Map<Integer, ErrorType> UPDATE_FILTER_ERROR_MAP = new HashMap() {{
+        put(HttpStatusCodes.BAD_REQUEST, ErrorType.PERMANENT_ERROR);
+        put(HttpStatusCodes.FORBIDDEN, ErrorType.TEMPORARY_ERROR);
+        put(HttpStatusCodes.NOT_FOUND, ErrorType.CONSUMER_ERROR);
         put(HttpStatusCodes.CONFLICT, ErrorType.TEMPORARY_ERROR);
         put(HttpStatusCodes.INTERNAL_SERVER_ERROR, ErrorType.TEMPORARY_ERROR);
     }};
